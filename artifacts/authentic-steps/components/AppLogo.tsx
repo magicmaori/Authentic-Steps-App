@@ -9,18 +9,11 @@ interface AppLogoProps {
   tint?: 'auto' | 'light' | 'dark';
 }
 
-const ICON_SIZES = {
-  sm: 28,
-  md: 40,
-  lg: 60,
-  xl: 88,
-};
-
-const TITLE_SIZES = {
-  sm: 15,
-  md: 20,
-  lg: 28,
-  xl: 36,
+const LOGO_HEIGHTS = {
+  sm: 30,
+  md: 42,
+  lg: 64,
+  xl: 96,
 };
 
 const TAGLINE_SIZES = {
@@ -32,16 +25,15 @@ const TAGLINE_SIZES = {
 
 export function AppLogo({ size = 'md', showTagline = false, tint = 'auto' }: AppLogoProps) {
   const colors = useColors();
-  const iconSize = ICON_SIZES[size];
-  const titleSize = TITLE_SIZES[size];
+  const logoHeight = LOGO_HEIGHTS[size];
   const taglineSize = TAGLINE_SIZES[size];
 
-  const titleColor =
+  const logoTintColor =
     tint === 'light'
       ? '#FFFFFF'
       : tint === 'dark'
         ? '#193b83'
-        : colors.foreground;
+        : undefined;
 
   const taglineColor =
     tint === 'light'
@@ -53,47 +45,33 @@ export function AppLogo({ size = 'md', showTagline = false, tint = 'auto' }: App
   return (
     <View style={styles.container}>
       <Image
-        source={require('@/assets/images/icon.png')}
-        style={[styles.icon, { width: iconSize, height: iconSize, borderRadius: iconSize * 0.22 }]}
-        resizeMode="cover"
+        source={require('@/assets/images/logo.png')}
+        style={[styles.logo, { height: logoHeight }]}
+        resizeMode="contain"
+        tintColor={logoTintColor}
         accessibilityLabel="Authentic Steps logo"
       />
-      <View style={styles.textGroup}>
-        <Text
-          style={[styles.title, { fontSize: titleSize, color: titleColor }]}
-          numberOfLines={1}
-        >
-          Authentic Steps
+      {showTagline && (
+        <Text style={[styles.tagline, { fontSize: taglineSize, color: taglineColor }]}>
+          For Youth
         </Text>
-        {showTagline && (
-          <Text style={[styles.tagline, { fontSize: taglineSize, color: taglineColor }]}>
-            For Youth
-          </Text>
-        )}
-      </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    alignItems: 'flex-start',
+    gap: 4,
   },
-  icon: {
-    flexShrink: 0,
-  },
-  textGroup: {
-    gap: 1,
-  },
-  title: {
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -0.3,
+  logo: {
+    width: undefined,
+    aspectRatio: 2.4,
   },
   tagline: {
     fontFamily: 'Inter_500Medium',
-    letterSpacing: 0.4,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
 });
