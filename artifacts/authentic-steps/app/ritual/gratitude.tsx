@@ -70,7 +70,7 @@ export default function GratitudeScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={[colors.primary, `${colors.primary}CC`]}
+        colors={[colors.gradientStart, '#193b83']}
         style={[styles.headerGrad, { paddingTop: insets.top + 12 }]}
       >
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -233,9 +233,9 @@ const styles = StyleSheet.create({
   backBtn: { marginBottom: 4 },
   progressRow: { flexDirection: 'row', gap: 6, marginBottom: 4 },
   progressDot: { width: 28, height: 4, borderRadius: 2 },
-  stepLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.7)', letterSpacing: 1 },
+  stepLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#fff', letterSpacing: 1 },
   headerTitle: { fontSize: 26, fontFamily: 'Inter_700Bold', color: '#fff', marginTop: 2 },
-  prompt: { fontSize: 14, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.9)', lineHeight: 20, marginTop: 2 },
+  prompt: { fontSize: 14, fontFamily: 'Inter_400Regular', color: '#fff', lineHeight: 20, marginTop: 2 },
   scroll: { flex: 1 },
   scrollContent: { padding: 16, gap: 12 },
   entryCard: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 10 },

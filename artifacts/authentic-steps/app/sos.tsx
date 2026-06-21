@@ -96,7 +96,7 @@ export default function SOSScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#03989e', '#193b83']}
+        colors={[colors.gradientStart, '#193b83']}
         style={[styles.header, { paddingTop: insets.top + 16 }]}
       >
         <Pressable
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.85)',
+    color: '#fff',
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 12,

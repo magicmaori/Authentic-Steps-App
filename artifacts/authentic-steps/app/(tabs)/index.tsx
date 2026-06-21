@@ -125,11 +125,11 @@ export default function DailyRitualScreen() {
 
         {allDone ? (
           <LinearGradient
-            colors={[colors.primary, '#193b83']}
+            colors={[colors.gradientStart, '#193b83']}
             style={styles.allDoneCard}
           >
             <View style={styles.allDoneCheck}>
-              <Ionicons name="checkmark" size={28} color={colors.primary} />
+              <Ionicons name="checkmark" size={28} color="#001f3d" />
             </View>
             <Text style={styles.allDoneTitle}>Ritual complete!</Text>
             <Text style={styles.allDoneSubtitle}>
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   allDoneSubtitle: {
     fontSize: 14,
     fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.85)',
+    color: '#fff',
     textAlign: 'center',
     lineHeight: 20,
   },

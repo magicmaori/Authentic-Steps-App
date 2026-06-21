@@ -32,7 +32,7 @@ export default function StreaksScreen() {
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={[colors.primary, '#193b83']}
+          colors={[colors.gradientStart, '#193b83']}
           style={styles.streakHero}
         >
           <Ionicons name="flame" size={48} color="#F4A261" />
@@ -166,11 +166,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   streakNumber: { fontSize: 64, fontFamily: 'Inter_700Bold', color: '#fff', lineHeight: 70 },
-  streakLabel: { fontSize: 18, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.85)' },
+  streakLabel: { fontSize: 18, fontFamily: 'Inter_500Medium', color: '#fff' },
   streakMeta: { flexDirection: 'row', gap: 24, marginTop: 12 },
   streakMetaItem: { alignItems: 'center', gap: 2 },
   streakMetaNum: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#fff' },
-  streakMetaLabel: { fontSize: 12, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.7)' },
+  streakMetaLabel: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#fff' },
   streakMetaDivider: { width: 1, height: 36 },
   powerCard: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 10 },
   powerRow: { flexDirection: 'row', gap: 12 },

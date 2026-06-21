@@ -93,7 +93,7 @@ export default function SupportScreen() {
             style={({ pressed }) => [pressed && styles.pressed]}
           >
             <LinearGradient
-              colors={[colors.primary, '#3A7D5C']}
+              colors={[colors.gradientStart, '#1a5c3a']}
               style={styles.supportBtn}
             >
               <Ionicons name="hand-left" size={28} color="#fff" />
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   supportBtnText: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#fff' },
-  supportBtnSub: { fontSize: 13, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.85)' },
+  supportBtnSub: { fontSize: 13, fontFamily: 'Inter_400Regular', color: '#fff' },
   pressed: { opacity: 0.85 },
   triageCard: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 10 },
   triageQ: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginBottom: 4 },

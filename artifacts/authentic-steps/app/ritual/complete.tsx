@@ -35,14 +35,14 @@ export default function CompleteScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={[colors.primary, '#193b83']}
+        colors={[colors.gradientStart, '#193b83']}
         style={StyleSheet.absoluteFill}
       />
 
       <View style={[styles.content, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 30 }]}>
         <Animated.View style={[styles.iconWrap, { transform: [{ scale: scaleAnim }] }]}>
           <View style={styles.bigCircle}>
-            <Ionicons name="checkmark" size={52} color={colors.primary} />
+            <Ionicons name="checkmark" size={52} color="#001f3d" />
           </View>
         </Animated.View>
 
@@ -84,8 +84,8 @@ export default function CompleteScreen() {
           onPress={handleDone}
           style={({ pressed }) => [styles.doneBtn, pressed && styles.pressed]}
         >
-          <Text style={[styles.doneBtnText, { color: colors.primary }]}>Back to home</Text>
-          <Ionicons name="home" size={18} color={colors.primary} />
+          <Text style={[styles.doneBtnText, { color: '#001f3d' }]}>Back to home</Text>
+          <Ionicons name="home" size={18} color="#001f3d" />
         </Pressable>
       </View>
     </View>
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.85)',
+    color: '#fff',
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 6,
   },
-  iAmLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.6)', letterSpacing: 0.5 },
+  iAmLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: 'rgba(255,255,255,0.85)', letterSpacing: 0.5 },
   iAmStatement: { fontSize: 18, fontFamily: 'Inter_600SemiBold', color: '#fff', lineHeight: 26 },
   summaryRow: {
     flexDirection: 'row',
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     width: '100%',
   },
-  summaryText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.7)', flex: 1, lineHeight: 18 },
+  summaryText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: '#fff', flex: 1, lineHeight: 18 },
   doneBtn: {
     flexDirection: 'row',
     alignItems: 'center',

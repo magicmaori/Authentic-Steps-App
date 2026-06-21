@@ -18,6 +18,7 @@ const colors = {
     destructiveForeground: "#FFFFFF",
     border: "#c8e8ea",
     input: "#e6f7f8",
+    gradientStart: "#037880",
   },
   dark: {
     text: "#e8f4f8",
@@ -31,13 +32,14 @@ const colors = {
     secondary: "#0d2a5c",
     secondaryForeground: "#6dbdf2",
     muted: "#0d2a5c",
-    mutedForeground: "#7aaabb",
+    mutedForeground: "#8fc4d4",
     accent: "#6dbdf2",
     accentForeground: "#001f3d",
     destructive: "#EF4444",
     destructiveForeground: "#FFFFFF",
     border: "#1e4a80",
     input: "#1e4a80",
+    gradientStart: "#024f55",
   },
   radius: 14,
 };
