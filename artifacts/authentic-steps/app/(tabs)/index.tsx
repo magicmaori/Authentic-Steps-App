@@ -6,6 +6,7 @@ import React from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppLogo } from '@/components/AppLogo';
 import { SOSButton } from '@/components/SOSButton';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
@@ -87,6 +88,10 @@ export default function DailyRitualScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.logoHeader}>
+          <AppLogo size="sm" />
+        </View>
+
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <Text style={[styles.greeting, { color: colors.mutedForeground }]}>
@@ -243,6 +248,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flex: 1 },
   content: { padding: 20, gap: 16 },
+  logoHeader: { paddingBottom: 4 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   headerLeft: { flex: 1, gap: 2 },
   greeting: { fontSize: 13, fontFamily: 'Inter_400Regular' },

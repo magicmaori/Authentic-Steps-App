@@ -39,6 +39,7 @@ export interface UserData {
   totalEncouragements: number;
   lastCheckIn: string;
   lastFlexWeek: string;
+  hasOnboarded: boolean;
 }
 
 interface AppContextType {
@@ -54,6 +55,7 @@ interface AppContextType {
   useStreakFreeze: () => Promise<boolean>;
   isStepDone: (step: 'gratitude' | 'intention' | 'iAm') => boolean;
   getStreakCalendar: () => { date: string; done: boolean; flex: boolean }[];
+  completeOnboarding: () => Promise<void>;
 }
 
 const defaultUser: UserData = {
@@ -67,6 +69,7 @@ const defaultUser: UserData = {
   totalEncouragements: 0,
   lastCheckIn: '',
   lastFlexWeek: '',
+  hasOnboarded: false,
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -106,7 +109,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage.getItem(STORAGE_KEY_USER),
         AsyncStorage.getItem(STORAGE_KEY_ENTRIES),
       ]);
-      if (userRaw) setUserData(JSON.parse(userRaw));
+      if (userRaw) {
+        const parsed = JSON.parse(userRaw) as Partial<UserData>;
+        setUserData({
+          ...defaultUser,
+          ...parsed,
+          hasOnboarded: parsed.hasOnboarded ?? (parsed.totalRituals !== undefined && parsed.totalRituals > 0),
+        });
+      }
       if (entriesRaw) setEntries(JSON.parse(entriesRaw));
     } catch {
     } finally {
@@ -260,6 +270,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, [userData]);
 
+  const completeOnboarding = useCallback(async () => {
+    const newUser = { ...userData, hasOnboarded: true };
+    await saveUser(newUser);
+  }, [userData]);
+
   function getStreakCalendar() {
     const days: { date: string; done: boolean; flex: boolean }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -292,6 +307,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       useStreakFreeze,
       isStepDone,
       getStreakCalendar,
+      completeOnboarding,
     }}>
       {children}
     </AppContext.Provider>

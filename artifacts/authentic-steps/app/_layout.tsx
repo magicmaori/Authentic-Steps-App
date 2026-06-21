@@ -6,7 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -14,19 +14,35 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AppProvider } from "@/context/AppContext";
+import { AppProvider, useApp } from "@/context/AppContext";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const { isLoaded, userData } = useApp();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!userData.hasOnboarded) {
+      router.replace('/onboarding' as any);
+    }
+  }, [isLoaded, userData.hasOnboarded]);
+
+  return <>{children}</>;
+}
+
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="ritual" options={{ headerShown: false }} />
-      <Stack.Screen name="sos" options={{ presentation: "modal", headerShown: false }} />
-    </Stack>
+    <OnboardingGate>
+      <Stack screenOptions={{ headerBackTitle: "Back" }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="ritual" options={{ headerShown: false }} />
+        <Stack.Screen name="sos" options={{ presentation: "modal", headerShown: false }} />
+      </Stack>
+    </OnboardingGate>
   );
 }
 
