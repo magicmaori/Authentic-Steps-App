@@ -118,7 +118,7 @@ export default function DailyRitualScreen() {
 
         {allDone ? (
           <LinearGradient
-            colors={[colors.primary, '#3A7D5C']}
+            colors={[colors.primary, '#193b83']}
             style={styles.allDoneCard}
           >
             <View style={styles.allDoneCheck}>

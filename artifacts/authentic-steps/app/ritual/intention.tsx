@@ -49,7 +49,7 @@ export default function IntentionScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#3A7D5C', '#2D6A4F']}
+        colors={['#03989e', '#193b83']}
         style={[styles.headerGrad, { paddingTop: insets.top + 12 }]}
       >
         <Pressable onPress={() => router.back()} style={styles.backBtn}>

@@ -27,7 +27,7 @@ const SERVICES: Service[] = [
     phone: '1800551800',
     url: 'https://kidshelpline.com.au/get-help/webchat',
     badge: '24/7',
-    color: '#2D6A4F',
+    color: '#03989e',
   },
   {
     id: 'lifeline',
@@ -96,7 +96,7 @@ export default function SOSScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#2D6A4F', '#1A3D2B']}
+        colors={['#03989e', '#193b83']}
         style={[styles.header, { paddingTop: insets.top + 16 }]}
       >
         <Pressable
@@ -108,7 +108,7 @@ export default function SOSScreen() {
         </Pressable>
         <View style={styles.headerContent}>
           <View style={styles.heartCircle}>
-            <Ionicons name="heart" size={28} color="#2D6A4F" />
+            <Ionicons name="heart" size={28} color="#03989e" />
           </View>
           <Text style={styles.headerTitle}>You are not alone</Text>
           <Text style={styles.headerSubtitle}>

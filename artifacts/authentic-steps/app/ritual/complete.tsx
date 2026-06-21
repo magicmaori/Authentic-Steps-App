@@ -35,7 +35,7 @@ export default function CompleteScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={[colors.primary, '#1A3D2B']}
+        colors={[colors.primary, '#193b83']}
         style={StyleSheet.absoluteFill}
       />
 

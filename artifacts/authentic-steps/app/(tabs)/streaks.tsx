@@ -32,7 +32,7 @@ export default function StreaksScreen() {
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={[colors.primary, '#1A3D2B']}
+          colors={[colors.primary, '#193b83']}
           style={styles.streakHero}
         >
           <Ionicons name="flame" size={48} color="#F4A261" />

@@ -53,7 +53,7 @@ export default function IAmScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#F4A261', '#E08B47']}
+        colors={['#6dbdf2', '#03989e']}
         style={[styles.headerGrad, { paddingTop: insets.top + 12 }]}
       >
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
