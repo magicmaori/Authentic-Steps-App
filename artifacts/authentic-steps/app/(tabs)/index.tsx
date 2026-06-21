@@ -88,26 +88,28 @@ export default function DailyRitualScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.logoHeader}>
-          <AppLogo size="sm" />
-        </View>
-
-        <View style={styles.headerRow}>
-          <View style={styles.headerLeft}>
-            <Text style={[styles.greeting, { color: colors.mutedForeground }]}>
+        <LinearGradient
+          colors={['#193b83', '#03989e']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroBanner}
+        >
+          <View style={styles.heroTop}>
+            <AppLogo size="lg" tint="light" />
+            {userData.currentStreak > 0 && (
+              <View style={styles.streakBadge}>
+                <Ionicons name="flame" size={18} color="#fbbf24" />
+                <Text style={styles.streakBadgeText}>{userData.currentStreak}</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.heroBottom}>
+            <Text style={styles.greeting}>
               {getGreeting()}, {userData.anonymousName}
             </Text>
-            <Text style={[styles.dateText, { color: colors.foreground }]}>{formatDate()}</Text>
+            <Text style={styles.dateText}>{formatDate()}</Text>
           </View>
-          {userData.currentStreak > 0 && (
-            <View style={[styles.streakBadge, { backgroundColor: `${colors.accent}18` }]}>
-              <Ionicons name="flame" size={16} color={colors.accent} />
-              <Text style={[styles.streakBadgeText, { color: colors.accent }]}>
-                {userData.currentStreak}
-              </Text>
-            </View>
-          )}
-        </View>
+        </LinearGradient>
 
         {todayEntry?.iAmStatement ? (
           <LinearGradient
@@ -248,20 +250,34 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flex: 1 },
   content: { padding: 20, gap: 16 },
-  logoHeader: { paddingBottom: 4 },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  headerLeft: { flex: 1, gap: 2 },
-  greeting: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  dateText: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  heroBanner: {
+    borderRadius: 24,
+    padding: 22,
+    gap: 14,
+    shadowColor: '#193b83',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  heroBottom: { gap: 2 },
+  greeting: { fontSize: 13, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.75)' },
+  dateText: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  streakBadgeText: { fontSize: 18, fontFamily: 'Inter_700Bold' },
+  streakBadgeText: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
   iAmBanner: {
     borderRadius: 16,
     padding: 16,
