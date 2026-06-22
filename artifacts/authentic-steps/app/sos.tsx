@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React from 'react';
-import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColors } from '@/hooks/useColors';
@@ -17,6 +17,7 @@ interface Service {
   url?: string;
   badge?: string;
   color: string;
+  darkColor: string;
 }
 
 const SERVICES: Service[] = [
@@ -28,6 +29,7 @@ const SERVICES: Service[] = [
     url: 'https://kidshelpline.com.au/get-help/webchat',
     badge: '24/7',
     color: '#03989e',
+    darkColor: '#5dd8dd',
   },
   {
     id: 'lifeline',
@@ -37,6 +39,7 @@ const SERVICES: Service[] = [
     url: 'https://www.lifeline.org.au/crisis-chat/',
     badge: '24/7',
     color: '#3B82F6',
+    darkColor: '#93c5fd',
   },
   {
     id: 'beyondblue',
@@ -45,6 +48,7 @@ const SERVICES: Service[] = [
     phone: '1300224636',
     url: 'https://www.beyondblue.org.au/get-support/get-immediate-support',
     color: '#1D4ED8',
+    darkColor: '#93c5fd',
   },
   {
     id: 'headspace',
@@ -52,6 +56,7 @@ const SERVICES: Service[] = [
     description: 'Youth mental health support. Find a centre near you.',
     url: 'https://headspace.org.au/headspace-centres/',
     color: '#7C3AED',
+    darkColor: '#c4b5fd',
   },
   {
     id: '13yarn',
@@ -60,6 +65,7 @@ const SERVICES: Service[] = [
     phone: '139276',
     badge: '24/7',
     color: '#B45309',
+    darkColor: '#fbbf24',
   },
   {
     id: 'emergency',
@@ -68,6 +74,7 @@ const SERVICES: Service[] = [
     phone: '000',
     badge: 'Immediate',
     color: '#EF4444',
+    darkColor: '#fca5a5',
   },
 ];
 
@@ -87,6 +94,8 @@ async function openChat(url: string) {
 export default function SOSScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
 
   async function handleClose() {
     await Haptics.selectionAsync();
@@ -96,7 +105,7 @@ export default function SOSScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={[colors.gradientStart, '#193b83']}
+        colors={[colors.primary, '#193b83']}
         style={[styles.header, { paddingTop: insets.top + 16 }]}
       >
         <Pressable
@@ -108,7 +117,7 @@ export default function SOSScreen() {
         </Pressable>
         <View style={styles.headerContent}>
           <View style={styles.heartCircle}>
-            <Ionicons name="heart" size={28} color="#03989e" />
+            <Ionicons name="heart" size={28} color={colors.primary} />
           </View>
           <Text style={styles.headerTitle}>You are not alone</Text>
           <Text style={styles.headerSubtitle}>
@@ -125,53 +134,58 @@ export default function SOSScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {SERVICES.map((service) => (
-          <View
-            key={service.id}
-            style={[styles.serviceCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <View style={styles.serviceHeader}>
-              <View style={[styles.serviceDot, { backgroundColor: service.color }]} />
-              <View style={styles.serviceTitleRow}>
-                <Text style={[styles.serviceName, { color: colors.foreground }]}>{service.name}</Text>
-                {service.badge && (
-                  <View style={[styles.badge, { backgroundColor: `${service.color}18` }]}>
-                    <Text style={[styles.badgeText, { color: service.color }]}>{service.badge}</Text>
-                  </View>
+        {SERVICES.map((service) => {
+          const accentColor = isDark ? service.darkColor : service.color;
+          const btnBg = isDark ? service.darkColor : service.color;
+          const btnFg = isDark ? colors.background : '#fff';
+          return (
+            <View
+              key={service.id}
+              style={[styles.serviceCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
+              <View style={styles.serviceHeader}>
+                <View style={[styles.serviceDot, { backgroundColor: accentColor }]} />
+                <View style={styles.serviceTitleRow}>
+                  <Text style={[styles.serviceName, { color: colors.foreground }]}>{service.name}</Text>
+                  {service.badge && (
+                    <View style={[styles.badge, { backgroundColor: colors.muted }]}>
+                      <Text style={[styles.badgeText, { color: accentColor }]}>{service.badge}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              <Text style={[styles.serviceDesc, { color: colors.mutedForeground }]}>{service.description}</Text>
+              <View style={styles.serviceActions}>
+                {service.phone && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.actionBtn,
+                      { backgroundColor: btnBg },
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={() => callNumber(service.phone!)}
+                  >
+                    <Ionicons name="call" size={16} color={btnFg} />
+                    <Text style={[styles.actionBtnText, { color: btnFg }]}>Call</Text>
+                  </Pressable>
+                )}
+                {service.url && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.actionBtnOutline,
+                      { borderColor: accentColor },
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={() => openChat(service.url!)}
+                  >
+                    <Ionicons name="chatbubble-ellipses-outline" size={16} color={accentColor} />
+                    <Text style={[styles.actionBtnOutlineText, { color: accentColor }]}>Chat</Text>
+                  </Pressable>
                 )}
               </View>
             </View>
-            <Text style={[styles.serviceDesc, { color: colors.mutedForeground }]}>{service.description}</Text>
-            <View style={styles.serviceActions}>
-              {service.phone && (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.actionBtn,
-                    { backgroundColor: service.color },
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => callNumber(service.phone!)}
-                >
-                  <Ionicons name="call" size={16} color="#fff" />
-                  <Text style={styles.actionBtnText}>Call</Text>
-                </Pressable>
-              )}
-              {service.url && (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.actionBtnOutline,
-                    { borderColor: service.color },
-                    pressed && styles.pressed,
-                  ]}
-                  onPress={() => openChat(service.url!)}
-                >
-                  <Ionicons name="chatbubble-ellipses-outline" size={16} color={service.color} />
-                  <Text style={[styles.actionBtnOutlineText, { color: service.color }]}>Chat</Text>
-                </Pressable>
-              )}
-            </View>
-          </View>
-        ))}
+          );
+        })}
 
         <View style={[styles.note, { backgroundColor: colors.secondary }]}>
           <Ionicons name="shield-checkmark" size={16} color={colors.primary} />
