@@ -11,12 +11,40 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { AppLogo } from "@/components/AppLogo";
 
+const ICON_SPRING = { damping: 10, stiffness: 220, useNativeDriver: true } as const;
+
+function AnimatedTabIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const prevFocused = useRef(focused);
+
+  useEffect(() => {
+    if (focused && !prevFocused.current) {
+      scale.setValue(0.82);
+      Animated.spring(scale, { toValue: 1, ...ICON_SPRING }).start();
+    }
+    prevFocused.current = focused;
+  }, [focused, scale]);
+
+  return <Animated.View style={{ transform: [{ scale }] }}>{children}</Animated.View>;
+}
+
 const TAB_NAMES: Record<string, string> = {
   "/": "Daily",
   "/streaks": "Streaks",
   "/community": "Community",
   "/support": "Support",
   "/profile": "Profile",
+};
+
+const NATIVE_TAB_ROUTES = ["index", "streaks", "community", "support", "profile"] as const;
+type NativeTabRoute = (typeof NATIVE_TAB_ROUTES)[number];
+
+const PATHNAME_TO_ROUTE: Record<string, NativeTabRoute> = {
+  "/": "index",
+  "/streaks": "streaks",
+  "/community": "community",
+  "/support": "support",
+  "/profile": "profile",
 };
 
 function HeaderLeft({ tabName }: { tabName?: string }) {
@@ -109,6 +137,25 @@ function NativeTabLayout() {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const tabName = TAB_NAMES[pathname] ?? TAB_NAMES["/"];
+  const activeRoute = PATHNAME_TO_ROUTE[pathname] ?? "index";
+
+  const scaleAnims = useRef(
+    Object.fromEntries(NATIVE_TAB_ROUTES.map((r) => [r, new Animated.Value(1)])) as Record<
+      NativeTabRoute,
+      Animated.Value
+    >
+  ).current;
+
+  const prevActiveRoute = useRef<NativeTabRoute>(activeRoute);
+
+  useEffect(() => {
+    if (activeRoute !== prevActiveRoute.current) {
+      const anim = scaleAnims[activeRoute];
+      anim.setValue(0.82);
+      Animated.spring(anim, { toValue: 1, ...ICON_SPRING }).start();
+      prevActiveRoute.current = activeRoute;
+    }
+  }, [activeRoute, scaleAnims]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -128,23 +175,33 @@ function NativeTabLayout() {
       </View>
       <NativeTabs>
         <NativeTabs.Trigger name="index">
-          <Icon sf={{ default: "sun.horizon", selected: "sun.horizon.fill" }} />
+          <Animated.View style={{ transform: [{ scale: scaleAnims["index"] }] }}>
+            <Icon sf={{ default: "sun.horizon", selected: "sun.horizon.fill" }} />
+          </Animated.View>
           <Label>Daily</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="streaks">
-          <Icon sf={{ default: "flame", selected: "flame.fill" }} />
+          <Animated.View style={{ transform: [{ scale: scaleAnims["streaks"] }] }}>
+            <Icon sf={{ default: "flame", selected: "flame.fill" }} />
+          </Animated.View>
           <Label>Streaks</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="community">
-          <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
+          <Animated.View style={{ transform: [{ scale: scaleAnims["community"] }] }}>
+            <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
+          </Animated.View>
           <Label>Community</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="support">
-          <Icon sf={{ default: "heart", selected: "heart.fill" }} />
+          <Animated.View style={{ transform: [{ scale: scaleAnims["support"] }] }}>
+            <Icon sf={{ default: "heart", selected: "heart.fill" }} />
+          </Animated.View>
           <Label>Support</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
-          <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
+          <Animated.View style={{ transform: [{ scale: scaleAnims["profile"] }] }}>
+            <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
+          </Animated.View>
           <Label>Profile</Label>
         </NativeTabs.Trigger>
       </NativeTabs>
@@ -203,60 +260,75 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: "Daily",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="sun.horizon.fill" tintColor={color} size={24} />
-            ) : (
-              <Ionicons name="sunny" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={focused}>
+              {isIOS ? (
+                <SymbolView name="sun.horizon.fill" tintColor={color} size={24} />
+              ) : (
+                <Ionicons name="sunny" size={22} color={color} />
+              )}
+            </AnimatedTabIcon>
+          ),
         }}
       />
       <Tabs.Screen
         name="streaks"
         options={{
           title: "Streaks",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="flame.fill" tintColor={color} size={24} />
-            ) : (
-              <Ionicons name="flame" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={focused}>
+              {isIOS ? (
+                <SymbolView name="flame.fill" tintColor={color} size={24} />
+              ) : (
+                <Ionicons name="flame" size={22} color={color} />
+              )}
+            </AnimatedTabIcon>
+          ),
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
           title: "Community",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="person.2.fill" tintColor={color} size={24} />
-            ) : (
-              <Feather name="users" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={focused}>
+              {isIOS ? (
+                <SymbolView name="person.2.fill" tintColor={color} size={24} />
+              ) : (
+                <Feather name="users" size={22} color={color} />
+              )}
+            </AnimatedTabIcon>
+          ),
         }}
       />
       <Tabs.Screen
         name="support"
         options={{
           title: "Support",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="heart.fill" tintColor={color} size={24} />
-            ) : (
-              <Ionicons name="heart" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={focused}>
+              {isIOS ? (
+                <SymbolView name="heart.fill" tintColor={color} size={24} />
+              ) : (
+                <Ionicons name="heart" size={22} color={color} />
+              )}
+            </AnimatedTabIcon>
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="person.circle.fill" tintColor={color} size={24} />
-            ) : (
-              <Ionicons name="person-circle" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={focused}>
+              {isIOS ? (
+                <SymbolView name="person.circle.fill" tintColor={color} size={24} />
+              ) : (
+                <Ionicons name="person-circle" size={22} color={color} />
+              )}
+            </AnimatedTabIcon>
+          ),
         }}
       />
     </Tabs>
