@@ -1,19 +1,60 @@
 import { BlurView } from "expo-blur";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
-import { Tabs } from "expo-router";
+import { Tabs, usePathname } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, Text, View, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import { AppLogo } from "@/components/AppLogo";
 
+const TAB_NAMES: Record<string, string> = {
+  "/": "Daily",
+  "/streaks": "Streaks",
+  "/community": "Community",
+  "/support": "Support",
+  "/profile": "Profile",
+};
+
+function HeaderLeft({ tabName }: { tabName?: string }) {
+  const colors = useColors();
+  return (
+    <View style={headerStyles.container}>
+      <AppLogo size="sm" />
+      {tabName ? (
+        <Text
+          style={[headerStyles.tabName, { color: colors.mutedForeground }]}
+          numberOfLines={1}
+        >
+          {tabName}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+const headerStyles = StyleSheet.create({
+  container: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 1,
+  },
+  tabName: {
+    fontSize: 11,
+    fontFamily: "Inter_500Medium",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+});
+
 function NativeTabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  const tabName = TAB_NAMES[pathname] ?? TAB_NAMES["/"];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -25,7 +66,7 @@ function NativeTabLayout() {
           backgroundColor: colors.background,
         }}
       >
-        <AppLogo size="sm" />
+        <HeaderLeft tabName={tabName} />
       </View>
       <NativeTabs>
         <NativeTabs.Trigger name="index">
@@ -65,7 +106,7 @@ function ClassicTabLayout() {
     <Tabs
       screenOptions={{
         headerShown: true,
-        headerTitle: () => <AppLogo size="sm" />,
+        headerTitle: ({ children }) => <HeaderLeft tabName={children} />,
         headerTitleAlign: "left",
         headerStyle: {
           backgroundColor: colors.background,
