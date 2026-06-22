@@ -5,6 +5,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -16,6 +17,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashAnimation } from "@/components/SplashAnimation";
 import { AppProvider, useApp } from "@/context/AppContext";
+
+const INTRO_SEEN_KEY = "hasSeenIntro";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -55,6 +58,13 @@ export default function RootLayout() {
     Inter_700Bold,
   });
   const [splashDone, setSplashDone] = useState(false);
+  const [showIntro, setShowIntro] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(INTRO_SEEN_KEY).then((value) => {
+      setShowIntro(value === null);
+    });
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -63,10 +73,12 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   const handleSplashFinished = useCallback(() => {
+    AsyncStorage.setItem(INTRO_SEEN_KEY, "1");
     setSplashDone(true);
   }, []);
 
   if (!fontsLoaded && !fontError) return null;
+  if (showIntro === null) return null;
 
   return (
     <SafeAreaProvider>
@@ -76,7 +88,7 @@ export default function RootLayout() {
             <KeyboardProvider>
               <AppProvider>
                 <RootLayoutNav />
-                {!splashDone && (
+                {showIntro && !splashDone && (
                   <SplashAnimation onFinished={handleSplashFinished} />
                 )}
               </AppProvider>
