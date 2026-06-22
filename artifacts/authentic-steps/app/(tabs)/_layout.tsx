@@ -1,11 +1,11 @@
 import { BlurView } from "expo-blur";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
-import { Tabs, usePathname } from "expo-router";
+import { Tabs, usePathname, useRouter } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
@@ -22,7 +22,7 @@ const TAB_NAMES: Record<string, string> = {
 function HeaderLeft({ tabName }: { tabName?: string }) {
   const colors = useColors();
   return (
-    <View style={headerStyles.container}>
+    <View style={headerStyles.leftContainer}>
       <AppLogo size="sm" />
       {tabName ? (
         <Text
@@ -36,8 +36,37 @@ function HeaderLeft({ tabName }: { tabName?: string }) {
   );
 }
 
+function HeaderRight() {
+  const colors = useColors();
+  const router = useRouter();
+  const isIOS = Platform.OS === "ios";
+
+  function handlePress() {
+    router.navigate("/profile");
+  }
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      style={({ pressed }) => [
+        headerStyles.settingsButton,
+        { opacity: pressed ? 0.5 : 1 },
+      ]}
+      accessibilityLabel="Open settings"
+      accessibilityRole="button"
+      hitSlop={8}
+    >
+      {isIOS ? (
+        <SymbolView name="gearshape" tintColor={colors.mutedForeground} size={22} />
+      ) : (
+        <Ionicons name="settings-outline" size={22} color={colors.mutedForeground} />
+      )}
+    </Pressable>
+  );
+}
+
 const headerStyles = StyleSheet.create({
-  container: {
+  leftContainer: {
     flexDirection: "column",
     alignItems: "flex-start",
     gap: 1,
@@ -47,6 +76,9 @@ const headerStyles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     letterSpacing: 0.6,
     textTransform: "uppercase",
+  },
+  settingsButton: {
+    padding: 4,
   },
 });
 
@@ -64,9 +96,13 @@ function NativeTabLayout() {
           paddingHorizontal: 16,
           paddingBottom: 10,
           backgroundColor: colors.background,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
         <HeaderLeft tabName={tabName} />
+        <HeaderRight />
       </View>
       <NativeTabs>
         <NativeTabs.Trigger name="index">
@@ -112,6 +148,7 @@ function ClassicTabLayout() {
           backgroundColor: colors.background,
         },
         headerShadowVisible: false,
+        headerRight: () => <HeaderRight />,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
         tabBarStyle: {
