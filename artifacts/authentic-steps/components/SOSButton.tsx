@@ -6,12 +6,27 @@ import { Platform, Pressable, StyleSheet, Text } from 'react-native';
 
 interface SOSButtonProps {
   bottom?: number;
+  inline?: boolean;
 }
 
-export function SOSButton({ bottom = 110 }: SOSButtonProps) {
+export function SOSButton({ bottom = 110, inline = false }: SOSButtonProps) {
   async function handlePress() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     router.push('/sos');
+  }
+
+  if (inline) {
+    return (
+      <Pressable
+        style={({ pressed }) => [styles.inlineButton, pressed && styles.pressed]}
+        onPress={handlePress}
+        accessibilityLabel="Emergency support — get help now"
+        accessibilityRole="button"
+      >
+        <Ionicons name="heart" size={14} color="#fff" />
+        <Text style={styles.label}>SOS</Text>
+      </Pressable>
+    );
   }
 
   return (
@@ -48,6 +63,21 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     zIndex: 999,
+  },
+  inlineButton: {
+    backgroundColor: '#EF4444',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 6,
+    alignSelf: 'flex-end',
   },
   label: {
     color: '#fff',

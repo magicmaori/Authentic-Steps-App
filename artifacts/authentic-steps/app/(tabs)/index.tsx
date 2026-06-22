@@ -96,12 +96,15 @@ export default function DailyRitualScreen() {
         >
           <View style={styles.heroTop}>
             <AppLogo size="lg" tint="light" />
-            {userData.currentStreak > 0 && (
-              <View style={styles.streakBadge}>
-                <Ionicons name="flame" size={18} color="#fbbf24" />
-                <Text style={styles.streakBadgeText}>{userData.currentStreak}</Text>
-              </View>
-            )}
+            <View style={styles.heroActions}>
+              {userData.currentStreak > 0 && (
+                <View style={styles.streakBadge}>
+                  <Ionicons name="flame" size={18} color="#fbbf24" />
+                  <Text style={styles.streakBadgeText}>{userData.currentStreak}</Text>
+                </View>
+              )}
+              <SOSButton inline />
+            </View>
           </View>
           <View style={styles.heroBottom}>
             <Text style={styles.greeting}>
@@ -240,8 +243,6 @@ export default function DailyRitualScreen() {
           </View>
         )}
       </ScrollView>
-
-      <SOSButton />
     </View>
   );
 }
@@ -264,6 +265,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+  },
+  heroActions: {
+    alignItems: 'flex-end',
+    gap: 8,
   },
   heroBottom: { gap: 2 },
   greeting: { fontSize: 13, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.75)' },
