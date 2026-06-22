@@ -82,7 +82,7 @@ export default function DailyRitualScreen() {
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: Platform.OS === 'web' ? insets.top + 67 : insets.top + 16,
+            paddingTop: Platform.OS === 'web' ? 67 : 16,
             paddingBottom: Platform.OS === 'web' ? 160 : 140,
           },
         ]}

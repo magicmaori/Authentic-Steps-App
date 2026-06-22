@@ -9,31 +9,47 @@ import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { AppLogo } from "@/components/AppLogo";
 
 function NativeTabLayout() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+
   return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "sun.horizon", selected: "sun.horizon.fill" }} />
-        <Label>Daily</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="streaks">
-        <Icon sf={{ default: "flame", selected: "flame.fill" }} />
-        <Label>Streaks</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="community">
-        <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
-        <Label>Community</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="support">
-        <Icon sf={{ default: "heart", selected: "heart.fill" }} />
-        <Label>Support</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
-        <Label>Profile</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View
+        style={{
+          paddingTop: insets.top,
+          paddingHorizontal: 16,
+          paddingBottom: 10,
+          backgroundColor: colors.background,
+        }}
+      >
+        <AppLogo size="sm" />
+      </View>
+      <NativeTabs>
+        <NativeTabs.Trigger name="index">
+          <Icon sf={{ default: "sun.horizon", selected: "sun.horizon.fill" }} />
+          <Label>Daily</Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="streaks">
+          <Icon sf={{ default: "flame", selected: "flame.fill" }} />
+          <Label>Streaks</Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="community">
+          <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
+          <Label>Community</Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="support">
+          <Icon sf={{ default: "heart", selected: "heart.fill" }} />
+          <Label>Support</Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="profile">
+          <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
+          <Label>Profile</Label>
+        </NativeTabs.Trigger>
+      </NativeTabs>
+    </View>
   );
 }
 
@@ -48,7 +64,13 @@ function ClassicTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        headerTitle: () => <AppLogo size="sm" />,
+        headerTitleAlign: "left",
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerShadowVisible: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
         tabBarStyle: {
