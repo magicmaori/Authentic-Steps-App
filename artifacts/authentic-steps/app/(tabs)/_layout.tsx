@@ -4,8 +4,8 @@ import { Tabs, usePathname, useRouter } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { Platform, Pressable, StyleSheet, Text, View, useColorScheme } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, Platform, Pressable, StyleSheet, View, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
@@ -21,16 +21,38 @@ const TAB_NAMES: Record<string, string> = {
 
 function HeaderLeft({ tabName }: { tabName?: string }) {
   const colors = useColors();
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [displayedName, setDisplayedName] = useState(tabName);
+  const prevTabName = useRef(tabName);
+
+  useEffect(() => {
+    if (tabName !== prevTabName.current) {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 75,
+        useNativeDriver: true,
+      }).start(() => {
+        setDisplayedName(tabName);
+        prevTabName.current = tabName;
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 75,
+          useNativeDriver: true,
+        }).start();
+      });
+    }
+  }, [tabName, fadeAnim]);
+
   return (
     <View style={headerStyles.leftContainer}>
       <AppLogo size="sm" />
-      {tabName ? (
-        <Text
-          style={[headerStyles.tabName, { color: colors.mutedForeground }]}
+      {displayedName ? (
+        <Animated.Text
+          style={[headerStyles.tabName, { color: colors.mutedForeground, opacity: fadeAnim }]}
           numberOfLines={1}
         >
-          {tabName}
-        </Text>
+          {displayedName}
+        </Animated.Text>
       ) : null}
     </View>
   );
