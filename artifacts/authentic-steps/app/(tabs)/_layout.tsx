@@ -12,6 +12,32 @@ import { useColors } from "@/hooks/useColors";
 import { AppLogo } from "@/components/AppLogo";
 
 const ICON_SPRING = { damping: 10, stiffness: 220, useNativeDriver: true } as const;
+const LABEL_FADE_MS = 150;
+
+function AnimatedTabLabel({ focused, color, children }: { focused: boolean; color: string; children: string }) {
+  const boldOpacity = useRef(new Animated.Value(focused ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(boldOpacity, {
+      toValue: focused ? 1 : 0,
+      duration: LABEL_FADE_MS,
+      useNativeDriver: true,
+    }).start();
+  }, [focused, boldOpacity]);
+
+  const normalOpacity = boldOpacity.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+
+  return (
+    <View style={{ alignItems: "center", justifyContent: "center", height: 14 }}>
+      <Animated.Text style={{ position: "absolute", color, fontWeight: "600", fontSize: 10, opacity: boldOpacity }}>
+        {children}
+      </Animated.Text>
+      <Animated.Text style={{ position: "absolute", color, fontWeight: "400", fontSize: 10, opacity: normalOpacity }}>
+        {children}
+      </Animated.Text>
+    </View>
+  );
+}
 
 function AnimatedTabIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -178,31 +204,31 @@ function NativeTabLayout() {
           <Animated.View style={{ transform: [{ scale: scaleAnims["index"] }] }}>
             <Icon sf={{ default: "sun.horizon", selected: "sun.horizon.fill" }} />
           </Animated.View>
-          <Label>Daily</Label>
+          <Label selectedStyle={{ fontWeight: "600" }}>Daily</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="streaks">
           <Animated.View style={{ transform: [{ scale: scaleAnims["streaks"] }] }}>
             <Icon sf={{ default: "flame", selected: "flame.fill" }} />
           </Animated.View>
-          <Label>Streaks</Label>
+          <Label selectedStyle={{ fontWeight: "600" }}>Streaks</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="community">
           <Animated.View style={{ transform: [{ scale: scaleAnims["community"] }] }}>
             <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
           </Animated.View>
-          <Label>Community</Label>
+          <Label selectedStyle={{ fontWeight: "600" }}>Community</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="support">
           <Animated.View style={{ transform: [{ scale: scaleAnims["support"] }] }}>
             <Icon sf={{ default: "heart", selected: "heart.fill" }} />
           </Animated.View>
-          <Label>Support</Label>
+          <Label selectedStyle={{ fontWeight: "600" }}>Support</Label>
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
           <Animated.View style={{ transform: [{ scale: scaleAnims["profile"] }] }}>
             <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
           </Animated.View>
-          <Label>Profile</Label>
+          <Label selectedStyle={{ fontWeight: "600" }}>Profile</Label>
         </NativeTabs.Trigger>
       </NativeTabs>
     </View>
@@ -260,6 +286,9 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: "Daily",
+          tabBarLabel: ({ focused, color }) => (
+            <AnimatedTabLabel focused={focused} color={color}>Daily</AnimatedTabLabel>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={focused}>
               {isIOS ? (
@@ -275,6 +304,9 @@ function ClassicTabLayout() {
         name="streaks"
         options={{
           title: "Streaks",
+          tabBarLabel: ({ focused, color }) => (
+            <AnimatedTabLabel focused={focused} color={color}>Streaks</AnimatedTabLabel>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={focused}>
               {isIOS ? (
@@ -290,6 +322,9 @@ function ClassicTabLayout() {
         name="community"
         options={{
           title: "Community",
+          tabBarLabel: ({ focused, color }) => (
+            <AnimatedTabLabel focused={focused} color={color}>Community</AnimatedTabLabel>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={focused}>
               {isIOS ? (
@@ -305,6 +340,9 @@ function ClassicTabLayout() {
         name="support"
         options={{
           title: "Support",
+          tabBarLabel: ({ focused, color }) => (
+            <AnimatedTabLabel focused={focused} color={color}>Support</AnimatedTabLabel>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={focused}>
               {isIOS ? (
@@ -320,6 +358,9 @@ function ClassicTabLayout() {
         name="profile"
         options={{
           title: "Profile",
+          tabBarLabel: ({ focused, color }) => (
+            <AnimatedTabLabel focused={focused} color={color}>Profile</AnimatedTabLabel>
+          ),
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={focused}>
               {isIOS ? (
