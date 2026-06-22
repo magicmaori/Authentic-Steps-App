@@ -5,7 +5,7 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Platform, Pressable, StyleSheet, View, useColorScheme } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, View, useColorScheme, type GestureResponderEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
@@ -13,6 +13,60 @@ import { AppLogo } from "@/components/AppLogo";
 
 const ICON_SPRING = { damping: 10, stiffness: 220, useNativeDriver: true } as const;
 const LABEL_FADE_MS = 150;
+const PRESS_DIP_OPACITY = 0.5;
+const PRESS_IN_MS = 60;
+const PRESS_OUT_MS = 180;
+
+type TabBarButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> & {
+  children?: React.ReactNode;
+};
+
+function TapFeedbackTabButton({ children, onPressIn, onPressOut, style, ...rest }: TabBarButtonProps) {
+  const pressOpacity = useRef(new Animated.Value(1)).current;
+
+  function handlePressIn(e: GestureResponderEvent) {
+    if (Platform.OS !== "android") {
+      Animated.timing(pressOpacity, {
+        toValue: PRESS_DIP_OPACITY,
+        duration: PRESS_IN_MS,
+        useNativeDriver: true,
+      }).start();
+    }
+    if (typeof onPressIn === "function") onPressIn(e);
+  }
+
+  function handlePressOut(e: GestureResponderEvent) {
+    if (Platform.OS !== "android") {
+      Animated.timing(pressOpacity, {
+        toValue: 1,
+        duration: PRESS_OUT_MS,
+        useNativeDriver: true,
+      }).start();
+    }
+    if (typeof onPressOut === "function") onPressOut(e);
+  }
+
+  return (
+    <Pressable
+      {...rest}
+      style={style}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      android_ripple={{ color: "rgba(128,128,128,0.22)", borderless: false, radius: 40 }}
+    >
+      <Animated.View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: Platform.OS === "android" ? 1 : pressOpacity,
+        }}
+      >
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 function AnimatedTabLabel({ focused, color, children }: { focused: boolean; color: string; children: string }) {
   const boldOpacity = useRef(new Animated.Value(focused ? 1 : 0)).current;
@@ -158,6 +212,43 @@ const headerStyles = StyleSheet.create({
   },
 });
 
+function NativeTriggerContent({
+  scaleAnim,
+  icon,
+  label,
+}: {
+  scaleAnim: Animated.Value;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  const pressOpacity = useRef(new Animated.Value(1)).current;
+
+  function handlePressIn() {
+    Animated.timing(pressOpacity, {
+      toValue: PRESS_DIP_OPACITY,
+      duration: PRESS_IN_MS,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  function handlePressOut() {
+    Animated.timing(pressOpacity, {
+      toValue: 1,
+      duration: PRESS_OUT_MS,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  return (
+    <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} style={{ alignItems: "center" }}>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: pressOpacity }}>
+        {icon}
+      </Animated.View>
+      <Label selectedStyle={{ fontWeight: "600" }}>{label}</Label>
+    </Pressable>
+  );
+}
+
 function NativeTabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -201,34 +292,39 @@ function NativeTabLayout() {
       </View>
       <NativeTabs>
         <NativeTabs.Trigger name="index">
-          <Animated.View style={{ transform: [{ scale: scaleAnims["index"] }] }}>
-            <Icon sf={{ default: "sun.horizon", selected: "sun.horizon.fill" }} />
-          </Animated.View>
-          <Label selectedStyle={{ fontWeight: "600" }}>Daily</Label>
+          <NativeTriggerContent
+            scaleAnim={scaleAnims["index"]}
+            icon={<Icon sf={{ default: "sun.horizon", selected: "sun.horizon.fill" }} />}
+            label="Daily"
+          />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="streaks">
-          <Animated.View style={{ transform: [{ scale: scaleAnims["streaks"] }] }}>
-            <Icon sf={{ default: "flame", selected: "flame.fill" }} />
-          </Animated.View>
-          <Label selectedStyle={{ fontWeight: "600" }}>Streaks</Label>
+          <NativeTriggerContent
+            scaleAnim={scaleAnims["streaks"]}
+            icon={<Icon sf={{ default: "flame", selected: "flame.fill" }} />}
+            label="Streaks"
+          />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="community">
-          <Animated.View style={{ transform: [{ scale: scaleAnims["community"] }] }}>
-            <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
-          </Animated.View>
-          <Label selectedStyle={{ fontWeight: "600" }}>Community</Label>
+          <NativeTriggerContent
+            scaleAnim={scaleAnims["community"]}
+            icon={<Icon sf={{ default: "person.2", selected: "person.2.fill" }} />}
+            label="Community"
+          />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="support">
-          <Animated.View style={{ transform: [{ scale: scaleAnims["support"] }] }}>
-            <Icon sf={{ default: "heart", selected: "heart.fill" }} />
-          </Animated.View>
-          <Label selectedStyle={{ fontWeight: "600" }}>Support</Label>
+          <NativeTriggerContent
+            scaleAnim={scaleAnims["support"]}
+            icon={<Icon sf={{ default: "heart", selected: "heart.fill" }} />}
+            label="Support"
+          />
         </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
-          <Animated.View style={{ transform: [{ scale: scaleAnims["profile"] }] }}>
-            <Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />
-          </Animated.View>
-          <Label selectedStyle={{ fontWeight: "600" }}>Profile</Label>
+          <NativeTriggerContent
+            scaleAnim={scaleAnims["profile"]}
+            icon={<Icon sf={{ default: "person.circle", selected: "person.circle.fill" }} />}
+            label="Profile"
+          />
         </NativeTabs.Trigger>
       </NativeTabs>
     </View>
@@ -256,6 +352,7 @@ function ClassicTabLayout() {
         headerRight: () => <HeaderRight />,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarButton: (props) => <TapFeedbackTabButton {...props} />,
         tabBarStyle: {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : colors.background,
