@@ -8,12 +8,13 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SplashAnimation } from "@/components/SplashAnimation";
 import { AppProvider, useApp } from "@/context/AppContext";
 
 SplashScreen.preventAutoHideAsync();
@@ -53,6 +54,7 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -60,16 +62,23 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  const handleSplashFinished = useCallback(() => {
+    setSplashDone(true);
+  }, []);
+
   if (!fontsLoaded && !fontError) return null;
 
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <AppProvider>
                 <RootLayoutNav />
+                {!splashDone && (
+                  <SplashAnimation onFinished={handleSplashFinished} />
+                )}
               </AppProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
