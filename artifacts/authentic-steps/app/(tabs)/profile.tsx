@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SOSButton } from '@/components/SOSButton';
 import { ThemePreference, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -193,7 +192,6 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </ScrollView>
-      <SOSButton />
     </View>
   );
 }

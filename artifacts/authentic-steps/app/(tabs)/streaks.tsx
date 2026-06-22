@@ -4,7 +4,6 @@ import React from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SOSButton } from '@/components/SOSButton';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -144,7 +143,6 @@ export default function StreaksScreen() {
           </View>
         )}
       </ScrollView>
-      <SOSButton />
     </View>
   );
 }

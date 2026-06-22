@@ -52,9 +52,12 @@ export default function IntentionScreen() {
         colors={[colors.gradientStart, '#193b83']}
         style={[styles.headerGrad, { paddingTop: insets.top + 12 }]}
       >
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
-        </Pressable>
+        <View style={styles.headerNavRow}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={24} color="#fff" />
+          </Pressable>
+          <SOSButton inline />
+        </View>
         <View style={styles.progressRow}>
           {[0, 1, 2].map(i => (
             <View
@@ -178,7 +181,6 @@ export default function IntentionScreen() {
         </Pressable>
       </View>
 
-      <SOSButton bottom={Platform.OS === 'web' ? 120 : 90} />
     </View>
   );
 }
@@ -186,7 +188,13 @@ export default function IntentionScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   headerGrad: { paddingHorizontal: 20, paddingBottom: 24, gap: 6 },
-  backBtn: { marginBottom: 4 },
+  headerNavRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  backBtn: {},
   progressRow: { flexDirection: 'row', gap: 6, marginBottom: 4 },
   progressDot: { width: 28, height: 4, borderRadius: 2 },
   stepLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#fff', letterSpacing: 1 },

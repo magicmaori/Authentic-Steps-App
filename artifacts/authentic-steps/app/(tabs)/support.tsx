@@ -6,7 +6,6 @@ import React, { useState } from 'react';
 import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SOSButton } from '@/components/SOSButton';
 import { useColors } from '@/hooks/useColors';
 
 type TriageStep = 'idle' | 'urgency' | 'area' | 'type' | 'routed';
@@ -268,7 +267,6 @@ export default function SupportScreen() {
           </View>
         </View>
       </ScrollView>
-      <SOSButton />
     </View>
   );
 }
