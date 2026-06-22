@@ -5,6 +5,7 @@ import { generateAnonymousName } from '@/constants/affirmations';
 
 export type GratitudeCategory = 'people' | 'experiences' | 'things' | 'self';
 export type IntentionCategory = 'movement' | 'connection' | 'learning' | 'rest' | 'creativity';
+export type ThemePreference = 'system' | 'light' | 'dark';
 
 export interface GratitudeEntry {
   text: string;
@@ -40,6 +41,7 @@ export interface UserData {
   lastCheckIn: string;
   lastFlexWeek: string;
   hasOnboarded: boolean;
+  themePreference: ThemePreference;
 }
 
 interface AppContextType {
@@ -56,6 +58,7 @@ interface AppContextType {
   isStepDone: (step: 'gratitude' | 'intention' | 'iAm') => boolean;
   getStreakCalendar: () => { date: string; done: boolean; flex: boolean }[];
   completeOnboarding: () => Promise<void>;
+  setThemePreference: (pref: ThemePreference) => Promise<void>;
 }
 
 const defaultUser: UserData = {
@@ -70,6 +73,7 @@ const defaultUser: UserData = {
   lastCheckIn: '',
   lastFlexWeek: '',
   hasOnboarded: false,
+  themePreference: 'system',
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -275,6 +279,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await saveUser(newUser);
   }, [userData]);
 
+  const setThemePreference = useCallback(async (pref: ThemePreference) => {
+    const newUser = { ...userData, themePreference: pref };
+    await saveUser(newUser);
+  }, [userData]);
+
   function getStreakCalendar() {
     const days: { date: string; done: boolean; flex: boolean }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -308,6 +317,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isStepDone,
       getStreakCalendar,
       completeOnboarding,
+      setThemePreference,
     }}>
       {children}
     </AppContext.Provider>
@@ -318,4 +328,9 @@ export function useApp() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useApp must be used inside AppProvider');
   return ctx;
+}
+
+/** Returns the context value or null when called outside AppProvider (e.g. ErrorFallback). */
+export function useAppOptional() {
+  return useContext(AppContext);
 }
