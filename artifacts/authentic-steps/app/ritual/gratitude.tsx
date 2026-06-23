@@ -125,18 +125,21 @@ export default function GratitudeScreen() {
               )}
             </View>
 
-            <TextInput
-              ref={refs[i]}
-              style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-              placeholder={`I am grateful for...`}
-              placeholderTextColor={colors.mutedForeground}
-              value={texts[i]}
-              onChangeText={v => setText(i, v)}
-              maxLength={100}
-              returnKeyType={i < 2 ? 'next' : 'done'}
-              onSubmitEditing={() => refs[i + 1]?.current?.focus()}
-              multiline
-            />
+            <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+              <Text style={[styles.inputPrefix, { color: colors.primary }]}>I am grateful for</Text>
+              <TextInput
+                ref={refs[i]}
+                style={[styles.input, { color: colors.foreground }]}
+                placeholder="..."
+                placeholderTextColor={colors.mutedForeground}
+                value={texts[i]}
+                onChangeText={v => setText(i, v)}
+                maxLength={100}
+                returnKeyType={i < 2 ? 'next' : 'done'}
+                onSubmitEditing={() => refs[i + 1]?.current?.focus()}
+                multiline
+              />
+            </View>
 
             <View style={styles.categoryRow}>
               {CATEGORIES.map(cat => (
@@ -255,13 +258,26 @@ const styles = StyleSheet.create({
   entryNumRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   entryNum: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   entryNumText: { fontSize: 14, fontFamily: 'Inter_700Bold' },
+  inputWrapper: {
+    borderWidth: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  inputPrefix: {
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 2,
+    letterSpacing: 0.1,
+  },
   input: {
     fontSize: 15,
     fontFamily: 'Inter_400Regular',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    minHeight: 50,
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    paddingBottom: 12,
+    minHeight: 44,
     lineHeight: 22,
   },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
