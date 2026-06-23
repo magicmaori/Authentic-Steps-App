@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppLogo } from '@/components/AppLogo';
 import { SOSButton } from '@/components/SOSButton';
+import { VideoPlaceholder } from '@/components/VideoPlaceholder';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -113,6 +114,11 @@ export default function DailyRitualScreen() {
             <Text style={styles.dateText}>{formatDate()}</Text>
           </View>
         </LinearGradient>
+
+        <VideoPlaceholder
+          label="Welcome from Authentic STEPS"
+          sublabel="Tap to watch — intro video coming soon"
+        />
 
         {todayEntry?.iAmStatement ? (
           <LinearGradient

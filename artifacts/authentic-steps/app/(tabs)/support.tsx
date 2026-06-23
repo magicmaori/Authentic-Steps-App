@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { VideoPlaceholder } from '@/components/VideoPlaceholder';
 import { useColors } from '@/hooks/useColors';
 
 type TriageStep = 'idle' | 'urgency' | 'area' | 'type' | 'routed';
@@ -218,6 +219,11 @@ export default function SupportScreen() {
             </Pressable>
           </View>
         )}
+
+        <VideoPlaceholder
+          label="A message for you"
+          sublabel="A personal message from the Authentic STEPS team"
+        />
 
         <View style={[styles.servicesSection]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Immediate Support Services</Text>
