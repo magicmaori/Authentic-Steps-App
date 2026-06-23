@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SOSButton } from '@/components/SOSButton';
+import { VideoPlaceholder } from '@/components/VideoPlaceholder';
 import { AffirmationTheme, THEME_LABELS, affirmations } from '@/constants/affirmations';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
@@ -71,6 +72,11 @@ export default function IAmScreen() {
         <Text style={styles.headerTitle}>I Am...</Text>
         <Text style={styles.prompt}>Choose or write your I Am statement for today.</Text>
       </LinearGradient>
+
+      <VideoPlaceholder
+        label="About this practice — I Am"
+        sublabel="A short intro to I Am affirmation practice"
+      />
 
       <View style={[styles.modeRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <Pressable

@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SOSButton } from '@/components/SOSButton';
+import { VideoPlaceholder } from '@/components/VideoPlaceholder';
 import { IntentionCategory, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -85,6 +86,10 @@ export default function IntentionScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <VideoPlaceholder
+          label="About this practice — Intention"
+          sublabel="A short intro to setting a daily intention"
+        />
         <View style={[styles.circleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>Circle of Influence</Text>
           <View style={styles.circleContainer}>

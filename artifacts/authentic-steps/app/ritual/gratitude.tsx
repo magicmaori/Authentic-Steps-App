@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SOSButton } from '@/components/SOSButton';
+import { VideoPlaceholder } from '@/components/VideoPlaceholder';
 import { GratitudeCategory } from '@/context/AppContext';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
@@ -106,6 +107,10 @@ export default function GratitudeScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <VideoPlaceholder
+          label="About this practice — Gratitude"
+          sublabel="A short intro to gratitude practice"
+        />
         {[0, 1, 2].map(i => (
           <View
             key={i}
