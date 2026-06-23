@@ -111,15 +111,18 @@ export default function IntentionScreen() {
 
         <View style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>My intention today</Text>
-          <TextInput
-            style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-            placeholder="Today I will..."
-            placeholderTextColor={colors.mutedForeground}
-            value={text}
-            onChangeText={setText}
-            multiline
-            maxLength={200}
-          />
+          <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+            <Text style={[styles.inputPrefix, { color: colors.primary }]}>Today I will</Text>
+            <TextInput
+              style={[styles.input, { color: colors.foreground }]}
+              placeholder="..."
+              placeholderTextColor={colors.mutedForeground}
+              value={text}
+              onChangeText={setText}
+              multiline
+              maxLength={200}
+            />
+          </View>
           <Text style={[styles.charCount, { color: colors.mutedForeground }]}>{text.length}/200</Text>
         </View>
 
@@ -233,13 +236,26 @@ const styles = StyleSheet.create({
   innerLabel: {},
   circleHint: { fontSize: 12, fontFamily: 'Inter_400Regular', lineHeight: 17, textAlign: 'center' },
   inputCard: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 10 },
+  inputWrapper: {
+    borderWidth: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  inputPrefix: {
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 2,
+    letterSpacing: 0.1,
+  },
   input: {
     fontSize: 15,
     fontFamily: 'Inter_400Regular',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    minHeight: 80,
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    paddingBottom: 12,
+    minHeight: 64,
     lineHeight: 22,
   },
   charCount: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'right' },
