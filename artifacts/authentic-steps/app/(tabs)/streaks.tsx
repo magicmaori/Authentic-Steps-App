@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import React, { useMemo } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '@/context/AppContext';
@@ -12,8 +13,16 @@ const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 export default function StreaksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, getStreakCalendar } = useApp();
+  const { userData, entries, getStreakCalendar } = useApp();
   const calendar = getStreakCalendar();
+
+  const journalCount = useMemo(() => {
+    return Object.values(entries).filter(
+      (e) => e.isComplete || e.gratitudes.some((g) => g.text.trim()) || e.intention || e.iAmStatement
+    ).length;
+  }, [entries]);
+
+  const has90Days = journalCount >= 90;
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -142,6 +151,40 @@ export default function StreaksScreen() {
             </Text>
           </View>
         )}
+
+        <Pressable
+          onPress={() => router.push('/journal' as any)}
+          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+        >
+          <LinearGradient
+            colors={[colors.gradientStart, '#193b83']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.journalCard}
+          >
+            <View style={styles.journalLeft}>
+              <Text style={styles.journalEmoji}>📖</Text>
+              <View style={styles.journalText}>
+                <Text style={styles.journalTitle}>My Journal</Text>
+                <Text style={styles.journalSub}>
+                  {journalCount === 0
+                    ? 'Start your first ritual to begin'
+                    : has90Days
+                    ? `${journalCount} days · PDF download ready`
+                    : `${journalCount} day${journalCount !== 1 ? 's' : ''} · ${90 - journalCount} until PDF unlocks`}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.journalRight}>
+              {has90Days && (
+                <View style={styles.journalBadge}>
+                  <Ionicons name="download-outline" size={13} color="#03989e" />
+                </View>
+              )}
+              <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
+            </View>
+          </LinearGradient>
+        </Pressable>
       </ScrollView>
     </View>
   );
@@ -197,4 +240,26 @@ const styles = StyleSheet.create({
   emptyMilestone: { borderRadius: 16, padding: 24, borderWidth: 1, alignItems: 'center', gap: 8 },
   emptyTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
   emptyDesc: { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 18 },
+  journalCard: {
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  journalLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
+  journalEmoji: { fontSize: 28 },
+  journalText: { gap: 3, flex: 1 },
+  journalTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#fff' },
+  journalSub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.75)' },
+  journalRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  journalBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
