@@ -8,6 +8,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -189,8 +190,16 @@ export default function OnboardingScreen() {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.restoreModal}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
         >
-          <View style={[styles.restoreContent, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.restoreContent,
+              { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <Text style={styles.restoreTitle}>Restore your account</Text>
             <Text style={styles.restoreSubtitle}>
               Paste the full recovery code you saved. Your username, streaks, and journal entries will be restored.
@@ -208,7 +217,10 @@ export default function OnboardingScreen() {
             />
 
             {restoreError ? (
-              <Text style={styles.errorText}>{restoreError}</Text>
+              <View style={styles.errorBox}>
+                <Text style={styles.errorIcon}>⚠️</Text>
+                <Text style={styles.errorText}>{restoreError}</Text>
+              </View>
             ) : null}
 
             <Pressable
@@ -233,7 +245,7 @@ export default function OnboardingScreen() {
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
     </>
@@ -410,7 +422,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   restoreContent: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 28,
     gap: 16,
   },
@@ -436,11 +448,26 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF0F0',
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+  },
+  errorIcon: {
+    fontSize: 16,
+    lineHeight: 20,
+  },
   errorText: {
+    flex: 1,
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: '#D32F2F',
-    lineHeight: 18,
+    color: '#B71C1C',
+    lineHeight: 19,
   },
   restoreButton: {
     backgroundColor: '#193b83',
