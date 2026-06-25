@@ -17,11 +17,12 @@ type Props = {
   phases: Phase[];
   totalRounds: number;
   accentColor: string;
+  onComplete?: () => void;
 };
 
 type Status = 'idle' | 'running' | 'done';
 
-export default function BreathingTimer({ title, description, phases, totalRounds, accentColor }: Props) {
+export default function BreathingTimer({ title, description, phases, totalRounds, accentColor, onComplete }: Props) {
   const colors = useColors();
   const [status, setStatus] = useState<Status>('idle');
   const [phaseIndex, setPhaseIndex] = useState(0);
@@ -98,6 +99,7 @@ export default function BreathingTimer({ title, description, phases, totalRounds
             clearTimer();
             setStatus('done');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            onComplete?.();
             return;
           }
           stateRef.current = { phaseIndex: 0, count: phases[0].counts, round: nextRound };

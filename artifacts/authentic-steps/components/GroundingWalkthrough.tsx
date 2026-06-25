@@ -22,7 +22,11 @@ const STEPS: Step[] = [
 
 type Status = 'idle' | 'running' | 'done';
 
-export default function GroundingWalkthrough() {
+type Props = {
+  onComplete?: () => void;
+};
+
+export default function GroundingWalkthrough({ onComplete }: Props = {}) {
   const colors = useColors();
   const [status, setStatus] = useState<Status>('idle');
   const [stepIndex, setStepIndex] = useState(0);
@@ -55,7 +59,10 @@ export default function GroundingWalkthrough() {
       animateTransition(() => setStepIndex(i => i + 1));
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      animateTransition(() => setStatus('done'));
+      animateTransition(() => {
+        setStatus('done');
+        onComplete?.();
+      });
     }
   };
 

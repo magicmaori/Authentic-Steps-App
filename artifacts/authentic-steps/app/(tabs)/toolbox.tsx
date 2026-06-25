@@ -50,11 +50,21 @@ function HeartButton({ toolId }: { toolId: string }) {
   );
 }
 
-function ToolCard({ toolId, children, style }: { toolId: string; children: React.ReactNode; style?: ViewStyle }) {
+function DoneBadge() {
+  return (
+    <View style={styles.doneBadge}>
+      <Ionicons name="checkmark-circle" size={14} color="#fff" />
+      <Text style={styles.doneBadgeText}>Done today</Text>
+    </View>
+  );
+}
+
+function ToolCard({ toolId, children, style, isDone }: { toolId: string; children: React.ReactNode; style?: ViewStyle; isDone?: boolean }) {
   return (
     <View style={[styles.toolWrapper, style]}>
       {children}
       <HeartButton toolId={toolId} />
+      {isDone && <DoneBadge />}
     </View>
   );
 }
@@ -75,7 +85,7 @@ function TipCard({ tip, fullWidth }: { tip: typeof TIPS[0]; fullWidth?: boolean 
 }
 
 function GoToSection() {
-  const { userData } = useApp();
+  const { userData, isExerciseDoneToday, markExerciseDone } = useApp();
   const colors = useColors();
   const favs = userData.favouriteTools ?? [];
   if (favs.length === 0) return null;
@@ -100,29 +110,31 @@ function GoToSection() {
           <TipCard key={tip.id} tip={tip} fullWidth />
         ))}
         {hasBoxBreathing && (
-          <ToolCard toolId="breathing-box">
+          <ToolCard toolId="breathing-box" isDone={isExerciseDoneToday('breathing-box')}>
             <BreathingTimer
               title="Box Breathing"
               description="Used by athletes and first responders to reset fast."
               phases={BOX_BREATHING_PHASES}
               totalRounds={4}
               accentColor="#03989e"
+              onComplete={() => markExerciseDone('breathing-box')}
             />
           </ToolCard>
         )}
         {has478 && (
-          <ToolCard toolId="breathing-478">
+          <ToolCard toolId="breathing-478" isDone={isExerciseDoneToday('breathing-478')}>
             <BreathingTimer
               title="4-7-8 Calm Down"
               description="Great for anxiety, panic, or when you can't sleep."
               phases={CALM_DOWN_PHASES}
               totalRounds={4}
               accentColor="#193b83"
+              onComplete={() => markExerciseDone('breathing-478')}
             />
           </ToolCard>
         )}
         {hasStarJumps && (
-          <ToolCard toolId="movement-star-jumps">
+          <ToolCard toolId="movement-star-jumps" isDone={isExerciseDoneToday('movement-star-jumps')}>
             <MovementExercise
               icon="body"
               title="10 Star Jumps"
@@ -130,11 +142,12 @@ function GoToSection() {
               color="#2D6A4F"
               mode="reps"
               totalReps={10}
+              onComplete={() => markExerciseDone('movement-star-jumps')}
             />
           </ToolCard>
         )}
         {hasWalk && (
-          <ToolCard toolId="movement-walk">
+          <ToolCard toolId="movement-walk" isDone={isExerciseDoneToday('movement-walk')}>
             <MovementExercise
               icon="walk"
               title="Walk & Count"
@@ -143,11 +156,12 @@ function GoToSection() {
               mode="countdown"
               countdownSeconds={300}
               countdownLabel="remaining"
+              onComplete={() => markExerciseDone('movement-walk')}
             />
           </ToolCard>
         )}
         {hasMuscle && (
-          <ToolCard toolId="movement-muscle">
+          <ToolCard toolId="movement-muscle" isDone={isExerciseDoneToday('movement-muscle')}>
             <MovementExercise
               icon="hand-left"
               title="Progressive Muscle Release"
@@ -156,11 +170,12 @@ function GoToSection() {
               mode="hold-reps"
               holdSeconds={5}
               totalHoldRounds={3}
+              onComplete={() => markExerciseDone('movement-muscle')}
             />
           </ToolCard>
         )}
         {hasColdWater && (
-          <ToolCard toolId="movement-cold-water">
+          <ToolCard toolId="movement-cold-water" isDone={isExerciseDoneToday('movement-cold-water')}>
             <MovementExercise
               icon="water"
               title="Cold Water Reset"
@@ -169,12 +184,13 @@ function GoToSection() {
               mode="countdown"
               countdownSeconds={30}
               countdownLabel="hold or splash"
+              onComplete={() => markExerciseDone('movement-cold-water')}
             />
           </ToolCard>
         )}
         {hasGrounding && (
-          <ToolCard toolId="grounding-54321">
-            <GroundingWalkthrough />
+          <ToolCard toolId="grounding-54321" isDone={isExerciseDoneToday('grounding-54321')}>
+            <GroundingWalkthrough onComplete={() => markExerciseDone('grounding-54321')} />
           </ToolCard>
         )}
       </View>
@@ -185,6 +201,13 @@ function GoToSection() {
 export default function ToolboxScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { isExerciseDoneToday, markExerciseDone } = useApp();
+
+  const breathingIds = ['breathing-box', 'breathing-478'];
+  const movementIds = ['movement-star-jumps', 'movement-walk', 'movement-muscle', 'movement-cold-water'];
+  const breathingDone = breathingIds.filter(id => isExerciseDoneToday(id)).length;
+  const movementDone = movementIds.filter(id => isExerciseDoneToday(id)).length;
+  const groundingDone = isExerciseDoneToday('grounding-54321');
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -216,39 +239,57 @@ export default function ToolboxScreen() {
         </View>
 
         <View style={styles.breathingSection}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Breathing Exercises</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Breathing Exercises</Text>
+            {breathingDone > 0 && (
+              <View style={styles.sectionCount}>
+                <Ionicons name="checkmark-circle" size={13} color="#22c55e" />
+                <Text style={[styles.sectionCountText, { color: '#22c55e' }]}>{breathingDone}/{breathingIds.length} done</Text>
+              </View>
+            )}
+          </View>
           <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>
             Slow breathing signals safety to your nervous system. Tap to start a guided timer.
           </Text>
 
-          <ToolCard toolId="breathing-box">
+          <ToolCard toolId="breathing-box" isDone={isExerciseDoneToday('breathing-box')}>
             <BreathingTimer
               title="Box Breathing"
               description="Used by athletes and first responders to reset fast."
               phases={BOX_BREATHING_PHASES}
               totalRounds={4}
               accentColor="#03989e"
+              onComplete={() => markExerciseDone('breathing-box')}
             />
           </ToolCard>
 
-          <ToolCard toolId="breathing-478">
+          <ToolCard toolId="breathing-478" isDone={isExerciseDoneToday('breathing-478')}>
             <BreathingTimer
               title="4-7-8 Calm Down"
               description="Great for anxiety, panic, or when you can't sleep."
               phases={CALM_DOWN_PHASES}
               totalRounds={4}
               accentColor="#193b83"
+              onComplete={() => markExerciseDone('breathing-478')}
             />
           </ToolCard>
         </View>
 
         <View style={styles.exerciseSection}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Move to Reset</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Move to Reset</Text>
+            {movementDone > 0 && (
+              <View style={styles.sectionCount}>
+                <Ionicons name="checkmark-circle" size={13} color="#22c55e" />
+                <Text style={[styles.sectionCountText, { color: '#22c55e' }]}>{movementDone}/{movementIds.length} done</Text>
+              </View>
+            )}
+          </View>
           <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>
             Physical movement burns off stress hormones and shifts your mood fast. Tap to start.
           </Text>
 
-          <ToolCard toolId="movement-star-jumps">
+          <ToolCard toolId="movement-star-jumps" isDone={isExerciseDoneToday('movement-star-jumps')}>
             <MovementExercise
               icon="body"
               title="10 Star Jumps"
@@ -256,10 +297,11 @@ export default function ToolboxScreen() {
               color="#2D6A4F"
               mode="reps"
               totalReps={10}
+              onComplete={() => markExerciseDone('movement-star-jumps')}
             />
           </ToolCard>
 
-          <ToolCard toolId="movement-walk">
+          <ToolCard toolId="movement-walk" isDone={isExerciseDoneToday('movement-walk')}>
             <MovementExercise
               icon="walk"
               title="Walk & Count"
@@ -268,10 +310,11 @@ export default function ToolboxScreen() {
               mode="countdown"
               countdownSeconds={300}
               countdownLabel="remaining"
+              onComplete={() => markExerciseDone('movement-walk')}
             />
           </ToolCard>
 
-          <ToolCard toolId="movement-muscle">
+          <ToolCard toolId="movement-muscle" isDone={isExerciseDoneToday('movement-muscle')}>
             <MovementExercise
               icon="hand-left"
               title="Progressive Muscle Release"
@@ -280,10 +323,11 @@ export default function ToolboxScreen() {
               mode="hold-reps"
               holdSeconds={5}
               totalHoldRounds={3}
+              onComplete={() => markExerciseDone('movement-muscle')}
             />
           </ToolCard>
 
-          <ToolCard toolId="movement-cold-water">
+          <ToolCard toolId="movement-cold-water" isDone={isExerciseDoneToday('movement-cold-water')}>
             <MovementExercise
               icon="water"
               title="Cold Water Reset"
@@ -292,12 +336,13 @@ export default function ToolboxScreen() {
               mode="countdown"
               countdownSeconds={30}
               countdownLabel="hold or splash"
+              onComplete={() => markExerciseDone('movement-cold-water')}
             />
           </ToolCard>
         </View>
 
-        <ToolCard toolId="grounding-54321">
-          <GroundingWalkthrough />
+        <ToolCard toolId="grounding-54321" isDone={groundingDone}>
+          <GroundingWalkthrough onComplete={() => markExerciseDone('grounding-54321')} />
         </ToolCard>
       </ScrollView>
     </View>
@@ -330,6 +375,26 @@ const styles = StyleSheet.create({
   breathingSection: { gap: 12 },
   exerciseSection: { gap: 10 },
 
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  sectionCount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#22c55e18',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  sectionCountText: {
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
+  },
+
   toolWrapper: {
     position: 'relative',
   },
@@ -343,6 +408,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 15,
+  },
+  doneBadge: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#22c55e',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    zIndex: 10,
+  },
+  doneBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: 'Inter_600SemiBold',
   },
 
   goToSection: {

@@ -18,6 +18,7 @@ type Props = {
   totalHoldRounds?: number;
   countdownSeconds?: number;
   countdownLabel?: string;
+  onComplete?: () => void;
 };
 
 type Status = 'idle' | 'running' | 'done';
@@ -39,6 +40,7 @@ export default function MovementExercise({
   totalHoldRounds = 3,
   countdownSeconds = 300,
   countdownLabel = 'remaining',
+  onComplete,
 }: Props) {
   const colors = useColors();
   const [status, setStatus] = useState<Status>('idle');
@@ -112,8 +114,9 @@ export default function MovementExercise({
     if (next >= totalReps) {
       setStatus('done');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onComplete?.();
     }
-  }, [status, mode, reps, totalReps, pulse]);
+  }, [status, mode, reps, totalReps, pulse, onComplete]);
 
   useEffect(() => {
     if (status !== 'running') return;
@@ -127,6 +130,7 @@ export default function MovementExercise({
           clearTimer();
           setStatus('done');
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          onComplete?.();
         }
       }, 1000);
     }
@@ -157,6 +161,7 @@ export default function MovementExercise({
               clearTimer();
               setStatus('done');
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              onComplete?.();
             } else {
               stateRef.current = { ...s, holdRound: nextRound, holdCount: holdSeconds, holdPhase: 'hold' };
               setHoldRound(nextRound);

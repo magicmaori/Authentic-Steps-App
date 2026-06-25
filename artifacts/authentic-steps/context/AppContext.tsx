@@ -69,6 +69,9 @@ interface AppContextType {
   buildRecoveryPayload: () => string;
   restoreFromCode: (code: string) => Promise<RestoreResult>;
   toggleFavouriteTool: (toolId: string) => Promise<void>;
+  completedExercises: Record<string, string>;
+  markExerciseDone: (toolId: string) => Promise<void>;
+  isExerciseDoneToday: (toolId: string) => boolean;
 }
 
 function generateRecoveryCode(anonymousName: string): string {
@@ -128,6 +131,7 @@ const AppContext = createContext<AppContextType | null>(null);
 
 const STORAGE_KEY_USER = '@authentic_steps_user';
 const STORAGE_KEY_ENTRIES = '@authentic_steps_entries';
+const STORAGE_KEY_EXERCISES = '@authentic_steps_exercises';
 
 function todayString(): string {
   return new Date().toISOString().split('T')[0];
@@ -149,6 +153,7 @@ const MILESTONES = [
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<UserData>(defaultUser);
   const [entries, setEntries] = useState<Record<string, RitualEntry>>({});
+  const [completedExercises, setCompletedExercises] = useState<Record<string, string>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -157,9 +162,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   async function loadData() {
     try {
-      const [userRaw, entriesRaw] = await Promise.all([
+      const [userRaw, entriesRaw, exercisesRaw] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY_USER),
         AsyncStorage.getItem(STORAGE_KEY_ENTRIES),
+        AsyncStorage.getItem(STORAGE_KEY_EXERCISES),
       ]);
       if (userRaw) {
         const parsed = JSON.parse(userRaw) as Partial<UserData>;
@@ -184,6 +190,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(newUser));
       }
       if (entriesRaw) setEntries(JSON.parse(entriesRaw));
+      if (exercisesRaw) {
+        const parsed: Record<string, string> = JSON.parse(exercisesRaw);
+        const today = todayString();
+        const filtered: Record<string, string> = {};
+        for (const [toolId, date] of Object.entries(parsed)) {
+          if (date === today) filtered[toolId] = date;
+        }
+        setCompletedExercises(filtered);
+      }
     } catch {
     } finally {
       setIsLoaded(true);
@@ -394,6 +409,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await saveUser({ ...userData, favouriteTools: updated });
   }, [userData]);
 
+  const markExerciseDone = useCallback(async (toolId: string) => {
+    const today = todayString();
+    if (completedExercises[toolId] === today) return;
+    const updated = { ...completedExercises, [toolId]: today };
+    setCompletedExercises(updated);
+    await AsyncStorage.setItem(STORAGE_KEY_EXERCISES, JSON.stringify(updated));
+  }, [completedExercises]);
+
+  const isExerciseDoneToday = useCallback((toolId: string): boolean => {
+    return completedExercises[toolId] === todayString();
+  }, [completedExercises]);
+
   function getStreakCalendar() {
     const days: { date: string; done: boolean; flex: boolean }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -431,6 +458,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       buildRecoveryPayload,
       restoreFromCode,
       toggleFavouriteTool,
+      completedExercises,
+      markExerciseDone,
+      isExerciseDoneToday,
     }}>
       {children}
     </AppContext.Provider>
