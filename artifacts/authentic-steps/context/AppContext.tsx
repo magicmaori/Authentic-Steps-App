@@ -46,6 +46,10 @@ export interface UserData {
   recoveryCode: string;
 }
 
+export type RestoreResult =
+  | { ok: true }
+  | { ok: false; reason: 'format' | 'incomplete' | 'corrupted' | 'invalid_data' | 'save_failed' };
+
 interface AppContextType {
   userData: UserData;
   entries: Record<string, RitualEntry>;
@@ -62,7 +66,7 @@ interface AppContextType {
   completeOnboarding: () => Promise<void>;
   setThemePreference: (pref: ThemePreference) => Promise<void>;
   buildRecoveryPayload: () => string;
-  restoreFromCode: (code: string) => Promise<boolean>;
+  restoreFromCode: (code: string) => Promise<RestoreResult>;
 }
 
 function generateRecoveryCode(anonymousName: string): string {
@@ -82,7 +86,11 @@ function encodePayload(userData: UserData, entries: Record<string, RitualEntry>)
   return btoa(binary);
 }
 
-function decodePayload(raw: string): { userData: UserData; entries: Record<string, RitualEntry> } | null {
+type DecodePayloadResult =
+  | { ok: true; userData: UserData; entries: Record<string, RitualEntry> }
+  | { ok: false; reason: 'corrupted' };
+
+function decodePayload(raw: string): DecodePayloadResult {
   try {
     const binary = atob(raw);
     const bytes = new Uint8Array(binary.length);
@@ -90,9 +98,10 @@ function decodePayload(raw: string): { userData: UserData; entries: Record<strin
       bytes[i] = binary.charCodeAt(i);
     }
     const decompressed = decompressSync(bytes);
-    return JSON.parse(strFromU8(decompressed));
+    const parsed = JSON.parse(strFromU8(decompressed));
+    return { ok: true, userData: parsed.userData, entries: parsed.entries };
   } catch {
-    return null;
+    return { ok: false, reason: 'corrupted' };
   }
 }
 
@@ -203,22 +212,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return `${userData.recoveryCode}#${base64}`;
   }, [userData, entries]);
 
-  const restoreFromCode = useCallback(async (code: string): Promise<boolean> => {
+  const restoreFromCode = useCallback(async (code: string): Promise<RestoreResult> => {
     const trimmed = code.trim();
     const hashIndex = trimmed.indexOf('#');
-    if (hashIndex === -1) return false;
-    const payloadRaw = trimmed.slice(hashIndex + 1);
-    if (!payloadRaw) return false;
+    if (hashIndex === -1) return { ok: false, reason: 'format' };
+    const payloadRaw = trimmed.slice(hashIndex + 1).trim();
+    if (!payloadRaw) return { ok: false, reason: 'incomplete' };
     const decoded = decodePayload(payloadRaw);
-    if (!decoded) return false;
+    if (!decoded.ok) return { ok: false, reason: 'corrupted' };
     const { userData: restoredUser, entries: restoredEntries } = decoded;
     if (
       !restoredUser ||
       typeof restoredUser.anonymousName !== 'string' ||
       !restoredUser.anonymousName ||
       typeof restoredUser.currentStreak !== 'number' ||
-      typeof restoredUser.totalRituals !== 'number'
-    ) return false;
+      typeof restoredUser.totalRituals !== 'number' ||
+      typeof restoredUser.recoveryCode !== 'string'
+    ) return { ok: false, reason: 'invalid_data' };
     const safeUser: UserData = {
       ...defaultUser,
       ...restoredUser,
@@ -231,9 +241,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]);
       setUserData(safeUser);
       setEntries(safeEntries);
-      return true;
+      return { ok: true };
     } catch {
-      return false;
+      return { ok: false, reason: 'save_failed' };
     }
   }, []);
 

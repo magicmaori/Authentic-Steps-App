@@ -16,7 +16,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppLogo } from '@/components/AppLogo';
-import { useApp } from '@/context/AppContext';
+import { type RestoreResult, useApp } from '@/context/AppContext';
+
+const RESTORE_ERROR_MESSAGES: Record<Exclude<RestoreResult, { ok: true }>['reason'], string> = {
+  format: "That doesn't look like a recovery code. It should start with your username (like BRAVE-FOX-1A2B) followed by a '#' and the rest of the code.",
+  incomplete: 'This code looks cut off — make sure you copied everything, including the long string of characters after the \'#\'.',
+  corrupted: "We couldn't read this code. It may have been edited or corrupted. Try copying it again directly from where you saved it.",
+  invalid_data: "This code doesn't contain the expected account data. It may be from a different app or an older version.",
+  save_failed: 'Your data was found but we hit an error saving it. Please try again.',
+};
 
 const PILLARS = [
   { icon: '🌿', label: 'Gratitude', desc: 'Name three things you are grateful for' },
@@ -55,13 +63,13 @@ export default function OnboardingScreen() {
   async function handleRestore() {
     setRestoreError('');
     setRestoring(true);
-    const ok = await restoreFromCode(codeInput);
+    const result = await restoreFromCode(codeInput);
     setRestoring(false);
-    if (ok) {
+    if (result.ok) {
       setShowRestoreModal(false);
       router.replace('/(tabs)');
     } else {
-      setRestoreError('That code doesn\'t look right. Make sure you copied the full code and try again.');
+      setRestoreError(RESTORE_ERROR_MESSAGES[result.reason]);
     }
   }
 
