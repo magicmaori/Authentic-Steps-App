@@ -44,6 +44,7 @@ export interface UserData {
   hasOnboarded: boolean;
   themePreference: ThemePreference;
   recoveryCode: string;
+  favouriteTools: string[];
 }
 
 export type RestoreResult =
@@ -67,6 +68,7 @@ interface AppContextType {
   setThemePreference: (pref: ThemePreference) => Promise<void>;
   buildRecoveryPayload: () => string;
   restoreFromCode: (code: string) => Promise<RestoreResult>;
+  toggleFavouriteTool: (toolId: string) => Promise<void>;
 }
 
 function generateRecoveryCode(anonymousName: string): string {
@@ -119,6 +121,7 @@ const defaultUser: UserData = {
   hasOnboarded: false,
   themePreference: 'system',
   recoveryCode: '',
+  favouriteTools: [],
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -383,6 +386,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await saveUser(newUser);
   }, [userData]);
 
+  const toggleFavouriteTool = useCallback(async (toolId: string) => {
+    const current = userData.favouriteTools ?? [];
+    const updated = current.includes(toolId)
+      ? current.filter(id => id !== toolId)
+      : [...current, toolId];
+    await saveUser({ ...userData, favouriteTools: updated });
+  }, [userData]);
+
   function getStreakCalendar() {
     const days: { date: string; done: boolean; flex: boolean }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -419,6 +430,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setThemePreference,
       buildRecoveryPayload,
       restoreFromCode,
+      toggleFavouriteTool,
     }}>
       {children}
     </AppContext.Provider>
