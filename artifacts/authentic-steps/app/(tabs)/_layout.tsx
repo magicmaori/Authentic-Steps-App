@@ -113,10 +113,11 @@ const TAB_NAMES: Record<string, string> = {
   "/streaks": "Streaks",
   "/community": "Community",
   "/support": "Support",
+  "/toolbox": "Toolbox",
   "/profile": "Profile",
 };
 
-const NATIVE_TAB_ROUTES = ["index", "streaks", "community", "support", "profile"] as const;
+const NATIVE_TAB_ROUTES = ["index", "streaks", "community", "support", "toolbox", "profile"] as const;
 type NativeTabRoute = (typeof NATIVE_TAB_ROUTES)[number];
 
 const PATHNAME_TO_ROUTE: Record<string, NativeTabRoute> = {
@@ -124,6 +125,7 @@ const PATHNAME_TO_ROUTE: Record<string, NativeTabRoute> = {
   "/streaks": "streaks",
   "/community": "community",
   "/support": "support",
+  "/toolbox": "toolbox",
   "/profile": "profile",
 };
 
@@ -319,6 +321,13 @@ function NativeTabLayout() {
             label="Support"
           />
         </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="toolbox">
+          <NativeTriggerContent
+            scaleAnim={scaleAnims["toolbox"]}
+            icon={<Icon sf={{ default: "hammer", selected: "hammer.fill" }} />}
+            label="Toolbox"
+          />
+        </NativeTabs.Trigger>
         <NativeTabs.Trigger name="profile">
           <NativeTriggerContent
             scaleAnim={scaleAnims["profile"]}
@@ -446,6 +455,24 @@ function ClassicTabLayout() {
                 <SymbolView name="heart.fill" tintColor={color} size={24} />
               ) : (
                 <Ionicons name="heart" size={22} color={color} />
+              )}
+            </AnimatedTabIcon>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="toolbox"
+        options={{
+          title: "Toolbox",
+          tabBarLabel: ({ focused, color }) => (
+            <AnimatedTabLabel focused={focused} color={color}>Toolbox</AnimatedTabLabel>
+          ),
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={focused}>
+              {isIOS ? (
+                <SymbolView name="hammer.fill" tintColor={color} size={24} />
+              ) : (
+                <Ionicons name={focused ? "hammer" : "hammer-outline"} size={22} color={color} />
               )}
             </AnimatedTabIcon>
           ),
