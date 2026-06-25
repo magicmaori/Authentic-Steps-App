@@ -1,8 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useColors } from '@/hooks/useColors';
+import { useBreathingSound } from '@/hooks/useBreathingSound';
 
 type Phase = {
   label: string;
@@ -22,12 +24,22 @@ type Props = {
 
 type Status = 'idle' | 'running' | 'done';
 
+function phaseChime(label: string): 'in' | 'out' | 'hold' {
+  const l = label.toLowerCase();
+  if (l.includes('in')) return 'in';
+  if (l.includes('out')) return 'out';
+  return 'hold';
+}
+
 export default function BreathingTimer({ title, description, phases, totalRounds, accentColor, onComplete }: Props) {
   const colors = useColors();
   const [status, setStatus] = useState<Status>('idle');
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [count, setCount] = useState(phases[0].counts);
   const [round, setRound] = useState(1);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+
+  const { playChime } = useBreathingSound(soundEnabled);
 
   const circleScale = useRef(new Animated.Value(0.55)).current;
   const phaseOpacity = useRef(new Animated.Value(1)).current;
@@ -66,9 +78,10 @@ export default function BreathingTimer({ title, description, phases, totalRounds
     setRound(1);
     setStatus('running');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    playChime(phaseChime(phases[0].label));
     animateToScale(phases[0].targetScale, phases[0].counts);
     flashPhase();
-  }, [phases, animateToScale, flashPhase]);
+  }, [phases, animateToScale, flashPhase, playChime]);
 
   const stopExercise = useCallback(() => {
     clearTimer();
@@ -99,6 +112,7 @@ export default function BreathingTimer({ title, description, phases, totalRounds
             clearTimer();
             setStatus('done');
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            playChime('done');
             onComplete?.();
             return;
           }
@@ -109,6 +123,7 @@ export default function BreathingTimer({ title, description, phases, totalRounds
           animateToScale(phases[0].targetScale, phases[0].counts);
           flashPhase();
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          playChime(phaseChime(phases[0].label));
         } else {
           const nextPhase = phases[nextPhaseIndex];
           stateRef.current = { phaseIndex: nextPhaseIndex, count: nextPhase.counts, round: s.round };
@@ -117,12 +132,13 @@ export default function BreathingTimer({ title, description, phases, totalRounds
           animateToScale(nextPhase.targetScale, nextPhase.counts);
           flashPhase();
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          playChime(phaseChime(nextPhase.label));
         }
       }
     }, 1000);
 
     return clearTimer;
-  }, [status, phases, totalRounds, animateToScale, flashPhase]);
+  }, [status, phases, totalRounds, animateToScale, flashPhase, playChime]);
 
   const currentPhase = phases[phaseIndex];
 
@@ -135,12 +151,29 @@ export default function BreathingTimer({ title, description, phases, totalRounds
       <Text style={[styles.desc, { color: colors.mutedForeground }]}>{description}</Text>
 
       {status === 'idle' && (
-        <Pressable
-          style={[styles.startBtn, { backgroundColor: accentColor }]}
-          onPress={startExercise}
-        >
-          <Text style={styles.startBtnText}>Start Breathing</Text>
-        </Pressable>
+        <View style={styles.idleActions}>
+          <Pressable
+            style={[styles.startBtn, { backgroundColor: accentColor }]}
+            onPress={startExercise}
+          >
+            <Text style={styles.startBtnText}>Start Breathing</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.soundToggle, { borderColor: colors.border }]}
+            onPress={() => setSoundEnabled(v => !v)}
+            accessibilityLabel={soundEnabled ? 'Mute chimes' : 'Enable chimes'}
+            hitSlop={8}
+          >
+            <Ionicons
+              name={soundEnabled ? 'volume-high' : 'volume-mute'}
+              size={16}
+              color={soundEnabled ? accentColor : colors.mutedForeground}
+            />
+            <Text style={[styles.soundToggleText, { color: soundEnabled ? accentColor : colors.mutedForeground }]}>
+              {soundEnabled ? 'Chimes on' : 'Chimes off'}
+            </Text>
+          </Pressable>
+        </View>
       )}
 
       {status === 'running' && (
@@ -176,9 +209,23 @@ export default function BreathingTimer({ title, description, phases, totalRounds
             Round {round} / {totalRounds}
           </Text>
 
-          <Pressable style={[styles.stopBtn, { borderColor: colors.border }]} onPress={stopExercise}>
-            <Text style={[styles.stopBtnText, { color: colors.mutedForeground }]}>Stop</Text>
-          </Pressable>
+          <View style={styles.runningFooter}>
+            <Pressable style={[styles.stopBtn, { borderColor: colors.border }]} onPress={stopExercise}>
+              <Text style={[styles.stopBtnText, { color: colors.mutedForeground }]}>Stop</Text>
+            </Pressable>
+            <Pressable
+              style={styles.soundPill}
+              onPress={() => setSoundEnabled(v => !v)}
+              accessibilityLabel={soundEnabled ? 'Mute chimes' : 'Enable chimes'}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={soundEnabled ? 'volume-high' : 'volume-mute'}
+                size={14}
+                color={soundEnabled ? accentColor : colors.mutedForeground}
+              />
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -221,6 +268,7 @@ const styles = StyleSheet.create({
   iconText: { fontSize: 20 },
   title: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   desc: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 18 },
+  idleActions: { alignSelf: 'stretch', gap: 8 },
   startBtn: {
     alignSelf: 'stretch',
     borderRadius: 12,
@@ -229,6 +277,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   startBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  soundToggle: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  soundToggleText: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   activeArea: { alignSelf: 'stretch', alignItems: 'center', gap: 16, paddingVertical: 8 },
   circleContainer: {
     width: CIRCLE_SIZE,
@@ -254,6 +313,11 @@ const styles = StyleSheet.create({
   phaseLabel: { fontSize: 20, fontFamily: 'Inter_700Bold', textAlign: 'center' },
   phaseInstruction: { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center' },
   roundText: { fontSize: 12, fontFamily: 'Inter_400Regular' },
+  runningFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   stopBtn: {
     borderWidth: 1,
     borderRadius: 10,
@@ -261,6 +325,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   stopBtnText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
+  soundPill: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+  },
   doneArea: { alignSelf: 'stretch', alignItems: 'center', gap: 8, paddingVertical: 8 },
   doneEmoji: { fontSize: 40 },
   doneText: { fontSize: 20, fontFamily: 'Inter_700Bold' },
