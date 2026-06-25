@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { deflateSync, decompressSync, strFromU8, strToU8 } from 'fflate';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { generateAnonymousName } from '@/constants/affirmations';
@@ -42,6 +43,7 @@ export interface UserData {
   lastFlexWeek: string;
   hasOnboarded: boolean;
   themePreference: ThemePreference;
+  recoveryCode: string;
 }
 
 interface AppContextType {
@@ -59,6 +61,39 @@ interface AppContextType {
   getStreakCalendar: () => { date: string; done: boolean; flex: boolean }[];
   completeOnboarding: () => Promise<void>;
   setThemePreference: (pref: ThemePreference) => Promise<void>;
+  buildRecoveryPayload: () => string;
+  restoreFromCode: (code: string) => Promise<boolean>;
+}
+
+function generateRecoveryCode(anonymousName: string): string {
+  const parts = anonymousName.match(/[A-Z][a-z]+/g) ?? [anonymousName];
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const suffix = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return [...parts.map(p => p.toUpperCase()), suffix].join('-');
+}
+
+function encodePayload(userData: UserData, entries: Record<string, RitualEntry>): string {
+  const json = JSON.stringify({ userData, entries });
+  const compressed = deflateSync(strToU8(json), { level: 6 });
+  let binary = '';
+  for (let i = 0; i < compressed.length; i++) {
+    binary += String.fromCharCode(compressed[i]);
+  }
+  return btoa(binary);
+}
+
+function decodePayload(raw: string): { userData: UserData; entries: Record<string, RitualEntry> } | null {
+  try {
+    const binary = atob(raw);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const decompressed = decompressSync(bytes);
+    return JSON.parse(strFromU8(decompressed));
+  } catch {
+    return null;
+  }
 }
 
 const defaultUser: UserData = {
@@ -74,6 +109,7 @@ const defaultUser: UserData = {
   lastFlexWeek: '',
   hasOnboarded: false,
   themePreference: 'system',
+  recoveryCode: '',
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -115,11 +151,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]);
       if (userRaw) {
         const parsed = JSON.parse(userRaw) as Partial<UserData>;
-        setUserData({
+        const name = parsed.anonymousName ?? defaultUser.anonymousName;
+        const recoveryCode = parsed.recoveryCode || generateRecoveryCode(name);
+        const merged: UserData = {
           ...defaultUser,
           ...parsed,
+          recoveryCode,
           hasOnboarded: parsed.hasOnboarded ?? (parsed.totalRituals !== undefined && parsed.totalRituals > 0),
-        });
+        };
+        setUserData(merged);
+        if (!parsed.recoveryCode) {
+          await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(merged));
+        }
+      } else {
+        const newUser: UserData = {
+          ...defaultUser,
+          recoveryCode: generateRecoveryCode(defaultUser.anonymousName),
+        };
+        setUserData(newUser);
+        await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(newUser));
       }
       if (entriesRaw) setEntries(JSON.parse(entriesRaw));
     } catch {
@@ -147,6 +197,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!entry) return false;
     return entry.completedSteps.includes(step);
   }
+
+  const buildRecoveryPayload = useCallback((): string => {
+    const base64 = encodePayload(userData, entries);
+    return `${userData.recoveryCode}#${base64}`;
+  }, [userData, entries]);
+
+  const restoreFromCode = useCallback(async (code: string): Promise<boolean> => {
+    const trimmed = code.trim();
+    const hashIndex = trimmed.indexOf('#');
+    if (hashIndex === -1) return false;
+    const payloadRaw = trimmed.slice(hashIndex + 1);
+    if (!payloadRaw) return false;
+    const decoded = decodePayload(payloadRaw);
+    if (!decoded) return false;
+    const { userData: restoredUser, entries: restoredEntries } = decoded;
+    if (
+      !restoredUser ||
+      typeof restoredUser.anonymousName !== 'string' ||
+      !restoredUser.anonymousName ||
+      typeof restoredUser.currentStreak !== 'number' ||
+      typeof restoredUser.totalRituals !== 'number'
+    ) return false;
+    const safeUser: UserData = {
+      ...defaultUser,
+      ...restoredUser,
+    };
+    const safeEntries: Record<string, RitualEntry> = restoredEntries ?? {};
+    try {
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(safeUser)),
+        AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(safeEntries)),
+      ]);
+      setUserData(safeUser);
+      setEntries(safeEntries);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
   const saveGratitude = useCallback(async (gratitudes: GratitudeEntry[]) => {
     const today = todayString();
@@ -318,6 +407,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       getStreakCalendar,
       completeOnboarding,
       setThemePreference,
+      buildRecoveryPayload,
+      restoreFromCode,
     }}>
       {children}
     </AppContext.Provider>

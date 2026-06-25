@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -16,10 +17,11 @@ const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] =
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, setThemePreference } = useApp();
+  const { userData, setThemePreference, buildRecoveryPayload } = useApp();
   const [notifRitual, setNotifRitual] = useState(true);
   const [notifEvening, setNotifEvening] = useState(true);
   const [notifMilestone, setNotifMilestone] = useState(true);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   function handleDeleteData() {
     Alert.alert(
@@ -34,6 +36,14 @@ export default function ProfileScreen() {
 
   function handleDownloadData() {
     Alert.alert('Download your data', 'Your data export will be prepared. In the full version, this will email you a copy of all your entries.');
+  }
+
+  async function handleCopyCode() {
+    Haptics.selectionAsync();
+    const payload = buildRecoveryPayload();
+    await Clipboard.setStringAsync(payload);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2500);
   }
 
   const initials = userData.anonymousName.substring(0, 2).toUpperCase();
@@ -77,6 +87,42 @@ export default function ProfileScreen() {
               <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{stat.label}</Text>
             </View>
           ))}
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.recoveryHeader}>
+            <Ionicons name="key-outline" size={18} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.foreground, paddingTop: 0, paddingHorizontal: 0 }]}>
+              Recovery Code
+            </Text>
+          </View>
+          <Text style={[styles.recoveryExplain, { color: colors.mutedForeground }]}>
+            If you reinstall or get a new phone, tap "Copy code" and paste it somewhere safe (Notes, Messages, a password manager). Copying is required — a screenshot alone won't restore your data.
+          </Text>
+          <View style={[styles.codeBox, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+            <Text style={[styles.codeText, { color: colors.foreground }]}>
+              {userData.recoveryCode || '—'}
+            </Text>
+            <Text style={[styles.codeSubtext, { color: colors.mutedForeground }]}>
+              Your identifier — the full restorable code is copied below
+            </Text>
+          </View>
+          <Pressable
+            onPress={handleCopyCode}
+            style={({ pressed }) => [
+              styles.copyButton,
+              { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
+            <Ionicons
+              name={codeCopied ? 'checkmark-outline' : 'copy-outline'}
+              size={16}
+              color={colors.primaryForeground}
+            />
+            <Text style={[styles.copyButtonText, { color: colors.primaryForeground }]}>
+              {codeCopied ? 'Copied to clipboard!' : 'Copy recovery code'}
+            </Text>
+          </Pressable>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -226,6 +272,56 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 8,
     textTransform: 'uppercase',
+  },
+  recoveryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
+  },
+  recoveryExplain: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    lineHeight: 19,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  codeBox: {
+    marginHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  codeText: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontSize: 20,
+    letterSpacing: 1.5,
+    fontWeight: '700',
+  },
+  codeSubtext: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  copyButtonText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
   },
   settingRow: {
     flexDirection: 'row',
