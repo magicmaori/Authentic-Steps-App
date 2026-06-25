@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import React, { useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,6 +15,25 @@ const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] =
   { value: 'dark', label: 'Dark', icon: 'moon-outline' },
 ];
 
+function formatLastUpdated(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+  const h = date.getHours();
+  const m = date.getMinutes().toString().padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const todayStr = now.toDateString();
+  if (date.toDateString() === todayStr) return `today at ${h12}:${m} ${ampm}`;
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return `yesterday at ${h12}:${m} ${ampm}`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ` at ${h12}:${m} ${ampm}`;
+}
+
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -22,6 +42,23 @@ export default function ProfileScreen() {
   const [notifEvening, setNotifEvening] = useState(true);
   const [notifMilestone, setNotifMilestone] = useState(true);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [codeRefreshed, setCodeRefreshed] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cachedPayloadRef = useRef<string>('');
+
+  const refreshPayload = useCallback(() => {
+    const payload = buildRecoveryPayload();
+    cachedPayloadRef.current = payload;
+    setLastRefreshed(new Date());
+    return payload;
+  }, [buildRecoveryPayload]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshPayload();
+    }, [refreshPayload])
+  );
 
   function handleDeleteData() {
     Alert.alert(
@@ -40,10 +77,19 @@ export default function ProfileScreen() {
 
   async function handleCopyCode() {
     Haptics.selectionAsync();
-    const payload = buildRecoveryPayload();
+    const payload = refreshPayload();
     await Clipboard.setStringAsync(payload);
     setCodeCopied(true);
     setTimeout(() => setCodeCopied(false), 2500);
+  }
+
+  async function handleRefreshCode() {
+    Haptics.selectionAsync();
+    const payload = refreshPayload();
+    await Clipboard.setStringAsync(payload);
+    setCodeRefreshed(true);
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => setCodeRefreshed(false), 2500);
   }
 
   const initials = userData.anonymousName.substring(0, 2).toUpperCase();
@@ -107,22 +153,48 @@ export default function ProfileScreen() {
               Your identifier — the full restorable code is copied below
             </Text>
           </View>
-          <Pressable
-            onPress={handleCopyCode}
-            style={({ pressed }) => [
-              styles.copyButton,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
-            ]}
-          >
-            <Ionicons
-              name={codeCopied ? 'checkmark-outline' : 'copy-outline'}
-              size={16}
-              color={colors.primaryForeground}
-            />
-            <Text style={[styles.copyButtonText, { color: colors.primaryForeground }]}>
-              {codeCopied ? 'Copied to clipboard!' : 'Copy recovery code'}
-            </Text>
-          </Pressable>
+          {lastRefreshed && (
+            <View style={styles.lastUpdatedRow}>
+              <Ionicons name="time-outline" size={12} color={colors.mutedForeground} />
+              <Text style={[styles.lastUpdatedText, { color: colors.mutedForeground }]}>
+                {`Last updated: ${formatLastUpdated(lastRefreshed)}`}
+              </Text>
+            </View>
+          )}
+          <View style={styles.codeActions}>
+            <Pressable
+              onPress={handleRefreshCode}
+              style={({ pressed }) => [
+                styles.refreshButton,
+                { borderColor: colors.border, backgroundColor: colors.muted, opacity: pressed ? 0.75 : 1 },
+              ]}
+            >
+              <Ionicons
+                name={codeRefreshed ? 'checkmark-outline' : 'refresh-outline'}
+                size={16}
+                color={codeRefreshed ? colors.primary : colors.mutedForeground}
+              />
+              <Text style={[styles.refreshButtonText, { color: codeRefreshed ? colors.primary : colors.mutedForeground }]}>
+                {codeRefreshed ? 'Updated!' : 'Refresh code'}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleCopyCode}
+              style={({ pressed }) => [
+                styles.copyButton,
+                { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+              ]}
+            >
+              <Ionicons
+                name={codeCopied ? 'checkmark-outline' : 'copy-outline'}
+                size={16}
+                color={colors.primaryForeground}
+              />
+              <Text style={[styles.copyButtonText, { color: colors.primaryForeground }]}>
+                {codeCopied ? 'Copied!' : 'Copy code'}
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -309,13 +381,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
+  lastUpdatedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  lastUpdatedText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+  },
+  codeActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+  },
+  refreshButtonText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+  },
   copyButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginHorizontal: 16,
-    marginBottom: 16,
     borderRadius: 12,
     paddingVertical: 12,
   },
