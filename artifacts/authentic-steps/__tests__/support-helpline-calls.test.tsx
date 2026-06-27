@@ -143,3 +143,74 @@ describe('Support screen – helpline card calls', () => {
     ).resolves.not.toThrow();
   });
 });
+
+// ─── Triage flow call buttons ──────────────────────────────────────────────────
+
+describe('Support screen – triage flow call buttons', () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it('urgency="right now" path: call button triggers tel:1800551800', async () => {
+    // Step 1 — open triage
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+
+    // Step 2 — choose "right now" → goes straight to routed
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-right-now' }).props.onPress();
+    });
+
+    // Step 3 — tap the call button
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-call-right-now' }).props.onPress();
+    });
+
+    expect(openURLSpy).toHaveBeenCalledWith('tel:1800551800');
+    expect(openURLSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('supportType="professional help" path: call button triggers tel:1800551800', async () => {
+    // Step 1 — open triage
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+
+    // Step 2 — choose "today" → goes to area step
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+    });
+
+    // Step 3 — choose any area → goes to type step
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+    });
+
+    // Step 4 — choose "professional help" → routed with supportType set
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-type-professional-help' }).props.onPress();
+    });
+
+    // Step 5 — tap the call button
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-call-professional' }).props.onPress();
+    });
+
+    expect(openURLSpy).toHaveBeenCalledWith('tel:1800551800');
+    expect(openURLSpy).toHaveBeenCalledTimes(1);
+  });
+});

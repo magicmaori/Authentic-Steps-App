@@ -163,6 +163,7 @@ export default function SupportScreen() {
 
         {triageStep === 'idle' && (
           <Pressable
+            testID="triage-start-btn"
             onPress={startTriage}
             style={({ pressed }) => [pressed && styles.pressed]}
           >
@@ -183,6 +184,7 @@ export default function SupportScreen() {
             {['right now', 'today', 'this week'].map(opt => (
               <Pressable
                 key={opt}
+                testID={`triage-urgency-${opt.replace(/ /g, '-')}`}
                 onPress={() => handleUrgency(opt)}
                 style={({ pressed }) => [
                   styles.triageOpt,
@@ -203,6 +205,7 @@ export default function SupportScreen() {
             {['emotions', 'relationships', 'school or home', 'habits', 'something else'].map(opt => (
               <Pressable
                 key={opt}
+                testID={`triage-area-${opt.replace(/ /g, '-')}`}
                 onPress={() => handleArea(opt)}
                 style={({ pressed }) => [
                   styles.triageOpt,
@@ -223,6 +226,7 @@ export default function SupportScreen() {
             {['someone to listen', 'practical ideas', 'professional help'].map(opt => (
               <Pressable
                 key={opt}
+                testID={`triage-type-${opt.replace(/ /g, '-')}`}
                 onPress={() => handleType(opt)}
                 style={({ pressed }) => [
                   styles.triageOpt,
@@ -251,6 +255,7 @@ export default function SupportScreen() {
                   Right now, the most important thing is connecting with someone who can help. Kids Helpline is free, private, and available 24/7.
                 </Text>
                 <Pressable
+                  testID="triage-call-right-now"
                   onPress={() => callNumber('1800551800', 'Kids Helpline')}
                   style={[styles.bigCallBtn, { backgroundColor: colors.primary }]}
                 >
@@ -272,6 +277,7 @@ export default function SupportScreen() {
                 </Text>
                 {supportType === 'professional help' ? (
                   <Pressable
+                    testID="triage-call-professional"
                     onPress={() => callNumber('1800551800', 'Kids Helpline')}
                     style={[styles.bigCallBtn, { backgroundColor: colors.primary }]}
                   >
