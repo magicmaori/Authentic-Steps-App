@@ -982,11 +982,11 @@ describe('Support screen – tip box reachable via all area types', () => {
 
       // Tip title must have meaningful text
       const tipTitle = root.root.findByProps({ testID: 'triage-tip-title' });
-      expect(String(tipTitle.props.children).length).toBeGreaterThan(0);
+      expect(String(tipTitle.props.children).length).toBeGreaterThan(10);
 
       // Tip body must have meaningful text
       const tipText = root.root.findByProps({ testID: 'triage-tip-text' });
-      expect(String(tipText.props.children).length).toBeGreaterThan(0);
+      expect(String(tipText.props.children).length).toBeGreaterThan(10);
 
       // The professional-help call button must NOT be present
       expect(() =>
@@ -1058,12 +1058,14 @@ describe('Support screen – practical-ideas tip box reachable via all area type
         root.root.findByProps({ testID: 'triage-tip-box' }),
       ).not.toThrow();
 
-      // Tip title must contain "try"
+      // Tip title must have meaningful text and contain "try"
       const tipTitle = root.root.findByProps({ testID: 'triage-tip-title' });
+      expect(String(tipTitle.props.children).length).toBeGreaterThan(10);
       expect(String(tipTitle.props.children).toLowerCase()).toContain('try');
 
-      // Tip body must contain "grounding"
+      // Tip body must have meaningful text and contain "grounding"
       const tipText = root.root.findByProps({ testID: 'triage-tip-text' });
+      expect(String(tipText.props.children).length).toBeGreaterThan(10);
       expect(String(tipText.props.children).toLowerCase()).toContain('grounding');
 
       // The professional-help call button must NOT be present
