@@ -218,6 +218,11 @@ export default function BreathingTimer({ title, description, phases, totalRounds
             setCount(advanced.count);
             setRound(advanced.round);
 
+            // Snap the circle to the correct scale for the fast-forwarded phase
+            // so it doesn't freeze at its backgrounded position and snap
+            // abruptly on the next interval tick.
+            circleScale.setValue(phases[advanced.phaseIndex].targetScale);
+
             if (advanced.done) {
               // The session finished while the screen was off — complete it now.
               // Do NOT return early here: setAppActive(true) below is still needed
@@ -231,6 +236,11 @@ export default function BreathingTimer({ title, description, phases, totalRounds
               playChime('done');
               onComplete?.();
             }
+          } else {
+            // elapsed === 0: no state advanced, but the animation was stopped
+            // mid-motion on background. Snap to the current phase's target so
+            // the circle doesn't resume from a frozen intermediate position.
+            circleScale.setValue(phases[stateRef.current.phaseIndex].targetScale);
           }
         } else {
           backgroundedAtRef.current = null;
