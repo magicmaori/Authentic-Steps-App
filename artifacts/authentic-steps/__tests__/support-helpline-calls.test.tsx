@@ -216,6 +216,87 @@ describe('Support screen – triage flow call buttons', () => {
   });
 });
 
+// ─── "Start over" reset ────────────────────────────────────────────────────────
+
+describe('Support screen – "Start over" reset', () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it('urgency="right now" routed view: tapping "Start over" returns to idle (start button visible)', async () => {
+    // Navigate to routed view via urgency='right now'
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-right-now' }).props.onPress();
+    });
+
+    // Reset button must be present in the routed view
+    const resetBtn = root.root.findByProps({ testID: 'triage-reset-btn' });
+    expect(resetBtn).toBeTruthy();
+
+    await act(async () => {
+      resetBtn.props.onPress();
+    });
+
+    // After reset, the initial "I need some support" button must be visible again
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-start-btn' }),
+    ).not.toThrow();
+    // And the routed-view reset button must no longer be rendered
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-reset-btn' }),
+    ).toThrow();
+  });
+
+  it('professional-help routed view: tapping "Start over" returns to idle (start button visible)', async () => {
+    // Navigate to routed view via professional-help path
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-type-professional-help' }).props.onPress();
+    });
+
+    // Reset button must be present in the routed view
+    const resetBtn = root.root.findByProps({ testID: 'triage-reset-btn' });
+    expect(resetBtn).toBeTruthy();
+
+    await act(async () => {
+      resetBtn.props.onPress();
+    });
+
+    // After reset, the initial "I need some support" button must be visible again
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-start-btn' }),
+    ).not.toThrow();
+    // And the routed-view reset button must no longer be rendered
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-reset-btn' }),
+    ).toThrow();
+  });
+});
+
 // ─── Web-chat button ───────────────────────────────────────────────────────────
 
 describe('Support screen – web-chat button', () => {

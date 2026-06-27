@@ -304,7 +304,7 @@ export default function SupportScreen() {
                 )}
               </>
             )}
-            <Pressable onPress={resetTriage} style={styles.resetBtn}>
+            <Pressable testID="triage-reset-btn" onPress={resetTriage} style={styles.resetBtn}>
               <Text style={[styles.resetBtnText, { color: colors.mutedForeground }]}>Start over</Text>
             </Pressable>
           </View>
