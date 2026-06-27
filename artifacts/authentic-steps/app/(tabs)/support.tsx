@@ -305,6 +305,7 @@ export default function SupportScreen() {
             return (
               <Pressable
                 key={svc.num}
+                testID={`helpline-card-${svc.num}`}
                 onPress={() => callNumber(svc.num, svc.name)}
                 style={({ pressed }) => [
                   styles.svcRow,
