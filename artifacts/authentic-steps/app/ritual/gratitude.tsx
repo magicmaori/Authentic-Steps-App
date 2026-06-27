@@ -12,6 +12,7 @@ import {
   Text,
   TextInput,
   View,
+  LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -37,10 +38,24 @@ export default function GratitudeScreen() {
   const [cats, setCats] = useState<GratitudeCategory[]>(['people', 'experiences', 'things']);
   const [saving, setSaving] = useState(false);
 
+  const scrollViewRef = useRef<ScrollView>(null);
+  const cardYPositions = useRef<number[]>([0, 0, 0]);
+
   const ref1 = useRef<TextInput>(null);
   const ref2 = useRef<TextInput>(null);
   const ref3 = useRef<TextInput>(null);
   const refs = [ref1, ref2, ref3];
+
+  function handleCardLayout(index: number, e: LayoutChangeEvent) {
+    cardYPositions.current[index] = e.nativeEvent.layout.y;
+  }
+
+  function scrollToCard(index: number) {
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(0, cardYPositions.current[index] - 16),
+      animated: true,
+    });
+  }
 
   const filledCount = texts.filter(t => t.trim().length > 0).length;
   const canContinue = filledCount >= 1;
@@ -103,6 +118,7 @@ export default function GratitudeScreen() {
       </LinearGradient>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
@@ -119,6 +135,7 @@ export default function GratitudeScreen() {
         {[0, 1, 2].map(i => (
           <View
             key={i}
+            onLayout={(e) => handleCardLayout(i, e)}
             style={[styles.entryCard, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
             <View style={styles.entryNumRow}>
@@ -142,6 +159,7 @@ export default function GratitudeScreen() {
                 maxLength={100}
                 returnKeyType={i < 2 ? 'next' : 'done'}
                 onSubmitEditing={() => refs[i + 1]?.current?.focus()}
+                onFocus={() => scrollToCard(i)}
                 multiline
               />
             </View>

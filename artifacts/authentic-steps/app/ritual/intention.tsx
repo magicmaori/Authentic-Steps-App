@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  LayoutChangeEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -33,9 +34,23 @@ export default function IntentionScreen() {
   const insets = useSafeAreaInsets();
   const { saveIntention } = useApp();
 
+  const scrollViewRef = useRef<ScrollView>(null);
+  const inputCardY = useRef<number>(0);
+
   const [text, setText] = useState('');
   const [category, setCategory] = useState<IntentionCategory | ''>('');
   const [saving, setSaving] = useState(false);
+
+  function handleInputCardLayout(e: LayoutChangeEvent) {
+    inputCardY.current = e.nativeEvent.layout.y;
+  }
+
+  function scrollToInput() {
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(0, inputCardY.current - 16),
+      animated: true,
+    });
+  }
 
   const canContinue = text.trim().length > 0;
 
@@ -82,6 +97,7 @@ export default function IntentionScreen() {
       </LinearGradient>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
@@ -114,7 +130,10 @@ export default function IntentionScreen() {
           </Text>
         </View>
 
-        <View style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View
+          onLayout={handleInputCardLayout}
+          style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        >
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>My intention today</Text>
           <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
             <Text style={[styles.inputPrefix, { color: colors.primary }]}>Today I will</Text>
@@ -124,6 +143,7 @@ export default function IntentionScreen() {
               placeholderTextColor={colors.mutedForeground}
               value={text}
               onChangeText={setText}
+              onFocus={scrollToInput}
               multiline
               maxLength={200}
             />
