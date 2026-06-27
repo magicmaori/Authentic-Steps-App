@@ -7,6 +7,8 @@ import {
 } from "@expo-google-fonts/inter";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
+import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -19,6 +21,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashAnimation } from "@/components/SplashAnimation";
 import { AppProvider, useApp } from "@/context/AppContext";
 
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
+
 const INTRO_SEEN_KEY = "hasSeenIntro";
 
 SplashScreen.preventAutoHideAsync();
@@ -26,24 +31,29 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function OnboardingGate({ children }: { children: React.ReactNode }) {
-  const { isLoaded, userData } = useApp();
+  const { isLoaded: appLoaded, userData } = useApp();
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
 
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!userData.hasOnboarded) {
+    if (!authLoaded || !appLoaded) return;
+    if (!isSignedIn) {
+      router.replace('/(auth)/sign-in' as any);
+    } else if (!userData.hasOnboarded) {
       router.replace('/onboarding' as any);
     }
-  }, [isLoaded, userData.hasOnboarded]);
+  }, [authLoaded, appLoaded, isSignedIn, userData.hasOnboarded]);
 
-  if (!isLoaded) return null;
+  if (!authLoaded || !appLoaded) return null;
   return <>{children}</>;
 }
+
 
 function RootLayoutNav() {
   return (
     <OnboardingGate>
       <Stack screenOptions={{ headerBackTitle: "Back" }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="ritual" options={{ headerShown: false }} />
         <Stack.Screen name="sos" options={{ presentation: "modal", headerShown: false }} />
@@ -88,21 +98,25 @@ export default function RootLayout() {
   if (showIntro === null) return null;
 
   return (
-    <SafeAreaProvider>
-      <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <KeyboardProvider>
-              <AppProvider>
-                <RootLayoutNav />
-                {showIntro && !splashDone && (
-                  <SplashAnimation onFinished={handleSplashFinished} />
-                )}
-              </AppProvider>
-            </KeyboardProvider>
-          </GestureHandlerRootView>
-        </QueryClientProvider>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache} proxyUrl={proxyUrl}>
+      <ClerkLoaded>
+        <SafeAreaProvider>
+          <ErrorBoundary>
+            <QueryClientProvider client={queryClient}>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <KeyboardProvider>
+                  <AppProvider>
+                    <RootLayoutNav />
+                    {showIntro && !splashDone && (
+                      <SplashAnimation onFinished={handleSplashFinished} />
+                    )}
+                  </AppProvider>
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </QueryClientProvider>
+          </ErrorBoundary>
+        </SafeAreaProvider>
+      </ClerkLoaded>
+    </ClerkProvider>
   );
 }
