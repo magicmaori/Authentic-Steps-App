@@ -747,6 +747,46 @@ describe("Support screen – 'this week' urgency routing", () => {
     },
   );
 
+  it.each(THIS_WEEK_AREAS)(
+    "urgency='this week' → area='%s' → 'practical-ideas': tip box is shown with no call button",
+    async (areaId) => {
+      // Step 1 — open triage
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "this week" → area step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-this-week' }).props.onPress();
+      });
+
+      // Step 3 — choose the area under test → type step
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+
+      // Step 4 — choose "practical ideas" → routed view
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-type-practical-ideas' }).props.onPress();
+      });
+
+      // Tip box must be present
+      const tipBox = root.root.findByProps({ testID: 'triage-tip-box' });
+      expect(tipBox).toBeTruthy();
+
+      // Tip title and body must be non-trivially long (guards against blank copy)
+      const tipTitle = String(root.root.findByProps({ testID: 'triage-tip-title' }).props.children);
+      const tipText  = String(root.root.findByProps({ testID: 'triage-tip-text' }).props.children);
+      expect(tipTitle.length).toBeGreaterThan(10);
+      expect(tipText.length).toBeGreaterThan(10);
+
+      // The professional-help call button must NOT appear
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-call-professional' }),
+      ).toThrow();
+    },
+  );
+
   it("urgency='this week' → area → 'professional-help': call button is shown and tip box is absent", async () => {
     // Step 1 — open triage
     await act(async () => {
