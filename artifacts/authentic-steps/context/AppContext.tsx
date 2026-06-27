@@ -102,6 +102,7 @@ interface AppContextType {
   isExerciseDoneToday: (toolId: string) => boolean;
   groundingSessions: GroundingSession[];
   saveGroundingSession: (senses: GroundingSense[]) => Promise<void>;
+  deleteGroundingSession: (id: string) => Promise<void>;
   resetAllData: () => Promise<void>;
   setNotificationPref: (key: 'notifRitual' | 'notifEvening' | 'notifMilestone', value: boolean) => Promise<void>;
   setNotificationTime: (key: 'ritual' | 'evening', hour: number, minute: number) => Promise<void>;
@@ -524,6 +525,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated));
   }, [groundingSessions]);
 
+  const deleteGroundingSession = useCallback(async (id: string) => {
+    const updated = groundingSessions.filter((s) => s.id !== id);
+    setGroundingSessions(updated);
+    await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated));
+  }, [groundingSessions]);
+
   const setNotificationPref = useCallback(async (
     key: 'notifRitual' | 'notifEvening' | 'notifMilestone',
     value: boolean,
@@ -618,6 +625,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isExerciseDoneToday,
       groundingSessions,
       saveGroundingSession,
+      deleteGroundingSession,
       resetAllData,
       setNotificationPref,
       setNotificationTime,
