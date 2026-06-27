@@ -64,4 +64,16 @@ router.put("/sync", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+router.delete("/sync", requireAuth, async (req: Request, res: Response) => {
+  const auth = getAuth(req);
+  const userId = auth!.userId!;
+  try {
+    await db.delete(userDataTable).where(eq(userDataTable.userId, userId));
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "DELETE /sync failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

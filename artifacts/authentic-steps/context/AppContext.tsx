@@ -801,6 +801,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userData]);
 
   async function resetAllData() {
+    // Cancel any queued sync push so it doesn't race with the DELETE below
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+    pendingSyncRef.current = null;
+
     await cancelAllReminders().catch(() => {});
     const name = generateAnonymousName();
     const freshUser: UserData = {
@@ -826,8 +833,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCompletedExercises({});
     setGroundingSessions([]);
     setLastSynced(null);
-    // Push the wiped state to cloud so remote mirrors local
-    scheduleSyncPush(freshUser, {}, [], {});
+
+    // For signed-in users, delete the cloud record so data doesn't restore on next launch.
+    // Fail silently if offline or the request errors — local data is already cleared.
+    if (isSignedIn && API_BASE) {
+      try {
+        const token = await getToken();
+        if (token) {
+          await fetch(`${API_BASE}/api/sync`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
+      } catch {
+        // Silent failure — local clear already happened
+      }
+    }
   }
 
   function getStreakCalendar() {
