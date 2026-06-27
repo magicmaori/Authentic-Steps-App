@@ -126,7 +126,7 @@ function decodePayload(raw: string): DecodePayloadResult {
 }
 
 const defaultUser: UserData = {
-  anonymousName: generateAnonymousName(),
+  anonymousName: '',
   currentStreak: 0,
   longestStreak: 0,
   totalRituals: 0,
@@ -187,22 +187,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]);
       if (userRaw) {
         const parsed = JSON.parse(userRaw) as Partial<UserData>;
-        const name = parsed.anonymousName ?? defaultUser.anonymousName;
+        const name = parsed.anonymousName || generateAnonymousName();
         const recoveryCode = parsed.recoveryCode || generateRecoveryCode(name);
         const merged: UserData = {
           ...defaultUser,
           ...parsed,
+          anonymousName: name,
           recoveryCode,
           hasOnboarded: parsed.hasOnboarded ?? (parsed.totalRituals !== undefined && parsed.totalRituals > 0),
         };
         setUserData(merged);
-        if (!parsed.recoveryCode) {
+        if (!parsed.recoveryCode || !parsed.anonymousName) {
           await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(merged));
         }
       } else {
+        const name = generateAnonymousName();
         const newUser: UserData = {
           ...defaultUser,
-          recoveryCode: generateRecoveryCode(defaultUser.anonymousName),
+          anonymousName: name,
+          recoveryCode: generateRecoveryCode(name),
         };
         setUserData(newUser);
         await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(newUser));

@@ -34,6 +34,7 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
     }
   }, [isLoaded, userData.hasOnboarded]);
 
+  if (!isLoaded) return null;
   return <>{children}</>;
 }
 
