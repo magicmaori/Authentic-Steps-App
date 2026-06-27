@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemePreference, useApp } from '@/context/AppContext';
@@ -46,6 +46,8 @@ export default function ProfileScreen() {
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cachedPayloadRef = useRef<string>('');
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshPayload = useCallback(() => {
     const payload = buildRecoveryPayload();
@@ -60,6 +62,24 @@ export default function ProfileScreen() {
     }, [refreshPayload])
   );
 
+  function showDeleteToast() {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastOpacity.setValue(0);
+    Animated.timing(toastOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      toastTimerRef.current = setTimeout(() => {
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+      }, 2500);
+    });
+  }
+
   function handleDeleteData() {
     Alert.alert(
       'Delete all your data?',
@@ -72,6 +92,7 @@ export default function ProfileScreen() {
           onPress: async () => {
             await resetAllData();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            showDeleteToast();
           },
         },
       ]
@@ -103,6 +124,18 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Animated.View
+        style={[
+          styles.toast,
+          { backgroundColor: colors.primary, bottom: insets.bottom + 100, opacity: toastOpacity },
+        ]}
+        pointerEvents="none"
+      >
+        <Text style={styles.toastIcon}>🌱</Text>
+        <Text style={[styles.toastText, { color: colors.primaryForeground }]}>
+          All your data has been erased. Fresh start
+        </Text>
+      </Animated.View>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -470,4 +503,23 @@ const styles = StyleSheet.create({
   brandNote: { borderRadius: 14, padding: 16, alignItems: 'center', gap: 4 },
   brandText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
   brandSub: { fontSize: 11, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 16 },
+  toast: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    zIndex: 100,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  toastIcon: { fontSize: 18 },
+  toastText: { fontSize: 14, fontFamily: 'Inter_500Medium', flex: 1, lineHeight: 20 },
 });
