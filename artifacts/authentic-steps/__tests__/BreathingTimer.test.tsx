@@ -1829,7 +1829,7 @@ describe('BreathingTimer – force-quit interruption notice', () => {
 
     // The session flag must have been written for the new session (JSON with toolId + startedAt)
     const setItemCalls = mockAsyncStorage.setItem.mock.calls.filter(
-      ([key]: [string]) => key === STORAGE_KEY_BREATHING_SESSION,
+      ([key]: [string, ...unknown[]]) => key === STORAGE_KEY_BREATHING_SESSION,
     );
     expect(setItemCalls.length).toBeGreaterThan(0);
     const storedValue = JSON.parse(setItemCalls[0][1]);
@@ -1860,7 +1860,7 @@ describe('BreathingTimer – force-quit interruption notice', () => {
 
     // The session flag must be written as JSON containing toolId and startedAt
     const setItemCalls = mockAsyncStorage.setItem.mock.calls.filter(
-      ([key]: [string]) => key === STORAGE_KEY_BREATHING_SESSION,
+      ([key]: [string, ...unknown[]]) => key === STORAGE_KEY_BREATHING_SESSION,
     );
     expect(setItemCalls.length).toBeGreaterThan(0);
     const storedValue = JSON.parse(setItemCalls[0][1]);
@@ -2008,6 +2008,8 @@ describe('BreathingTimer – force-quit interruption notice', () => {
         userData: { chimeEnabled: false },
         setChimeEnabled: jest.fn().mockResolvedValue(undefined),
       });
+
+      let root: ReturnType<typeof create> | undefined;
 
       const TRANSITION_PROPS = {
         toolId: 'test-breathing',
