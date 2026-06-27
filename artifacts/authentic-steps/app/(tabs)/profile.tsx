@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemePreference, useApp } from '@/context/AppContext';
@@ -37,7 +37,7 @@ function formatLastUpdated(date: Date): string {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, setThemePreference, buildRecoveryPayload, resetAllData } = useApp();
+  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData } = useApp();
   const [notifRitual, setNotifRitual] = useState(true);
   const [notifEvening, setNotifEvening] = useState(true);
   const [notifMilestone, setNotifMilestone] = useState(true);
@@ -106,8 +106,52 @@ export default function ProfileScreen() {
     );
   }
 
-  function handleDownloadData() {
-    Alert.alert('Download your data', 'Your data export will be prepared. In the full version, this will email you a copy of all your entries.');
+  async function handleDownloadData() {
+    Haptics.selectionAsync();
+    const exportedAt = new Date().toISOString();
+    const entryList = Object.values(entries).sort((a, b) => a.date.localeCompare(b.date));
+
+    const exportData = {
+      exportedAt,
+      app: 'Authentic Steps For Youth',
+      profile: {
+        anonymousName: userData.anonymousName,
+        currentStreak: userData.currentStreak,
+        longestStreak: userData.longestStreak,
+        totalRituals: userData.totalRituals,
+        milestones: userData.milestones.map(m => ({
+          label: m.label,
+          description: m.description,
+          earnedAt: m.earnedAt,
+        })),
+      },
+      journalEntries: entryList.map(e => ({
+        date: e.date,
+        gratitudes: e.gratitudes.map(g => ({ text: g.text, category: g.category })),
+        intention: e.intention,
+        intentionCategory: e.intentionCategory,
+        iAmStatement: e.iAmStatement,
+        isComplete: e.isComplete,
+      })),
+      groundingSessions: groundingSessions.map(s => ({
+        date: s.date,
+        senses: s.senses.map(se => ({ sense: se.sense, answers: se.answers })),
+      })),
+    };
+
+    const text = JSON.stringify(exportData, null, 2);
+
+    try {
+      await Share.share(
+        {
+          title: 'My Authentic Steps data',
+          message: text,
+        },
+        { dialogTitle: 'Save or share your data export' }
+      );
+    } catch {
+      Alert.alert('Could not open share sheet', 'Please try again.');
+    }
   }
 
   async function handleCopyCode() {
