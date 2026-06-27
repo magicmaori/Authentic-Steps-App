@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -198,53 +200,58 @@ export default function OnboardingScreen() {
               { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
             ]}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.restoreTitle}>Restore your account</Text>
-            <Text style={styles.restoreSubtitle}>
-              Paste the full recovery code you saved. Your username, streaks, and journal entries will be restored.
-            </Text>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+              <View>
+                <Text style={styles.restoreTitle}>Restore your account</Text>
+                <Text style={styles.restoreSubtitle}>
+                  Paste the full recovery code you saved. Your username, streaks, and journal entries will be restored.
+                </Text>
 
-            <TextInput
-              style={styles.codeInput}
-              value={codeInput}
-              onChangeText={t => { setCodeInput(t); setRestoreError(''); }}
-              placeholder="Paste your recovery code here"
-              placeholderTextColor="#999"
-              multiline
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
+                <TextInput
+                  style={styles.codeInput}
+                  value={codeInput}
+                  onChangeText={t => { setCodeInput(t); setRestoreError(''); }}
+                  placeholder="Paste your recovery code here"
+                  placeholderTextColor="#999"
+                  multiline
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                />
 
-            {restoreError ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorIcon}>⚠️</Text>
-                <Text style={styles.errorText}>{restoreError}</Text>
+                {restoreError ? (
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorIcon}>⚠️</Text>
+                    <Text style={styles.errorText}>{restoreError}</Text>
+                  </View>
+                ) : null}
+
+                <Pressable
+                  onPress={handleRestore}
+                  disabled={restoring || codeInput.trim().length === 0}
+                  style={({ pressed }) => [
+                    styles.restoreButton,
+                    (restoring || codeInput.trim().length === 0) && styles.restoreButtonDisabled,
+                    pressed && styles.ctaPressed,
+                  ]}
+                >
+                  {restoring ? (
+                    <ActivityIndicator color="#193b83" />
+                  ) : (
+                    <Text style={styles.restoreButtonText}>Restore</Text>
+                  )}
+                </Pressable>
+
+                <Pressable
+                  onPress={() => setShowRestoreModal(false)}
+                  style={({ pressed }) => [styles.cancelButton, pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
               </View>
-            ) : null}
-
-            <Pressable
-              onPress={handleRestore}
-              disabled={restoring || codeInput.trim().length === 0}
-              style={({ pressed }) => [
-                styles.restoreButton,
-                (restoring || codeInput.trim().length === 0) && styles.restoreButtonDisabled,
-                pressed && styles.ctaPressed,
-              ]}
-            >
-              {restoring ? (
-                <ActivityIndicator color="#193b83" />
-              ) : (
-                <Text style={styles.restoreButtonText}>Restore</Text>
-              )}
-            </Pressable>
-
-            <Pressable
-              onPress={() => setShowRestoreModal(false)}
-              style={({ pressed }) => [styles.cancelButton, pressed && { opacity: 0.7 }]}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
+            </TouchableWithoutFeedback>
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>

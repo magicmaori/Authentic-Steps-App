@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   LayoutChangeEvent,
   Platform,
@@ -12,6 +13,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -107,81 +109,85 @@ export default function IntentionScreen() {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
-        <VideoPlaceholder
-          label="About this practice — Intention"
-          sublabel="A short intro to setting a daily intention"
-        />
-        <View style={[styles.circleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>Circle of Influence</Text>
-          <View style={styles.circleContainer}>
-            <View style={[styles.outerCircle, { borderColor: colors.border }]}>
-              <Text style={[styles.circleLabel, styles.outerLabel, { color: colors.mutedForeground }]}>
-                Out of my control
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View>
+            <VideoPlaceholder
+              label="About this practice — Intention"
+              sublabel="A short intro to setting a daily intention"
+            />
+            <View style={[styles.circleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Circle of Influence</Text>
+              <View style={styles.circleContainer}>
+                <View style={[styles.outerCircle, { borderColor: colors.border }]}>
+                  <Text style={[styles.circleLabel, styles.outerLabel, { color: colors.mutedForeground }]}>
+                    Out of my control
+                  </Text>
+                  <View style={[styles.innerCircle, { backgroundColor: `${colors.primary}15`, borderColor: colors.primary }]}>
+                    <Text style={[styles.circleLabel, styles.innerLabel, { color: colors.primary }]}>
+                      I control
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <Text style={[styles.circleHint, { color: colors.mutedForeground }]}>
+                Focus your intention on what sits in the inner circle — your actions, thoughts, and choices.
               </Text>
-              <View style={[styles.innerCircle, { backgroundColor: `${colors.primary}15`, borderColor: colors.primary }]}>
-                <Text style={[styles.circleLabel, styles.innerLabel, { color: colors.primary }]}>
-                  I control
-                </Text>
+            </View>
+
+            <View
+              onLayout={handleInputCardLayout}
+              style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>My intention today</Text>
+              <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+                <Text style={[styles.inputPrefix, { color: colors.primary }]}>Today I will</Text>
+                <TextInput
+                  style={[styles.input, { color: colors.foreground }]}
+                  placeholder="..."
+                  placeholderTextColor={colors.mutedForeground}
+                  value={text}
+                  onChangeText={setText}
+                  onFocus={scrollToInput}
+                  multiline
+                  maxLength={200}
+                />
+              </View>
+              <Text style={[styles.charCount, { color: colors.mutedForeground }]}>{text.length}/200</Text>
+            </View>
+
+            <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Category (optional)</Text>
+              <View style={styles.catGrid}>
+                {CATEGORIES.map(cat => (
+                  <Pressable
+                    key={cat.id}
+                    onPress={() => setCategory(category === cat.id ? '' : cat.id)}
+                    style={[
+                      styles.catBtn,
+                      category === cat.id
+                        ? { backgroundColor: colors.primary }
+                        : { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 },
+                    ]}
+                  >
+                    <Ionicons
+                      name={cat.icon as any}
+                      size={18}
+                      color={category === cat.id ? '#fff' : colors.mutedForeground}
+                    />
+                    <Text
+                      style={[
+                        styles.catBtnText,
+                        { color: category === cat.id ? '#fff' : colors.foreground },
+                      ]}
+                    >
+                      {cat.label}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
             </View>
           </View>
-          <Text style={[styles.circleHint, { color: colors.mutedForeground }]}>
-            Focus your intention on what sits in the inner circle — your actions, thoughts, and choices.
-          </Text>
-        </View>
-
-        <View
-          onLayout={handleInputCardLayout}
-          style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-        >
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>My intention today</Text>
-          <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
-            <Text style={[styles.inputPrefix, { color: colors.primary }]}>Today I will</Text>
-            <TextInput
-              style={[styles.input, { color: colors.foreground }]}
-              placeholder="..."
-              placeholderTextColor={colors.mutedForeground}
-              value={text}
-              onChangeText={setText}
-              onFocus={scrollToInput}
-              multiline
-              maxLength={200}
-            />
-          </View>
-          <Text style={[styles.charCount, { color: colors.mutedForeground }]}>{text.length}/200</Text>
-        </View>
-
-        <View style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>Category (optional)</Text>
-          <View style={styles.catGrid}>
-            {CATEGORIES.map(cat => (
-              <Pressable
-                key={cat.id}
-                onPress={() => setCategory(category === cat.id ? '' : cat.id)}
-                style={[
-                  styles.catBtn,
-                  category === cat.id
-                    ? { backgroundColor: colors.primary }
-                    : { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 },
-                ]}
-              >
-                <Ionicons
-                  name={cat.icon as any}
-                  size={18}
-                  color={category === cat.id ? '#fff' : colors.mutedForeground}
-                />
-                <Text
-                  style={[
-                    styles.catBtnText,
-                    { color: category === cat.id ? '#fff' : colors.foreground },
-                  ]}
-                >
-                  {cat.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        </TouchableWithoutFeedback>
       </ScrollView>
 
       <View

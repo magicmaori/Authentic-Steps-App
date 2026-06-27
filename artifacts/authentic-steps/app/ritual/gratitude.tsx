@@ -4,15 +4,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
+  LayoutChangeEvent,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
-  LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -128,95 +130,99 @@ export default function GratitudeScreen() {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
-        <VideoPlaceholder
-          label="About this practice — Gratitude"
-          sublabel="A short intro to gratitude practice"
-        />
-        {[0, 1, 2].map(i => (
-          <View
-            key={i}
-            onLayout={(e) => handleCardLayout(i, e)}
-            style={[styles.entryCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <View style={styles.entryNumRow}>
-              <View style={[styles.entryNum, { backgroundColor: colors.secondary }]}>
-                <Text style={[styles.entryNumText, { color: colors.primary }]}>{i + 1}</Text>
-              </View>
-              {texts[i].trim().length > 0 && (
-                <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
-              )}
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View>
+            <VideoPlaceholder
+              label="About this practice — Gratitude"
+              sublabel="A short intro to gratitude practice"
+            />
+            {[0, 1, 2].map(i => (
+              <View
+                key={i}
+                onLayout={(e) => handleCardLayout(i, e)}
+                style={[styles.entryCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <View style={styles.entryNumRow}>
+                  <View style={[styles.entryNum, { backgroundColor: colors.secondary }]}>
+                    <Text style={[styles.entryNumText, { color: colors.primary }]}>{i + 1}</Text>
+                  </View>
+                  {texts[i].trim().length > 0 && (
+                    <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+                  )}
+                </View>
 
-            <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
-              <Text style={[styles.inputPrefix, { color: colors.primary }]}>I am grateful for</Text>
-              <TextInput
-                ref={refs[i]}
-                style={[styles.input, { color: colors.foreground }]}
-                placeholder="..."
-                placeholderTextColor={colors.mutedForeground}
-                value={texts[i]}
-                onChangeText={v => setText(i, v)}
-                maxLength={100}
-                returnKeyType={i < 2 ? 'next' : 'done'}
-                onSubmitEditing={() => refs[i + 1]?.current?.focus()}
-                onFocus={() => scrollToCard(i)}
-                multiline
-              />
-            </View>
-
-            <View style={styles.categoryRow}>
-              {CATEGORIES.map(cat => (
-                <Pressable
-                  key={cat.id}
-                  onPress={() => setCategory(i, cat.id)}
-                  style={[
-                    styles.catChip,
-                    cats[i] === cat.id
-                      ? { backgroundColor: colors.primary }
-                      : { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 },
-                  ]}
-                >
-                  <Ionicons
-                    name={cat.icon as any}
-                    size={12}
-                    color={cats[i] === cat.id ? '#fff' : colors.mutedForeground}
+                <View style={[styles.inputWrapper, { borderColor: colors.border }]}>
+                  <Text style={[styles.inputPrefix, { color: colors.primary }]}>I am grateful for</Text>
+                  <TextInput
+                    ref={refs[i]}
+                    style={[styles.input, { color: colors.foreground }]}
+                    placeholder="..."
+                    placeholderTextColor={colors.mutedForeground}
+                    value={texts[i]}
+                    onChangeText={v => setText(i, v)}
+                    maxLength={100}
+                    returnKeyType={i < 2 ? 'next' : 'done'}
+                    onSubmitEditing={() => refs[i + 1]?.current?.focus()}
+                    onFocus={() => scrollToCard(i)}
+                    multiline
                   />
-                  <Text
+                </View>
+
+                <View style={styles.categoryRow}>
+                  {CATEGORIES.map(cat => (
+                    <Pressable
+                      key={cat.id}
+                      onPress={() => setCategory(i, cat.id)}
+                      style={[
+                        styles.catChip,
+                        cats[i] === cat.id
+                          ? { backgroundColor: colors.primary }
+                          : { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 },
+                      ]}
+                    >
+                      <Ionicons
+                        name={cat.icon as any}
+                        size={12}
+                        color={cats[i] === cat.id ? '#fff' : colors.mutedForeground}
+                      />
+                      <Text
+                        style={[
+                          styles.catChipText,
+                          { color: cats[i] === cat.id ? '#fff' : colors.mutedForeground },
+                        ]}
+                      >
+                        {cat.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ))}
+
+            <View style={[styles.treeRow, { backgroundColor: colors.secondary }]}>
+              {[0, 1, 2].map(i => (
+                <View key={i} style={styles.leafSlot}>
+                  <View
                     style={[
-                      styles.catChipText,
-                      { color: cats[i] === cat.id ? '#fff' : colors.mutedForeground },
+                      styles.leaf,
+                      texts[i].trim().length > 0
+                        ? { backgroundColor: colors.primary }
+                        : { backgroundColor: colors.border },
                     ]}
                   >
-                    {cat.label}
-                  </Text>
-                </Pressable>
+                    <Ionicons
+                      name="leaf"
+                      size={22}
+                      color={texts[i].trim().length > 0 ? '#fff' : colors.mutedForeground}
+                    />
+                  </View>
+                  <View style={[styles.leafStem, { backgroundColor: texts[i].trim().length > 0 ? colors.primary : colors.border }]} />
+                </View>
               ))}
+              <View style={[styles.treeTrunk, { backgroundColor: colors.border }]} />
             </View>
           </View>
-        ))}
-
-        <View style={[styles.treeRow, { backgroundColor: colors.secondary }]}>
-          {[0, 1, 2].map(i => (
-            <View key={i} style={styles.leafSlot}>
-              <View
-                style={[
-                  styles.leaf,
-                  texts[i].trim().length > 0
-                    ? { backgroundColor: colors.primary }
-                    : { backgroundColor: colors.border },
-                ]}
-              >
-                <Ionicons
-                  name="leaf"
-                  size={22}
-                  color={texts[i].trim().length > 0 ? '#fff' : colors.mutedForeground}
-                />
-              </View>
-              <View style={[styles.leafStem, { backgroundColor: texts[i].trim().length > 0 ? colors.primary : colors.border }]} />
-            </View>
-          ))}
-          <View style={[styles.treeTrunk, { backgroundColor: colors.border }]} />
-        </View>
+        </TouchableWithoutFeedback>
       </ScrollView>
 
       <View

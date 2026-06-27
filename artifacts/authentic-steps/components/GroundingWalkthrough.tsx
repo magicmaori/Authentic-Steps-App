@@ -4,10 +4,12 @@ import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   Animated,
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 
@@ -195,97 +197,99 @@ export default function GroundingWalkthrough({ onComplete }: Props = {}) {
         )}
 
         {status === 'running' && (
-          <>
-            <View style={styles.progressRow}>
-              {STEPS.map((s, i) => (
-                <View
-                  key={s.n}
-                  style={[
-                    styles.progressDot,
-                    {
-                      backgroundColor: i <= stepIndex ? accentColor : `${accentColor}25`,
-                      width: i === stepIndex ? 24 : 8,
-                    },
-                  ]}
-                />
-              ))}
-            </View>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View>
+              <View style={styles.progressRow}>
+                {STEPS.map((s, i) => (
+                  <View
+                    key={s.n}
+                    style={[
+                      styles.progressDot,
+                      {
+                        backgroundColor: i <= stepIndex ? accentColor : `${accentColor}25`,
+                        width: i === stepIndex ? 24 : 8,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
 
-            <Animated.View
-              style={[
-                styles.stepCard,
-                {
-                  backgroundColor: `${accentColor}0D`,
-                  borderColor: `${accentColor}30`,
-                  opacity: fadeAnim,
-                  transform: [{ scale: scaleAnim }],
-                },
-              ]}
-            >
-              <View style={styles.stepNumRow}>
-                <View style={[styles.stepBadge, { backgroundColor: accentColor }]}>
-                  <Text style={styles.stepNum}>{step.n}</Text>
+              <Animated.View
+                style={[
+                  styles.stepCard,
+                  {
+                    backgroundColor: `${accentColor}0D`,
+                    borderColor: `${accentColor}30`,
+                    opacity: fadeAnim,
+                    transform: [{ scale: scaleAnim }],
+                  },
+                ]}
+              >
+                <View style={styles.stepNumRow}>
+                  <View style={[styles.stepBadge, { backgroundColor: accentColor }]}>
+                    <Text style={styles.stepNum}>{step.n}</Text>
+                  </View>
+                  <Ionicons name={step.icon as any} size={22} color={accentColor} />
                 </View>
-                <Ionicons name={step.icon as any} size={22} color={accentColor} />
-              </View>
-              <Text style={[styles.stepSense, { color: colors.foreground }]}>{step.sense}</Text>
-              <Text style={[styles.stepPrompt, { color: colors.mutedForeground }]}>{step.prompt}</Text>
+                <Text style={[styles.stepSense, { color: colors.foreground }]}>{step.sense}</Text>
+                <Text style={[styles.stepPrompt, { color: colors.mutedForeground }]}>{step.prompt}</Text>
 
-              <View style={styles.inputsContainer}>
-                {Array.from({ length: step.count }).map((_, itemIdx) => {
-                  const value = responses[stepIndex][itemIdx] ?? '';
-                  const filled = value.trim().length > 0;
-                  return (
-                    <View key={itemIdx} style={styles.inputRow}>
-                      <View style={[styles.itemBullet, { backgroundColor: filled ? accentColor : `${accentColor}30` }]}>
-                        <Text style={[styles.itemBulletText, { color: filled ? '#fff' : accentColor }]}>
-                          {itemIdx + 1}
-                        </Text>
+                <View style={styles.inputsContainer}>
+                  {Array.from({ length: step.count }).map((_, itemIdx) => {
+                    const value = responses[stepIndex][itemIdx] ?? '';
+                    const filled = value.trim().length > 0;
+                    return (
+                      <View key={itemIdx} style={styles.inputRow}>
+                        <View style={[styles.itemBullet, { backgroundColor: filled ? accentColor : `${accentColor}30` }]}>
+                          <Text style={[styles.itemBulletText, { color: filled ? '#fff' : accentColor }]}>
+                            {itemIdx + 1}
+                          </Text>
+                        </View>
+                        <TextInput
+                          ref={ref => { inputRefs.current[itemIdx] = ref; }}
+                          style={[
+                            styles.textInput,
+                            {
+                              backgroundColor: colors.card,
+                              color: colors.foreground,
+                              borderColor: filled ? accentColor : colors.border,
+                            },
+                          ]}
+                          placeholder={step.placeholders[itemIdx]}
+                          placeholderTextColor={colors.mutedForeground}
+                          value={value}
+                          onChangeText={text => updateResponse(stepIndex, itemIdx, text)}
+                          maxLength={80}
+                          returnKeyType={itemIdx < step.count - 1 ? 'next' : 'done'}
+                          onSubmitEditing={() => {
+                            if (itemIdx < step.count - 1) {
+                              inputRefs.current[itemIdx + 1]?.focus();
+                            }
+                          }}
+                          blurOnSubmit={itemIdx === step.count - 1}
+                        />
                       </View>
-                      <TextInput
-                        ref={ref => { inputRefs.current[itemIdx] = ref; }}
-                        style={[
-                          styles.textInput,
-                          {
-                            backgroundColor: colors.card,
-                            color: colors.foreground,
-                            borderColor: filled ? accentColor : colors.border,
-                          },
-                        ]}
-                        placeholder={step.placeholders[itemIdx]}
-                        placeholderTextColor={colors.mutedForeground}
-                        value={value}
-                        onChangeText={text => updateResponse(stepIndex, itemIdx, text)}
-                        maxLength={80}
-                        returnKeyType={itemIdx < step.count - 1 ? 'next' : 'done'}
-                        onSubmitEditing={() => {
-                          if (itemIdx < step.count - 1) {
-                            inputRefs.current[itemIdx + 1]?.focus();
-                          }
-                        }}
-                        blurOnSubmit={itemIdx === step.count - 1}
-                      />
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
+              </Animated.View>
+
+              <Text style={[styles.stepCounter, { color: colors.mutedForeground }]}>
+                Step {stepIndex + 1} of {STEPS.length}
+              </Text>
+
+              <View style={styles.btnRow}>
+                <Pressable style={[styles.stopBtn, { borderColor: colors.border }]} onPress={reset}>
+                  <Text style={[styles.stopBtnText, { color: colors.mutedForeground }]}>Cancel</Text>
+                </Pressable>
+                <Pressable style={[styles.nextBtn, { backgroundColor: accentColor, flex: 1 }]} onPress={next}>
+                  <Text style={styles.nextBtnText}>
+                    {stepIndex < STEPS.length - 1 ? 'Next →' : 'Finish ✓'}
+                  </Text>
+                </Pressable>
               </View>
-            </Animated.View>
-
-            <Text style={[styles.stepCounter, { color: colors.mutedForeground }]}>
-              Step {stepIndex + 1} of {STEPS.length}
-            </Text>
-
-            <View style={styles.btnRow}>
-              <Pressable style={[styles.stopBtn, { borderColor: colors.border }]} onPress={reset}>
-                <Text style={[styles.stopBtnText, { color: colors.mutedForeground }]}>Cancel</Text>
-              </Pressable>
-              <Pressable style={[styles.nextBtn, { backgroundColor: accentColor, flex: 1 }]} onPress={next}>
-                <Text style={styles.nextBtnText}>
-                  {stepIndex < STEPS.length - 1 ? 'Next →' : 'Finish ✓'}
-                </Text>
-              </Pressable>
             </View>
-          </>
+          </TouchableWithoutFeedback>
         )}
 
         {status === 'done' && (
