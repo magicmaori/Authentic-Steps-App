@@ -734,6 +734,12 @@ describe("Support screen – 'this week' urgency routing", () => {
       const tipBox = root.root.findByProps({ testID: 'triage-tip-box' });
       expect(tipBox).toBeTruthy();
 
+      // Tip title and body must be non-trivially long (guards against blank copy)
+      const tipTitle = String(root.root.findByProps({ testID: 'triage-tip-title' }).props.children);
+      const tipText  = String(root.root.findByProps({ testID: 'triage-tip-text' }).props.children);
+      expect(tipTitle.length).toBeGreaterThan(10);
+      expect(tipText.length).toBeGreaterThan(10);
+
       // The professional-help call button must NOT appear
       expect(() =>
         root.root.findByProps({ testID: 'triage-call-professional' }),
