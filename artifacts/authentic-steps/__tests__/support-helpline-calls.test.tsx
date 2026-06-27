@@ -1589,3 +1589,110 @@ describe("Support screen – 'today' someone-to-listen tip keyword assertions", 
     },
   );
 });
+
+// ─── 'right now' urgency mid-flow reset ───────────────────────────────────────
+
+/**
+ * Regression guard: the 'right now' urgency path skips area and type steps and
+ * jumps straight to the routed view. If a future refactor introduces an
+ * intermediate step on this path (e.g. a confirmation screen), a partial reset
+ * could leave urgency-step, area, or type UI behind without this suite catching
+ * it. Verifies that after reset from the 'right now' routed view the full triage
+ * state machine is clean — no urgency-step UI, no area UI, no type UI remains.
+ */
+describe("Support screen – 'right now' urgency mid-flow reset", () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it(
+    "urgency='right now' → reset: no urgency-step UI, no area UI, no type UI remain",
+    async () => {
+      // Step 1 — open triage (urgency step)
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "right now" → jumps straight to routed view (skips area + type)
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-right-now' }).props.onPress();
+      });
+
+      // Confirm we are in the routed view before resetting
+      const resetBtn = root.root.findByProps({ testID: 'triage-reset-btn' });
+      expect(resetBtn).toBeTruthy();
+
+      // Step 3 — reset from the routed view
+      await act(async () => {
+        resetBtn.props.onPress();
+      });
+
+      // ── Idle state restored ────────────────────────────────────────────────
+      // The initial start button must be visible again
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-start-btn' }),
+      ).not.toThrow();
+
+      // ── No urgency-step UI ─────────────────────────────────────────────────
+      // None of the urgency option buttons should remain in the tree
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-urgency-right-now' }),
+      ).toThrow();
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-urgency-today' }),
+      ).toThrow();
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-urgency-this-week' }),
+      ).toThrow();
+
+      // ── No area UI ────────────────────────────────────────────────────────
+      // Area buttons must not be present (they were never shown on this path,
+      // but would appear if a future intermediate step resets incorrectly)
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-area-emotions' }),
+      ).toThrow();
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-area-relationships' }),
+      ).toThrow();
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-area-school-or-home' }),
+      ).toThrow();
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-area-habits' }),
+      ).toThrow();
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-area-something-else' }),
+      ).toThrow();
+
+      // ── No type UI ────────────────────────────────────────────────────────
+      // Type buttons must not be present
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-type-professional-help' }),
+      ).toThrow();
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-type-someone-to-listen' }),
+      ).toThrow();
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-type-practical-ideas' }),
+      ).toThrow();
+
+      // ── Routed-view reset button is gone ──────────────────────────────────
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-reset-btn' }),
+      ).toThrow();
+    },
+  );
+});
