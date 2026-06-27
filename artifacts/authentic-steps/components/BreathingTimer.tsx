@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, AppState, AppStateStatus, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useColors } from '@/hooks/useColors';
 import { useBreathingSound } from '@/hooks/useBreathingSound';
@@ -46,6 +46,8 @@ export default function BreathingTimer({ title, description, phases, totalRounds
   const toggleChime = useCallback(() => {
     setChimeEnabled(!soundEnabled).catch(() => {});
   }, [soundEnabled, setChimeEnabled]);
+
+  const [appActive, setAppActive] = useState(true);
 
   const circleScale = useRef(new Animated.Value(0.55)).current;
   const phaseOpacity = useRef(new Animated.Value(1)).current;
@@ -100,7 +102,14 @@ export default function BreathingTimer({ title, description, phases, totalRounds
   }, [phases, circleScale]);
 
   useEffect(() => {
-    if (status !== 'running') return;
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      setAppActive(nextState === 'active');
+    });
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'running' || !appActive) return;
 
     intervalRef.current = setInterval(() => {
       const s = stateRef.current;
@@ -144,7 +153,7 @@ export default function BreathingTimer({ title, description, phases, totalRounds
     }, 1000);
 
     return clearTimer;
-  }, [status, phases, totalRounds, animateToScale, flashPhase, playChime]);
+  }, [status, appActive, phases, totalRounds, animateToScale, flashPhase, playChime]);
 
   const currentPhase = phases[phaseIndex];
 

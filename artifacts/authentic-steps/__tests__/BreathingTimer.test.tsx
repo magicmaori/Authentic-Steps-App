@@ -14,6 +14,7 @@ jest.mock('@/context/AppContext', () => ({
   useAppOptional: jest.fn().mockReturnValue(null),
 }));
 
+
 jest.mock('@/hooks/useColors', () => ({
   useColors: jest.fn().mockReturnValue({
     card: '#ffffff',
@@ -47,6 +48,7 @@ jest.mock('@expo/vector-icons', () => {
 
 import React from 'react';
 import { act, create } from 'react-test-renderer';
+import { AppState } from 'react-native';
 
 import { useApp } from '../context/AppContext';
 import BreathingTimer from '../components/BreathingTimer';
@@ -252,6 +254,143 @@ describe('BreathingTimer – chime toggle', () => {
 
       // onComplete callback must have been called exactly once
       expect(mockOnComplete).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('AppState – background / foreground', () => {
+    let appStateListeners: Array<(state: string) => void>;
+
+    beforeEach(() => {
+      appStateListeners = [];
+      jest.spyOn(AppState, 'addEventListener').mockImplementation(
+        (event: string, handler: (state: string) => void) => {
+          if (event === 'change') appStateListeners.push(handler);
+          return {
+            remove: () => {
+              const idx = appStateListeners.indexOf(handler);
+              if (idx !== -1) appStateListeners.splice(idx, 1);
+            },
+          };
+        },
+      );
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('stops the countdown interval when the app goes to the background', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await act(async () => {
+        root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+      });
+
+      // Start the session
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // Confirm the timer is ticking: advance 1 s and count should drop from 4 → 3
+      await act(async () => { jest.advanceTimersByTime(1000); });
+      const countAfterOneTick = root!.root.findAll(
+        (node: any) => node.props.children === 3,
+        { deep: true },
+      );
+      expect(countAfterOneTick.length).toBeGreaterThan(0);
+
+      // Simulate the app going to the background
+      expect(appStateListeners.length).toBeGreaterThan(0);
+      await act(async () => {
+        appStateListeners.forEach(l => l('background'));
+      });
+
+      // Advance another 2 s — the interval must NOT fire because it was cleared
+      const countBeforePause = root!.root.findAll(
+        (node: any) => node.props.children === 3,
+        { deep: true },
+      );
+      await act(async () => { jest.advanceTimersByTime(2000); });
+      const countAfterPause = root!.root.findAll(
+        (node: any) => node.props.children === 3,
+        { deep: true },
+      );
+
+      // Count must still be 3 — no ticks while backgrounded
+      expect(countBeforePause.length).toBe(countAfterPause.length);
+    });
+
+    it('resumes the countdown when the app returns to the foreground', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await act(async () => {
+        root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+      });
+
+      // Start the session
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // Advance 1 s to tick: 4 → 3
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // Background the app
+      await act(async () => {
+        appStateListeners.forEach(l => l('background'));
+      });
+
+      // Advance 5 s while backgrounded — count must not change
+      await act(async () => { jest.advanceTimersByTime(5000); });
+
+      // Foreground the app
+      await act(async () => {
+        appStateListeners.forEach(l => l('active'));
+      });
+
+      // Advance 1 s — countdown should resume from where it left off (3 → 2)
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // The running UI must still be visible (not done, not idle)
+      const stopNodesAfterResume = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesAfterResume.length).toBeGreaterThan(0);
+
+      // Count should now read 2 (advanced by exactly 1 tick after resume)
+      const countAfterResume = root!.root.findAll(
+        (node: any) => node.props.children === 2,
+        { deep: true },
+      );
+      expect(countAfterResume.length).toBeGreaterThan(0);
+    });
+
+    it('keeps state coherent (running UI intact) immediately after foregrounding before any new ticks', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await act(async () => {
+        root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+      });
+
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // Background then immediately foreground without advancing time
+      await act(async () => { appStateListeners.forEach(l => l('background')); });
+      await act(async () => { appStateListeners.forEach(l => l('active')); });
+
+      // Running UI must still be present — no accidental reset or completion
+      const stopNodes = findPressableByChildText(root!, 'Stop');
+      expect(stopNodes.length).toBeGreaterThan(0);
+
+      const idleNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(idleNodes.length).toBe(0);
     });
   });
 
