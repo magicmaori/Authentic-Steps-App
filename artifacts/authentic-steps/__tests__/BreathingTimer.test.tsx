@@ -1019,6 +1019,145 @@ describe('BreathingTimer – chime toggle', () => {
       expect(countOneAfterResume.length).toBe(0);
     });
 
+    /**
+     * Regression guard: the AppState handler calls stopAnimation() when the
+     * app is backgrounded.  This test verifies that the animation's .stop()
+     * method is actually invoked and that animationRef.current is cleared
+     * (null) afterwards, so a subsequent foreground return can start a
+     * completely fresh animation rather than attempting to stop an already-
+     * stopped handle.
+     *
+     * Flow:
+     *   1. Start session → animateToScale() fires → animation in progress
+     *   2. Advance 1 tick (no phase transition; animation still running)
+     *   3. Fire 'background' AppState event → stopAnimation() must call .stop()
+     *   4. Assert the captured stop spy was called exactly once
+     *   5. Return to foreground with 1 s elapsed (state advances, interval
+     *      restarts); advance 2 more ticks to hit the phase boundary, which
+     *      calls animateToScale() again.  Because animationRef.current was
+     *      cleared (null), stopAnimation() inside animateToScale is a no-op
+     *      and the old stop spy is NOT called again — a brand-new animation
+     *      is created instead, confirmed by an additional entry in stopSpies.
+     *
+     * DEFAULT_PROPS phases: "Breathe In" counts=4, "Hold" counts=4,
+     *                        "Breathe Out" counts=4.  totalRounds=2.
+     *
+     * Count arithmetic:
+     *   Start:          count = 4 (phase 0)
+     *   +1 foreground:  count = 3
+     *   Background, +1 s elapsed → advanceStateByTicks applies 1 tick:
+     *     count = 2 (still phase 0)
+     *   Foreground (state: count=2), interval restarts:
+     *     +1 tick: count = 1
+     *     +2 ticks: count = 0 → phase transition to phase 1 → animateToScale
+     */
+    it('calls .stop() on the in-progress animation and clears the handle when the app is backgrounded', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      // ── Intercept Animated.timing to spy on each animation's .stop() ────────
+      //
+      // startExercise calls two Animated.timing animations in order:
+      //   1. animateToScale  → stored in animationRef.current (the one we care about)
+      //   2. flashPhase      → short 300 ms fade, NOT stored in animationRef
+      //
+      // animateToScale duration = counts * 900 = 4 * 900 = 3600 ms.
+      // flashPhase duration = 300 ms.
+      //
+      // We distinguish them by config.duration so we can assert only on the
+      // animation that stopAnimation() actually references.
+      //
+      // In the Jest React Native mock, Animated.timing().start(cb) calls cb
+      // synchronously with { finished: true }, which fires the component's
+      // `if (finished) animationRef.current = null` branch and clears the ref
+      // before the background event arrives.  We override start() on every
+      // animation so the callback is never invoked — the ref stays set —
+      // accurately reflecting a real device where the animation is running
+      // when the app is backgrounded.
+      let circleScaleStopSpy: jest.Mock | null = null;
+      const allStopSpies: jest.Mock[] = [];
+      const AnimatedModule = require('react-native').Animated;
+      const originalTiming = AnimatedModule.timing.bind(AnimatedModule);
+      const timingSpy = jest.spyOn(AnimatedModule, 'timing').mockImplementation(
+        (value: any, config: any) => {
+          const anim = originalTiming(value, config);
+          const originalStop = anim.stop.bind(anim);
+          const stopSpy = jest.fn(() => originalStop());
+          anim.stop = stopSpy;
+          // Suppress the synchronous finished=true callback so animationRef
+          // is not cleared before the background event fires.
+          anim.start = jest.fn();
+          allStopSpies.push(stopSpy);
+          // Track the circleScale animation: duration is counts*900 (≥900 ms),
+          // while flashPhase is always 300 ms.
+          if (config?.duration !== 300) {
+            circleScaleStopSpy = stopSpy;
+          }
+          return anim;
+        },
+      );
+
+      await act(async () => {
+        root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+      });
+
+      // Start the session — animateToScale fires (long-duration), then flashPhase (300 ms)
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // Sanity: the circleScale animation was created
+      expect(circleScaleStopSpy).not.toBeNull();
+      const capturedStopSpy = circleScaleStopSpy!;
+
+      // Advance 1 tick — count 4 → 3, no phase transition; animation is still in progress
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // The circleScale animation must NOT have been stopped yet
+      expect(capturedStopSpy).not.toHaveBeenCalled();
+
+      // ── Background event ──────────────────────────────────────────────────────
+      await act(async () => { appStateListeners.forEach(l => l('background')); });
+
+      // stopAnimation() must have called .stop() on animationRef.current exactly once
+      expect(capturedStopSpy).toHaveBeenCalledTimes(1);
+
+      // ── Verify the handle is cleared (animationRef.current === null) ──────────
+      // Advance fake time so elapsed = 1 s when the foreground event fires.
+      await act(async () => { jest.advanceTimersByTime(1000); });
+      // Reset the circleScaleStopSpy tracker so we can detect when a NEW
+      // animateToScale animation is created after foreground return.
+      circleScaleStopSpy = null;
+      const allStopSpiesCountBeforeForeground = allStopSpies.length;
+
+      // Return to foreground — elapsed=1 s → advanceStateByTicks sets count=2
+      // (phase 0), then the interval restarts.
+      await act(async () => { appStateListeners.forEach(l => l('active')); });
+
+      // Running UI must be intact
+      const stopNodesAfterResume = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesAfterResume.length).toBeGreaterThan(0);
+
+      // Advance 2 ticks → count 2→1→0 → phase transition → animateToScale fires.
+      // Inside animateToScale, stopAnimation() is called first.  Because
+      // animationRef.current was null (cleared on background), stopAnimation is
+      // a no-op — capturedStopSpy must NOT receive an additional call.
+      // A brand-new Animated.timing animation is then created.
+      await act(async () => { jest.advanceTimersByTime(2000); });
+
+      // Old circleScale stop spy must NOT have been called again
+      expect(capturedStopSpy).toHaveBeenCalledTimes(1);
+
+      // A fresh animation was created, proving the handle was cleared and a new
+      // animateToScale could start without any stale-ref issues.
+      expect(circleScaleStopSpy).not.toBeNull();
+      expect(allStopSpies.length).toBeGreaterThan(allStopSpiesCountBeforeForeground);
+
+      timingSpy.mockRestore();
+    });
+
     it('restarts the interval correctly after "Go Again" following a background-completion', async () => {
       const mockOnComplete = jest.fn();
       mockUseApp.mockReturnValue({
