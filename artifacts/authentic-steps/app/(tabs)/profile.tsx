@@ -56,7 +56,7 @@ function formatLastUpdated(date: Date): string {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, entries, groundingSessions, lastSynced, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs } = useApp();
+  const { userData, entries, groundingSessions, lastSynced, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs, setChimeEnabled } = useApp();
   const { isSignedIn } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
   const [, setTick] = useState(0);
@@ -592,6 +592,22 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setChimeEnabled(!userData.chimeEnabled);
+            }}
+            style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
+          >
+            <View style={styles.settingLabelGroup}>
+              <Text style={[styles.settingLabel, { color: colors.foreground }]}>Breathing chimes</Text>
+              <Text style={[styles.settingSubLabel, { color: colors.mutedForeground }]}>Sound during breathing exercises</Text>
+            </View>
+            <View style={[styles.toggle, { backgroundColor: userData.chimeEnabled ? colors.primary : colors.border }]}>
+              <View style={[styles.toggleThumb, userData.chimeEnabled ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+            </View>
+          </Pressable>
+
           {notifBlocked && (
             <View style={[styles.notifBlockedNote, { backgroundColor: colors.muted }]}>
               <Ionicons name="notifications-off-outline" size={14} color={colors.mutedForeground} />
@@ -887,6 +903,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
   },
   settingLabel: { fontSize: 15, fontFamily: 'Inter_400Regular' },
+  settingLabelGroup: { flex: 1, gap: 2 },
+  settingSubLabel: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   toggle: { width: 44, height: 26, borderRadius: 13, justifyContent: 'center', paddingHorizontal: 3 },
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
   toggleThumbOn: { alignSelf: 'flex-end' },
