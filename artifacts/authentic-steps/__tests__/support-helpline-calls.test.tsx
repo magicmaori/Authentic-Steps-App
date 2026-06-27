@@ -1507,3 +1507,85 @@ describe("Support screen – 'this week' someone-to-listen tip keyword assertion
     },
   );
 });
+
+// ─── 'today' someone-to-listen tip keyword assertions ─────────────────────────
+
+/**
+ * Regression guard: confirms that navigating via urgency='today' to the
+ * 'someone-to-listen' support type yields a tip whose title contains "listen"
+ * and whose body contains "trusted" for every one of the five area IDs.
+ * A copy-paste bug or per-area conditional that swaps or blanks the tip for
+ * any area on the 'today' path would go undetected with the coarser
+ * length-only checks that already existed for this urgency path.
+ */
+describe("Support screen – 'today' someone-to-listen tip keyword assertions", () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  const ALL_AREAS: Array<{ areaId: string; label: string }> = [
+    { areaId: 'emotions',       label: 'emotions'       },
+    { areaId: 'relationships',  label: 'relationships'  },
+    { areaId: 'school-or-home', label: 'school or home' },
+    { areaId: 'habits',         label: 'habits'         },
+    { areaId: 'something-else', label: 'something else' },
+  ];
+
+  it.each(ALL_AREAS)(
+    "urgency='today' → area=\"$label\" → someone-to-listen: tip box present, title contains \"listen\", body contains \"trusted\", no call button",
+    async ({ areaId }) => {
+      // Step 1 — open triage
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "today" → area step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+      });
+
+      // Step 3 — choose the area under test → type step
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+
+      // Step 4 — choose "someone to listen" → routed view
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-type-someone-to-listen' }).props.onPress();
+      });
+
+      // Tip box must be present
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-tip-box' }),
+      ).not.toThrow();
+
+      // Tip title must have meaningful text and contain "listen"
+      const tipTitle = root.root.findByProps({ testID: 'triage-tip-title' });
+      expect(String(tipTitle.props.children).length).toBeGreaterThan(10);
+      expect(String(tipTitle.props.children).toLowerCase()).toContain('listen');
+
+      // Tip body must have meaningful text and contain "trusted"
+      const tipText = root.root.findByProps({ testID: 'triage-tip-text' });
+      expect(String(tipText.props.children).length).toBeGreaterThan(10);
+      expect(String(tipText.props.children).toLowerCase()).toContain('trusted');
+
+      // The professional-help call button must NOT be present
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-call-professional' }),
+      ).toThrow();
+    },
+  );
+});
