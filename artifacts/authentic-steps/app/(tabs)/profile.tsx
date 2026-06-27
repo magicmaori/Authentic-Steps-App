@@ -59,6 +59,7 @@ export default function ProfileScreen() {
   const { userData, entries, groundingSessions, lastSynced, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs } = useApp();
   const { isSignedIn } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [, setTick] = useState(0);
   const [notifBlocked, setNotifBlocked] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState<'ritual' | 'evening' | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
@@ -99,6 +100,13 @@ export default function ProfileScreen() {
     useCallback(() => {
       refreshPayload();
     }, [refreshPayload])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const id = setInterval(() => setTick(t => t + 1), 60_000);
+      return () => clearInterval(id);
+    }, [])
   );
 
   function showDeleteToast() {
