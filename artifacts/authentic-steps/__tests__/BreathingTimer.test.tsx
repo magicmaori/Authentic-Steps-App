@@ -353,11 +353,32 @@ describe('BreathingTimer – chime toggle', () => {
       expect(countFourNodes.length).toBeGreaterThan(0);
 
       // Terminal count (1) must not appear as a standalone bare number
-      const countOneNodes = root!.root.findAll(
+      const countOneNodesAtStart = root!.root.findAll(
         (node: any) => node.props.children === 1,
         { deep: true },
       );
-      expect(countOneNodes.length).toBe(0);
+      expect(countOneNodesAtStart.length).toBe(0);
+
+      // ── No duplicate intervals — exactly one tick per second ─────────────────
+      // If the old interval was not cleared before starting a new one, two
+      // intervals would fire per second, decrementing count by 2 instead of 1
+      // (4 → 2 instead of 4 → 3).  Advance 1 s and assert count is exactly 3.
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      const countThreeNodes = root!.root.findAll(
+        (node: any) => node.props.children === 3,
+        { deep: true },
+      );
+      expect(countThreeNodes.length).toBeGreaterThan(0);
+
+      // Count must not have jumped by two (which would show 2, not 3)
+      const countTwoNodes = root!.root.findAll(
+        (node: any) => node.props.children === 2,
+        { deep: true },
+      );
+      expect(countTwoNodes.length).toBe(0);
     });
 
     it('shows "Well done!" and calls onComplete after all rounds complete', async () => {
