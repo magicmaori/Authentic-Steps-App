@@ -208,6 +208,53 @@ describe('BreathingTimer – chime toggle', () => {
     });
   });
 
+  describe('completion – done screen', () => {
+    it('shows "Well done!" and calls onComplete after all rounds complete', async () => {
+      const mockOnComplete = jest.fn();
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const ONE_ROUND_PROPS = {
+        title: 'Test Breathing',
+        description: 'Test',
+        phases: [{ label: 'Breathe In', counts: 1, instruction: 'Inhale', targetScale: 1 }],
+        totalRounds: 1,
+        accentColor: '#6366f1',
+        onComplete: mockOnComplete,
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...ONE_ROUND_PROPS} />);
+      });
+
+      // Start the exercise
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+
+      await act(async () => {
+        startNodes[0].props.onPress();
+      });
+
+      // Fast-forward one second: the single countdown tick fires and exhausts
+      // the only phase in the only round, triggering the 'done' state
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      // "Well done!" text must be present
+      const doneNodes = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodes.length).toBeGreaterThan(0);
+
+      // onComplete callback must have been called exactly once
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('running state', () => {
     it('calls setChimeEnabled(false) when chimes are on and the sound pill is pressed during a session', async () => {
       mockUseApp.mockReturnValue({
