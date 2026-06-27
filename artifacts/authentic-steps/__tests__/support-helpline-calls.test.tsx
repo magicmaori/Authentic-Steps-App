@@ -1029,6 +1029,109 @@ describe('Support screen – tip box reachable via all area types', () => {
   );
 });
 
+// ─── 'today' urgency routing ──────────────────────────────────────────────────
+
+/**
+ * Mirrors the 'this week' parameterised suite for urgency='today'.
+ * The 'today' path goes: urgency → area → type → routed view, identical to
+ * 'this week'. Previously only the 'emotions' area was exercised on this path.
+ * A per-area routing bug would have gone undetected without this matrix.
+ */
+describe("Support screen – 'today' urgency routing", () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  const TODAY_AREAS = [
+    'emotions',
+    'relationships',
+    'school-or-home',
+    'habits',
+    'something-else',
+  ];
+
+  it.each(TODAY_AREAS)(
+    "urgency='today' → area='%s' → 'professional-help': triage-call-professional rendered, triage-tip-box absent",
+    async (areaId) => {
+      // Step 1 — open triage
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "today" → area step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+      });
+
+      // Step 3 — choose the area under test → type step
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+
+      // Step 4 — choose "professional help" → routed view
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-type-professional-help' }).props.onPress();
+      });
+
+      // The professional-help call button MUST be present for every area
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-call-professional' }),
+      ).not.toThrow();
+
+      // The tip box must NOT appear on the professional-help path for any area
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-tip-box' }),
+      ).toThrow();
+    },
+  );
+
+  it.each(TODAY_AREAS)(
+    "urgency='today' → area='%s' → 'professional-help': tapping call button fires Linking.openURL with tel:1800551800",
+    async (areaId) => {
+      // Step 1 — open triage
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "today" → area step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+      });
+
+      // Step 3 — choose the area under test → type step
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+
+      // Step 4 — choose "professional help" → routed view
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-type-professional-help' }).props.onPress();
+      });
+
+      // Step 5 — tap the call button
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-call-professional' }).props.onPress();
+      });
+
+      expect(openURLSpy).toHaveBeenCalledWith('tel:1800551800');
+      expect(openURLSpy).toHaveBeenCalledTimes(1);
+    },
+  );
+});
+
 // ─── practical-ideas tip box reachable via every area type ────────────────────
 
 /**
