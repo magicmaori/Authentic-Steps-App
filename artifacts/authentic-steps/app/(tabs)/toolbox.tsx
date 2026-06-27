@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BreathingTimer from '@/components/BreathingTimer';
@@ -210,7 +210,11 @@ export default function ToolboxScreen() {
   const groundingDone = isExerciseDoneToday('grounding-54321');
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -221,6 +225,8 @@ export default function ToolboxScreen() {
           },
         ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <Text style={[styles.screenTitle, { color: colors.foreground }]}>Resilience Toolbox</Text>
         <Text style={[styles.screenSubtitle, { color: colors.mutedForeground }]}>
@@ -345,7 +351,7 @@ export default function ToolboxScreen() {
           <GroundingWalkthrough onComplete={() => markExerciseDone('grounding-54321')} />
         </ToolCard>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

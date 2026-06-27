@@ -4,10 +4,7 @@ import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   Animated,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -166,11 +163,7 @@ export default function GroundingWalkthrough({ onComplete }: Props = {}) {
   })).filter(s => s.answers.length > 0);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={80}
-    >
-      <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.titleRow}>
           <View style={[styles.badge, { backgroundColor: accentColor }]}>
             <Ionicons name="leaf" size={16} color="#fff" />
@@ -334,8 +327,7 @@ export default function GroundingWalkthrough({ onComplete }: Props = {}) {
             </Pressable>
           </View>
         )}
-      </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
