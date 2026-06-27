@@ -138,6 +138,7 @@ export default function BreathingTimer({ title, description, phases, totalRounds
   }, [phaseOpacity]);
 
   const startExercise = useCallback(() => {
+    circleScale.setValue(0.55);
     stateRef.current = { phaseIndex: 0, count: phases[0].counts, round: 1 };
     setPhaseIndex(0);
     setCount(phases[0].counts);
@@ -147,7 +148,7 @@ export default function BreathingTimer({ title, description, phases, totalRounds
     playChime(phaseChime(phases[0].label));
     animateToScale(phases[0].targetScale, phases[0].counts);
     flashPhase();
-  }, [phases, animateToScale, flashPhase, playChime]);
+  }, [circleScale, phases, animateToScale, flashPhase, playChime]);
 
   const stopExercise = useCallback(() => {
     clearTimer();

@@ -441,6 +441,65 @@ describe('BreathingTimer – chime toggle', () => {
      * A bug where "Go Again" reuses stale state or skips the onComplete hook
      * would result in the callback being called only once.
      */
+    /**
+     * Regression guard: pressing "Go Again" must reset circleScale to the
+     * resting value (0.55) before starting the new animation.  Without this
+     * reset the circle snaps from whatever scale the last phase ended at
+     * rather than smoothly expanding from the rest position.
+     *
+     * We spy on `Animated.Value.prototype.setValue` and confirm that 0.55 is
+     * among the values set when "Go Again" is pressed.
+     */
+    it('resets circleScale to 0.55 before starting the animation when "Go Again" is pressed', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const ONE_TICK_PROPS = {
+        title: 'Test Breathing',
+        description: 'Test',
+        phases: [{ label: 'Breathe In', counts: 1, instruction: 'Inhale', targetScale: 1 }],
+        totalRounds: 1,
+        accentColor: '#6366f1',
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...ONE_TICK_PROPS} />);
+      });
+
+      // Start and complete a session so we land on the done screen
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      await act(async () => { startNodes[0].props.onPress(); });
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // Done screen visible
+      const doneNodes = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodes.length).toBeGreaterThan(0);
+
+      // Spy on setValue BEFORE pressing "Go Again" so we capture only the
+      // calls that happen during startExercise.
+      const setValueSpy = jest.spyOn(
+        (require('react-native').Animated.Value.prototype as any),
+        'setValue',
+      );
+
+      const goAgainNodes = findPressableByChildText(root!, 'Go Again');
+      expect(goAgainNodes.length).toBeGreaterThan(0);
+
+      await act(async () => { goAgainNodes[0].props.onPress(); });
+
+      // setValue(0.55) must have been called — this is the circleScale reset.
+      // (setValue(0) is also called by flashPhase for phaseOpacity, which is fine.)
+      const resetCalls = setValueSpy.mock.calls.filter(([v]) => v === 0.55);
+      expect(resetCalls.length).toBeGreaterThan(0);
+
+      setValueSpy.mockRestore();
+    });
+
     it('calls onComplete once per completed session when "Go Again" is used multiple times', async () => {
       const mockOnComplete = jest.fn();
       mockUseApp.mockReturnValue({
