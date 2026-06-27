@@ -128,7 +128,7 @@ function GoToSection() {
               description="Great for anxiety, panic, or when you can't sleep."
               phases={CALM_DOWN_PHASES}
               totalRounds={4}
-              accentColor="#193b83"
+              accentColor="#03989e"
               onComplete={() => markExerciseDone('breathing-478')}
             />
           </ToolCard>
@@ -152,7 +152,7 @@ function GoToSection() {
               icon="walk"
               title="Walk & Count"
               desc="Go for a 5-minute walk and silently count your steps. Counting keeps your mind present."
-              color="#193b83"
+              color="#03989e"
               mode="countdown"
               countdownSeconds={300}
               countdownLabel="remaining"
@@ -275,7 +275,7 @@ export default function ToolboxScreen() {
               description="Great for anxiety, panic, or when you can't sleep."
               phases={CALM_DOWN_PHASES}
               totalRounds={4}
-              accentColor="#193b83"
+              accentColor="#03989e"
               onComplete={() => markExerciseDone('breathing-478')}
             />
           </ToolCard>
@@ -312,7 +312,7 @@ export default function ToolboxScreen() {
               icon="walk"
               title="Walk & Count"
               desc="Go for a 5-minute walk and silently count your steps. Counting keeps your mind present."
-              color="#193b83"
+              color="#03989e"
               mode="countdown"
               countdownSeconds={300}
               countdownLabel="remaining"
