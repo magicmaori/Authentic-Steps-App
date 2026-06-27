@@ -623,4 +623,143 @@ describe('BreathingTimer – chime toggle', () => {
       expect(mockSetChimeEnabled).toHaveBeenCalledWith(true);
     });
   });
+
+  describe('phase transition', () => {
+    /**
+     * Two-phase config used across all tests in this block:
+     *   Phase 0 — "Breathe In": counts=4
+     *   Phase 1 — "Hold":       counts=2
+     *
+     * Timer arithmetic:
+     *   Tick 1-3: count 4→3→2→1  (nextCount > 0, no transition)
+     *   Tick 4:   nextCount = 0  → advance to phase 1, count resets to 2
+     *   Tick 5:   count 2→1
+     *   Tick 6:   nextCount = 0  → all phases exhausted, round 1→2
+     */
+    const TWO_PHASE_PROPS = {
+      title: 'Phase Test',
+      description: 'Testing phase transitions',
+      phases: [
+        { label: 'Breathe In', counts: 4, instruction: 'Inhale', targetScale: 1 },
+        { label: 'Hold',        counts: 2, instruction: 'Hold',  targetScale: 1 },
+      ],
+      totalRounds: 3,
+      accentColor: '#6366f1',
+    };
+
+    it('changes the phase label from phase 1 to phase 2 after the first phase counts expire', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await act(async () => {
+        root = create(<BreathingTimer {...TWO_PHASE_PROPS} />);
+      });
+
+      // Start the exercise
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // Phase 0 label ("Breathe In") should be visible immediately after start
+      const breatheInAtStart = root!.root.findAll(
+        (node: any) => node.props.children === 'Breathe In',
+        { deep: true },
+      );
+      expect(breatheInAtStart.length).toBeGreaterThan(0);
+
+      // "Hold" must not be visible yet
+      const holdAtStart = root!.root.findAll(
+        (node: any) => node.props.children === 'Hold',
+        { deep: true },
+      );
+      expect(holdAtStart.length).toBe(0);
+
+      // Advance 3 ticks — count drops 4→3→2→1; still in phase 0
+      await act(async () => { jest.advanceTimersByTime(3000); });
+
+      const breatheInMidPhase = root!.root.findAll(
+        (node: any) => node.props.children === 'Breathe In',
+        { deep: true },
+      );
+      expect(breatheInMidPhase.length).toBeGreaterThan(0);
+
+      // Tick 4: phase 0 exhausted → transition to phase 1
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // "Hold" label must now be shown
+      const holdAfterTransition = root!.root.findAll(
+        (node: any) => node.props.children === 'Hold',
+        { deep: true },
+      );
+      expect(holdAfterTransition.length).toBeGreaterThan(0);
+
+      // "Breathe In" must no longer be visible
+      const breatheInAfterTransition = root!.root.findAll(
+        (node: any) => node.props.children === 'Breathe In',
+        { deep: true },
+      );
+      expect(breatheInAfterTransition.length).toBe(0);
+    });
+
+    it('increments the round counter when all phases in a round complete', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await act(async () => {
+        root = create(<BreathingTimer {...TWO_PHASE_PROPS} />);
+      });
+
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // Round 1 should be displayed at the start
+      const roundOneAtStart = root!.root.findAll(
+        (node: any) =>
+          Array.isArray(node.props.children) &&
+          node.props.children[0] === 'Round ' &&
+          node.props.children[1] === 1,
+        { deep: true },
+      );
+      expect(roundOneAtStart.length).toBeGreaterThan(0);
+
+      // Advance 6 ticks: phase 0 (4 ticks) + phase 1 (2 ticks) → all phases done → round 1→2
+      await act(async () => { jest.advanceTimersByTime(6000); });
+
+      // Round counter must show 2
+      const roundTwoNodes = root!.root.findAll(
+        (node: any) =>
+          Array.isArray(node.props.children) &&
+          node.props.children[0] === 'Round ' &&
+          node.props.children[1] === 2,
+        { deep: true },
+      );
+      expect(roundTwoNodes.length).toBeGreaterThan(0);
+
+      // Round 1 must no longer be shown
+      const roundOneAfter = root!.root.findAll(
+        (node: any) =>
+          Array.isArray(node.props.children) &&
+          node.props.children[0] === 'Round ' &&
+          node.props.children[1] === 1,
+        { deep: true },
+      );
+      expect(roundOneAfter.length).toBe(0);
+
+      // Still in running state (not done — totalRounds is 3)
+      const stopNodes = findPressableByChildText(root!, 'Stop');
+      expect(stopNodes.length).toBeGreaterThan(0);
+
+      // Phase should have reset to phase 0 ("Breathe In") for the new round
+      const breatheInNewRound = root!.root.findAll(
+        (node: any) => node.props.children === 'Breathe In',
+        { deep: true },
+      );
+      expect(breatheInNewRound.length).toBeGreaterThan(0);
+    });
+  });
 });
