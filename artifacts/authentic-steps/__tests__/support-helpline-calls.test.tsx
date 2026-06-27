@@ -656,6 +656,40 @@ describe("Support screen – 'this week' urgency routing", () => {
     ).toThrow();
   });
 
+  it("urgency='this week' → area pick: type step is shown and routed-view reset button is absent", async () => {
+    // Step 1 — open triage
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+
+    // Step 2 — choose "this week" → area step
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-this-week' }).props.onPress();
+    });
+
+    // Step 3 — pick any area
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+    });
+
+    // Type step options must now be visible
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-type-someone-to-listen' }),
+    ).not.toThrow();
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-type-practical-ideas' }),
+    ).not.toThrow();
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-type-professional-help' }),
+    ).not.toThrow();
+
+    // The routed-view reset button must NOT be present yet — routing must not
+    // have skipped the type step.
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-reset-btn' }),
+    ).toThrow();
+  });
+
   it("urgency='this week' → area → 'someone-to-listen': tip box is shown with no call button", async () => {
     // Step 1 — open triage
     await act(async () => {
