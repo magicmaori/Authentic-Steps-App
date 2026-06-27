@@ -43,21 +43,27 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
 
+  const navigateAfterAuth = useCallback((decorateUrl: (url: string) => string) => {
+    const url = decorateUrl('/');
+    if (url.startsWith('http')) {
+      if (typeof window !== 'undefined') window.location.href = url;
+    } else {
+      router.replace(url as any);
+    }
+  }, [router]);
+
   const handleEmailSignUp = async () => {
     const { error } = await signUp.password({ emailAddress: email, password });
     if (error) return;
-    if (!error) await signUp.verifications.sendEmailCode();
+    await signUp.verifications.sendEmailCode();
   };
 
   const handleVerify = async () => {
     await signUp.verifications.verifyEmailCode({ code });
     if (signUp.status === 'complete') {
-      await signUp.finalize({
-        navigate: ({ decorateUrl }) => {
-          const url = decorateUrl('/');
-          router.replace(url as any);
-        },
-      });
+      await signUp.finalize({ navigate: ({ decorateUrl }) => navigateAfterAuth(decorateUrl) });
+    } else {
+      if (__DEV__) console.error('Sign-up not complete:', signUp.status);
     }
   };
 
@@ -70,15 +76,13 @@ export default function SignUpScreen() {
       if (createdSessionId && setActive) {
         await setActive({
           session: createdSessionId,
-          navigate: ({ decorateUrl }) => {
-            router.replace(decorateUrl('/') as any);
-          },
+          navigate: ({ decorateUrl }) => navigateAfterAuth(decorateUrl),
         });
       }
     } catch (err) {
       if (__DEV__) console.error('Google sign-up error', err);
     }
-  }, [startSSOFlow, router]);
+  }, [startSSOFlow, navigateAfterAuth]);
 
   if (
     signUp.status === 'missing_requirements' &&

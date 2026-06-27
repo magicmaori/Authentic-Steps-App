@@ -43,30 +43,35 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
 
+  const navigateAfterAuth = useCallback((decorateUrl: (url: string) => string) => {
+    const url = decorateUrl('/');
+    if (url.startsWith('http')) {
+      // Web: Clerk returns a full URL with session token; hard-navigate to activate it
+      if (typeof window !== 'undefined') window.location.href = url;
+    } else {
+      router.replace(url as any);
+    }
+  }, [router]);
+
   const handleEmailSignIn = async () => {
     const { error } = await signIn.password({ emailAddress: email, password });
     if (error) return;
     if (signIn.status === 'complete') {
-      await signIn.finalize({
-        navigate: ({ decorateUrl }) => {
-          const url = decorateUrl('/');
-          router.replace(url as any);
-        },
-      });
+      await signIn.finalize({ navigate: ({ decorateUrl }) => navigateAfterAuth(decorateUrl) });
     } else if (signIn.status === 'needs_client_trust') {
-      await signIn.mfa.sendEmailCode();
+      const emailFactor = signIn.supportedSecondFactors?.find(
+        (f: any) => f.strategy === 'email_code',
+      );
+      if (emailFactor) await signIn.mfa.sendEmailCode();
+    } else {
+      if (__DEV__) console.error('Sign-in not complete:', signIn.status);
     }
   };
 
   const handleVerify = async () => {
     await signIn.mfa.verifyEmailCode({ code });
     if (signIn.status === 'complete') {
-      await signIn.finalize({
-        navigate: ({ decorateUrl }) => {
-          const url = decorateUrl('/');
-          router.replace(url as any);
-        },
-      });
+      await signIn.finalize({ navigate: ({ decorateUrl }) => navigateAfterAuth(decorateUrl) });
     }
   };
 
@@ -79,15 +84,13 @@ export default function SignInScreen() {
       if (createdSessionId && setActive) {
         await setActive({
           session: createdSessionId,
-          navigate: ({ decorateUrl }) => {
-            router.replace(decorateUrl('/') as any);
-          },
+          navigate: ({ decorateUrl }) => navigateAfterAuth(decorateUrl),
         });
       }
     } catch (err) {
       if (__DEV__) console.error('Google sign-in error', err);
     }
-  }, [startSSOFlow, router]);
+  }, [startSSOFlow, navigateAfterAuth]);
 
   if (signIn.status === 'needs_client_trust') {
     return (

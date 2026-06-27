@@ -8,6 +8,7 @@ import {
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
+import { Platform } from "react-native";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
@@ -25,6 +26,7 @@ const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
 const INTRO_SEEN_KEY = "hasSeenIntro";
+export const GUEST_MODE_KEY = "guestMode";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,17 +35,22 @@ const queryClient = new QueryClient();
 function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { isLoaded: appLoaded, userData } = useApp();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
+  const [guestMode, setGuestMode] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!authLoaded || !appLoaded) return;
-    if (!isSignedIn) {
+    AsyncStorage.getItem(GUEST_MODE_KEY).then((v) => setGuestMode(v === '1'));
+  }, []);
+
+  useEffect(() => {
+    if (!authLoaded || !appLoaded || guestMode === null) return;
+    if (!isSignedIn && !guestMode) {
       router.replace('/(auth)/sign-in' as any);
     } else if (!userData.hasOnboarded) {
       router.replace('/onboarding' as any);
     }
-  }, [authLoaded, appLoaded, isSignedIn, userData.hasOnboarded]);
+  }, [authLoaded, appLoaded, isSignedIn, guestMode, userData.hasOnboarded]);
 
-  if (!authLoaded || !appLoaded) return null;
+  if (!authLoaded || !appLoaded || guestMode === null) return null;
   return <>{children}</>;
 }
 
