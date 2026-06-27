@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
-import { Alert, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemePreference, useApp } from '@/context/AppContext';
@@ -41,6 +41,7 @@ export default function ProfileScreen() {
   const [notifRitual, setNotifRitual] = useState(true);
   const [notifEvening, setNotifEvening] = useState(true);
   const [notifMilestone, setNotifMilestone] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [codeRefreshed, setCodeRefreshed] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
@@ -81,6 +82,7 @@ export default function ProfileScreen() {
   }
 
   function handleDeleteData() {
+    if (isDeleting) return;
     Alert.alert(
       'Delete all your data?',
       'This will permanently erase your journal entries, streaks, milestones, and breathing records. A new anonymous name will be created. This cannot be undone.',
@@ -90,9 +92,14 @@ export default function ProfileScreen() {
           text: 'Yes, delete everything',
           style: 'destructive',
           onPress: async () => {
-            await resetAllData();
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            showDeleteToast();
+            setIsDeleting(true);
+            try {
+              await resetAllData();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              showDeleteToast();
+            } finally {
+              setIsDeleting(false);
+            }
           },
         },
       ]
@@ -317,10 +324,20 @@ export default function ProfileScreen() {
           </Pressable>
           <Pressable
             onPress={handleDeleteData}
-            style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
+            disabled={isDeleting}
+            style={[
+              styles.settingRow,
+              { borderTopWidth: 1, borderTopColor: colors.border },
+              isDeleting && { opacity: 0.5 },
+            ]}
           >
-            <Text style={[styles.settingLabel, { color: colors.destructive }]}>Delete all my data</Text>
-            <Ionicons name="trash-outline" size={18} color={colors.destructive} />
+            <Text style={[styles.settingLabel, { color: colors.destructive }]}>
+              {isDeleting ? 'Deleting…' : 'Delete all my data'}
+            </Text>
+            {isDeleting
+              ? <ActivityIndicator size="small" color={colors.destructive} />
+              : <Ionicons name="trash-outline" size={18} color={colors.destructive} />
+            }
           </Pressable>
         </View>
 
