@@ -58,7 +58,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useApp } from '../context/AppContext';
-import BreathingTimer, { advanceStateByTicks, STORAGE_KEY_BREATHING_SESSION } from '../components/BreathingTimer';
+import BreathingTimer, { advanceStateByTicks, STORAGE_KEY_BREATHING_SESSION, STALE_SESSION_THRESHOLD_MS } from '../components/BreathingTimer';
 
 // ─── Typed mock reference ─────────────────────────────────────────────────────
 
@@ -1460,9 +1460,10 @@ describe('BreathingTimer – force-quit interruption notice', () => {
   });
 
   it('shows the interrupted notice when a stale session flag is found on mount', async () => {
-    // Simulate a stale flag left by a previous force-quit — value matches this card's toolId
+    // Simulate a stale flag left by a previous force-quit — JSON format, recent timestamp
+    const recentFlag = JSON.stringify({ toolId: DEFAULT_PROPS.toolId, startedAt: new Date().toISOString() });
     mockAsyncStorage.getItem.mockImplementation(async (key) => {
-      if (key === STORAGE_KEY_BREATHING_SESSION) return DEFAULT_PROPS.toolId;
+      if (key === STORAGE_KEY_BREATHING_SESSION) return recentFlag;
       return null;
     });
 
@@ -1522,9 +1523,11 @@ describe('BreathingTimer – force-quit interruption notice', () => {
   });
 
   it('does not show the interrupted notice when the stale flag belongs to a different exercise', async () => {
-    // A different exercise was interrupted — this card's toolId does not match
+    // A different exercise was interrupted — this card's toolId does not match.
+    // The flag must be left untouched so the other card can show its own notice.
+    const otherFlag = JSON.stringify({ toolId: 'some-other-exercise', startedAt: new Date().toISOString() });
     mockAsyncStorage.getItem.mockImplementation(async (key) => {
-      if (key === STORAGE_KEY_BREATHING_SESSION) return 'some-other-exercise';
+      if (key === STORAGE_KEY_BREATHING_SESSION) return otherFlag;
       return null;
     });
 
@@ -1554,8 +1557,9 @@ describe('BreathingTimer – force-quit interruption notice', () => {
   });
 
   it('clears the interrupted notice and writes the session flag when the user starts a new session', async () => {
+    const recentFlag = JSON.stringify({ toolId: DEFAULT_PROPS.toolId, startedAt: new Date().toISOString() });
     mockAsyncStorage.getItem.mockImplementation(async (key) => {
-      if (key === STORAGE_KEY_BREATHING_SESSION) return DEFAULT_PROPS.toolId;
+      if (key === STORAGE_KEY_BREATHING_SESSION) return recentFlag;
       return null;
     });
 
@@ -1588,8 +1592,14 @@ describe('BreathingTimer – force-quit interruption notice', () => {
     const stopNodes = findPressableByChildText(root!, 'Stop');
     expect(stopNodes.length).toBeGreaterThan(0);
 
-    // The session flag must have been written for the new session
-    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION, DEFAULT_PROPS.toolId);
+    // The session flag must have been written for the new session (JSON with toolId + startedAt)
+    const setItemCalls = mockAsyncStorage.setItem.mock.calls.filter(
+      ([key]: [string]) => key === STORAGE_KEY_BREATHING_SESSION,
+    );
+    expect(setItemCalls.length).toBeGreaterThan(0);
+    const storedValue = JSON.parse(setItemCalls[0][1]);
+    expect(storedValue.toolId).toBe(DEFAULT_PROPS.toolId);
+    expect(typeof storedValue.startedAt).toBe('string');
 
     act(() => { root!.unmount(); });
   });
@@ -1613,7 +1623,14 @@ describe('BreathingTimer – force-quit interruption notice', () => {
     const startNodes = findPressableByChildText(root!, 'Start Breathing');
     await act(async () => { startNodes[0].props.onPress(); });
 
-    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION, DEFAULT_PROPS.toolId);
+    // The session flag must be written as JSON containing toolId and startedAt
+    const setItemCalls = mockAsyncStorage.setItem.mock.calls.filter(
+      ([key]: [string]) => key === STORAGE_KEY_BREATHING_SESSION,
+    );
+    expect(setItemCalls.length).toBeGreaterThan(0);
+    const storedValue = JSON.parse(setItemCalls[0][1]);
+    expect(storedValue.toolId).toBe(DEFAULT_PROPS.toolId);
+    expect(typeof storedValue.startedAt).toBe('string');
 
     // Stop manually
     const stopNodes = findPressableByChildText(root!, 'Stop');
@@ -1622,6 +1639,115 @@ describe('BreathingTimer – force-quit interruption notice', () => {
     expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION);
 
     act(() => { root!.unmount(); });
+  });
+
+  describe('stale-timestamp guard', () => {
+    /**
+     * If the app was force-quit and the user does not reopen the same exercise
+     * for more than STALE_SESSION_THRESHOLD_MS, the flag should be silently
+     * discarded without showing the interrupted notice.
+     */
+    it('does not show the interrupted notice when the flag is older than the threshold', async () => {
+      const staleDate = new Date(Date.now() - STALE_SESSION_THRESHOLD_MS - 1000);
+      const staleFlag = JSON.stringify({
+        toolId: DEFAULT_PROPS.toolId,
+        startedAt: staleDate.toISOString(),
+      });
+      mockAsyncStorage.getItem.mockImplementation(async (key) => {
+        if (key === STORAGE_KEY_BREATHING_SESSION) return staleFlag;
+        return null;
+      });
+
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: true },
+        setChimeEnabled: mockSetChimeEnabled,
+      });
+
+      let root: ReturnType<typeof create> | undefined;
+      await act(async () => {
+        root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+      });
+
+      await act(async () => { await Promise.resolve(); });
+
+      // The interrupted notice must NOT appear — flag is too old
+      const noticeNodes = root!.root.findAll(
+        (node: any) => typeof node.props.children === 'string' &&
+          node.props.children.includes('interrupted'),
+        { deep: true },
+      );
+      expect(noticeNodes.length).toBe(0);
+
+      // The stale key must have been removed silently
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION);
+
+      act(() => { root!.unmount(); });
+    });
+
+    it('shows the interrupted notice when the flag is just within the threshold', async () => {
+      // 1 second inside the threshold — should still show the notice
+      const freshDate = new Date(Date.now() - STALE_SESSION_THRESHOLD_MS + 1000);
+      const freshFlag = JSON.stringify({
+        toolId: DEFAULT_PROPS.toolId,
+        startedAt: freshDate.toISOString(),
+      });
+      mockAsyncStorage.getItem.mockImplementation(async (key) => {
+        if (key === STORAGE_KEY_BREATHING_SESSION) return freshFlag;
+        return null;
+      });
+
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: true },
+        setChimeEnabled: mockSetChimeEnabled,
+      });
+
+      let root: ReturnType<typeof create> | undefined;
+      await act(async () => {
+        root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+      });
+
+      await act(async () => { await Promise.resolve(); });
+
+      const noticeNodes = root!.root.findAll(
+        (node: any) => typeof node.props.children === 'string' &&
+          node.props.children.includes('interrupted'),
+        { deep: true },
+      );
+      expect(noticeNodes.length).toBeGreaterThan(0);
+
+      act(() => { root!.unmount(); });
+    });
+
+    it('silently removes a corrupted (non-JSON) flag without showing the interrupted notice', async () => {
+      mockAsyncStorage.getItem.mockImplementation(async (key) => {
+        if (key === STORAGE_KEY_BREATHING_SESSION) return 'not-valid-json{{{';
+        return null;
+      });
+
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: true },
+        setChimeEnabled: mockSetChimeEnabled,
+      });
+
+      let root: ReturnType<typeof create> | undefined;
+      await act(async () => {
+        root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+      });
+
+      await act(async () => { await Promise.resolve(); });
+
+      const noticeNodes = root!.root.findAll(
+        (node: any) => typeof node.props.children === 'string' &&
+          node.props.children.includes('interrupted'),
+        { deep: true },
+      );
+      expect(noticeNodes.length).toBe(0);
+
+      // Corrupted key must be removed
+      expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION);
+
+      act(() => { root!.unmount(); });
+    });
   });
 
   describe('phase transition – count display', () => {

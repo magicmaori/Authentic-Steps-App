@@ -17,8 +17,18 @@ import { useApp } from '@/context/AppContext';
  * DECISION: show an "interrupted" notice rather than persist-and-resume.
  * Breathing exercises require active participation; resuming a paused timer
  * after an arbitrary gap would not serve the user's wellbeing goal.
+ *
+ * Stored value format: JSON string `{ toolId: string; startedAt: string }`.
+ * Flags older than STALE_SESSION_THRESHOLD_MS are silently discarded so a
+ * crash during idle startup does not surface a stale notice days later.
  */
 export const STORAGE_KEY_BREATHING_SESSION = '@authentic_steps_breathing_active';
+
+/**
+ * How old a stored session flag can be before it is considered stale and
+ * silently discarded (default: 24 hours).
+ */
+export const STALE_SESSION_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Advance a breathing session's state by `ticks` elapsed seconds.
@@ -105,16 +115,35 @@ export default function BreathingTimer({ toolId, title, description, phases, tot
   const [interrupted, setInterrupted] = useState(false);
 
   // ── Mount: detect stale session from a previous force-quit ────────────────
-  // The stored value is the toolId of the exercise that was running when the
-  // app was killed.  Only show the notice if the stored ID matches THIS card's
-  // toolId so that other breathing cards are not affected.
+  // The stored value is JSON: { toolId, startedAt }.
+  // Only act on flags that belong to THIS card (matching toolId).
+  // If the flag is ours but older than STALE_SESSION_THRESHOLD_MS, silently
+  // discard it without showing the interrupted notice.
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY_BREATHING_SESSION)
-      .then(value => {
-        if (value === toolId) {
-          setInterrupted(true);
+      .then(raw => {
+        if (!raw) return;
+        let parsed: { toolId?: string; startedAt?: string } | null = null;
+        try {
+          parsed = JSON.parse(raw) as { toolId?: string; startedAt?: string };
+        } catch {
+          // Unrecognised / corrupted value — remove it to prevent indefinite staleness.
           AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
+          return;
         }
+        if (parsed.toolId !== toolId) {
+          // Flag belongs to a different exercise card — leave it untouched.
+          return;
+        }
+        const startedAt = parsed.startedAt ? new Date(parsed.startedAt).getTime() : NaN;
+        const age = Date.now() - startedAt;
+        if (isNaN(age) || age > STALE_SESSION_THRESHOLD_MS) {
+          // Flag is ours but too old — discard silently.
+          AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
+          return;
+        }
+        setInterrupted(true);
+        AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
       })
       .catch(() => {});
   }, [toolId]);
@@ -178,8 +207,11 @@ export default function BreathingTimer({ toolId, title, description, phases, tot
     setInterrupted(false);
     setStatus('running');
     // Mark the session as active so we can detect a force-quit on the next cold start.
-    // Store the toolId so only this card's interrupted notice shows on remount.
-    AsyncStorage.setItem(STORAGE_KEY_BREATHING_SESSION, toolId).catch(() => {});
+    // Store the toolId and a start timestamp so stale flags can be discarded.
+    AsyncStorage.setItem(
+      STORAGE_KEY_BREATHING_SESSION,
+      JSON.stringify({ toolId, startedAt: new Date().toISOString() }),
+    ).catch(() => {});
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     playChime(phaseChime(phases[0].label));
     animateToScale(phases[0].targetScale, phases[0].counts);
