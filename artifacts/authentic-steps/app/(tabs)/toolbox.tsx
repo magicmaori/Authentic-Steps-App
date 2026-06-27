@@ -139,7 +139,7 @@ function GoToSection() {
               icon="body"
               title="10 Star Jumps"
               desc="Gets blood moving and releases tension held in the body. Do them big — arms and legs fully extended."
-              color="#2D6A4F"
+              color="#03989e"
               mode="reps"
               totalReps={10}
               onComplete={() => markExerciseDone('movement-star-jumps')}
@@ -300,7 +300,7 @@ export default function ToolboxScreen() {
               icon="body"
               title="10 Star Jumps"
               desc="Gets blood moving and releases tension held in the body. Do them big — arms and legs fully extended."
-              color="#2D6A4F"
+              color="#03989e"
               mode="reps"
               totalReps={10}
               onComplete={() => markExerciseDone('movement-star-jumps')}
