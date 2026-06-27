@@ -4,13 +4,18 @@ import * as Haptics from 'expo-haptics';
 import * as Print from 'expo-print';
 import { router, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemePreference, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
-import { requestPermission as requestNotifPermission } from '@/utils/notifications';
+import {
+  getPermissionState,
+  requestPermission as requestNotifPermission,
+  scheduleEveningReminder,
+  scheduleRitualReminder,
+} from '@/utils/notifications';
 
 function escHtml(str: string): string {
   return str
@@ -59,6 +64,25 @@ export default function ProfileScreen() {
   const cachedPayloadRef = useRef<string>('');
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!userData.notifRitual && !userData.notifEvening && !userData.notifMilestone) return;
+    getPermissionState().then(async (state) => {
+      if (state === 'undetermined') {
+        const granted = await requestNotifPermission();
+        if (granted) {
+          await scheduleRitualReminder(userData.notifRitual).catch(() => {});
+          await scheduleEveningReminder(userData.notifEvening).catch(() => {});
+        } else {
+          await disableAllNotificationPrefs();
+          setNotifBlocked(true);
+        }
+      } else if (state === 'denied') {
+        await disableAllNotificationPrefs();
+        setNotifBlocked(true);
+      }
+    }).catch(() => {});
+  }, []);
 
   const refreshPayload = useCallback(() => {
     const payload = buildRecoveryPayload();
