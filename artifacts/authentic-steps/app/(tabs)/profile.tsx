@@ -1,13 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
+import * as Print from 'expo-print';
 import { router, useFocusEffect } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemePreference, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
+
+function escHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] = [
   { value: 'system', label: 'System', icon: 'phone-portrait-outline' },
@@ -106,11 +117,136 @@ export default function ProfileScreen() {
     );
   }
 
-  async function handleDownloadData() {
-    Haptics.selectionAsync();
+  function buildPdfHtml(): string {
+    const exportedAt = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const entryList = Object.values(entries).sort((a, b) => a.date.localeCompare(b.date));
+    const sortedGrounding = [...groundingSessions].sort((a, b) => a.timestamp - b.timestamp);
+
+    const hasEntries = entryList.length > 0;
+    const hasSessions = sortedGrounding.length > 0;
+
+    const formatDate = (dateStr: string) => {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    };
+
+    const milestoneRows = userData.milestones.length > 0
+      ? userData.milestones.map(m =>
+          `<tr><td>${m.label}</td><td>${m.description}</td><td>${formatDate(m.earnedAt)}</td></tr>`
+        ).join('')
+      : '<tr><td colspan="3" style="color:#888;font-style:italic;">No badges earned yet</td></tr>';
+
+    const journalSection = hasEntries
+      ? entryList.map(e => {
+          const gratitudeItems = e.gratitudes.length > 0
+            ? e.gratitudes.map(g => `<li>${escHtml(g.text)} <span class="tag">${g.category}</span></li>`).join('')
+            : '<li style="color:#888;font-style:italic;">None recorded</li>';
+          return `
+            <div class="entry">
+              <div class="entry-date">${formatDate(e.date)}${e.isComplete ? ' <span class="badge">✓ Complete</span>' : ''}</div>
+              <div class="entry-section-label">Gratitudes</div>
+              <ul>${gratitudeItems}</ul>
+              ${e.intention ? `<div class="entry-section-label">Today's Intention</div><p>${escHtml(e.intention)}${e.intentionCategory ? ` <span class="tag">${e.intentionCategory}</span>` : ''}</p>` : ''}
+              ${e.iAmStatement ? `<div class="entry-section-label">I Am Statement</div><p class="iam">"${escHtml(e.iAmStatement)}"</p>` : ''}
+            </div>`;
+        }).join('')
+      : '<p class="empty-state">No journal entries yet. Start your first daily ritual to see it here.</p>';
+
+    const groundingSection = hasSessions
+      ? sortedGrounding.map(s => {
+          const sensesHtml = s.senses.map(se =>
+            `<div class="sense-block"><div class="sense-name">${escHtml(se.sense)}</div><ul>${se.answers.map(a => `<li>${escHtml(a)}</li>`).join('')}</ul></div>`
+          ).join('');
+          const sessionDate = new Date(s.timestamp).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          return `<div class="entry"><div class="entry-date">${sessionDate}</div>${sensesHtml}</div>`;
+        }).join('')
+      : '<p class="empty-state">No grounding sessions yet.</p>';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Authentic Steps — Journal Export</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; color: #1a1a1a; background: #fff; font-size: 14px; line-height: 1.6; padding: 40px 48px; }
+  h1 { font-size: 26px; font-weight: 700; color: #16a34a; margin-bottom: 4px; }
+  .subtitle { color: #555; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 17px; font-weight: 700; color: #1a1a1a; margin: 32px 0 14px; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
+  .stat-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 12px; text-align: center; background: #f9fafb; }
+  .stat-value { font-size: 24px; font-weight: 700; color: #16a34a; }
+  .stat-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 10px; background: #f3f4f6; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+  .entry { border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; break-inside: avoid; }
+  .entry-date { font-weight: 700; font-size: 15px; margin-bottom: 10px; color: #111827; }
+  .entry-section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin: 10px 0 4px; }
+  ul { padding-left: 18px; }
+  li { margin-bottom: 3px; }
+  .tag { display: inline-block; background: #d1fae5; color: #065f46; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px; text-transform: capitalize; margin-left: 4px; vertical-align: middle; }
+  .badge { background: #bbf7d0; color: #065f46; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+  .iam { font-size: 15px; font-style: italic; color: #374151; padding: 4px 0; }
+  .sense-block { margin-bottom: 10px; }
+  .sense-name { font-weight: 600; font-size: 13px; color: #374151; margin-bottom: 3px; }
+  .empty-state { color: #9ca3af; font-style: italic; padding: 12px 0; }
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #9ca3af; text-align: center; }
+  @media print { body { padding: 24px; } }
+</style>
+</head>
+<body>
+  <h1>Authentic Steps For Youth</h1>
+  <div class="subtitle">Journal export for ${escHtml(userData.anonymousName)} &nbsp;·&nbsp; Generated ${exportedAt}</div>
+
+  <h2>Your Stats</h2>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-value">${userData.currentStreak}</div><div class="stat-label">Current Streak</div></div>
+    <div class="stat-card"><div class="stat-value">${userData.longestStreak}</div><div class="stat-label">Best Streak</div></div>
+    <div class="stat-card"><div class="stat-value">${userData.totalRituals}</div><div class="stat-label">Rituals Done</div></div>
+    <div class="stat-card"><div class="stat-value">${userData.milestones.length}</div><div class="stat-label">Badges Earned</div></div>
+  </div>
+
+  <h2>Badges</h2>
+  <table>
+    <thead><tr><th>Badge</th><th>Description</th><th>Earned</th></tr></thead>
+    <tbody>${milestoneRows}</tbody>
+  </table>
+
+  <h2>Journal Entries (${entryList.length})</h2>
+  ${journalSection}
+
+  <h2>Grounding Sessions (${sortedGrounding.length})</h2>
+  ${groundingSection}
+
+  <div class="footer">Authentic Steps For Youth &nbsp;·&nbsp; Your data is private and never sold. Designed for young people, with care.</div>
+</body>
+</html>`;
+  }
+
+  async function handleExportPdf() {
+    try {
+      const html = buildPdfHtml();
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Save or share your journal PDF',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('PDF saved', 'Your journal has been saved as a PDF file.');
+      }
+    } catch {
+      Alert.alert('Could not create PDF', 'Please try again.');
+    }
+  }
+
+  async function handleExportJson() {
     const exportedAt = new Date().toISOString();
     const entryList = Object.values(entries).sort((a, b) => a.date.localeCompare(b.date));
-
     const exportData = {
       exportedAt,
       app: 'Authentic Steps For Youth',
@@ -138,20 +274,28 @@ export default function ProfileScreen() {
         senses: s.senses.map(se => ({ sense: se.sense, answers: se.answers })),
       })),
     };
-
     const text = JSON.stringify(exportData, null, 2);
-
     try {
       await Share.share(
-        {
-          title: 'My Authentic Steps data',
-          message: text,
-        },
+        { title: 'My Authentic Steps data', message: text },
         { dialogTitle: 'Save or share your data export' }
       );
     } catch {
       Alert.alert('Could not open share sheet', 'Please try again.');
     }
+  }
+
+  async function handleDownloadData() {
+    Haptics.selectionAsync();
+    Alert.alert(
+      'Export your data',
+      'Choose a format. PDF is easy to read and print. JSON is machine-readable for backup.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'JSON (backup)', onPress: handleExportJson },
+        { text: 'PDF (readable)', onPress: handleExportPdf },
+      ]
+    );
   }
 
   async function handleCopyCode() {
