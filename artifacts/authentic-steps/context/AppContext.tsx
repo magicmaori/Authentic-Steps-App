@@ -339,6 +339,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]);
       setUserData(safeUser);
       setEntries(safeEntries);
+      reconcileNotifications(safeUser).catch(() => {});
       return { ok: true };
     } catch {
       return { ok: false, reason: 'save_failed' };
