@@ -592,12 +592,25 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
+          {notifBlocked && (
+            <View style={[styles.notifBlockedNote, { backgroundColor: colors.muted }]}>
+              <Ionicons name="notifications-off-outline" size={14} color={colors.mutedForeground} />
+              <Text style={[styles.notifBlockedText, { color: colors.mutedForeground }]}>
+                Notifications are blocked. To enable, go to your device{'\u00a0'}Settings → Authentic Steps.
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Audio</Text>
+
           <Pressable
             onPress={() => {
               Haptics.selectionAsync();
               setChimeEnabled(!userData.chimeEnabled);
             }}
-            style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
+            style={styles.settingRow}
           >
             <View style={styles.settingLabelGroup}>
               <Text style={[styles.settingLabel, { color: colors.foreground }]}>Breathing chimes</Text>
@@ -607,15 +620,6 @@ export default function ProfileScreen() {
               <View style={[styles.toggleThumb, userData.chimeEnabled ? styles.toggleThumbOn : styles.toggleThumbOff]} />
             </View>
           </Pressable>
-
-          {notifBlocked && (
-            <View style={[styles.notifBlockedNote, { backgroundColor: colors.muted }]}>
-              <Ionicons name="notifications-off-outline" size={14} color={colors.mutedForeground} />
-              <Text style={[styles.notifBlockedText, { color: colors.mutedForeground }]}>
-                Notifications are blocked. To enable, go to your device{'\u00a0'}Settings → Authentic Steps.
-              </Text>
-            </View>
-          )}
         </View>
 
         {timePickerOpen !== null && Platform.OS === 'android' && (
