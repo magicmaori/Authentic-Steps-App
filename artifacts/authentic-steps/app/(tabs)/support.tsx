@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
 import { useColors } from '@/hooks/useColors';
 
+const KIDS_HELPLINE_WEBCHAT_URL = 'https://kidshelpline.com.au/get-help/webchat';
+
 type HelplineService = {
   name: string;
   num: string;
@@ -272,11 +274,11 @@ export default function SupportScreen() {
                   testID="triage-webchat-btn"
                   onPress={async () => {
                     try {
-                      await WebBrowser.openBrowserAsync('https://kidshelpline.com.au/get-help/webchat');
+                      await WebBrowser.openBrowserAsync(KIDS_HELPLINE_WEBCHAT_URL);
                     } catch {
                       Alert.alert(
                         'Chat unavailable',
-                        'Could not open the browser. Visit kidshelpline.com.au/get-help/webchat or call 1800 55 1800.',
+                        `Could not open the browser. Visit ${KIDS_HELPLINE_WEBCHAT_URL} or call 1800 55 1800.`,
                       );
                     }
                   }}
