@@ -69,6 +69,10 @@ export interface UserData {
   notifRitual: boolean;
   notifEvening: boolean;
   notifMilestone: boolean;
+  ritualHour: number;
+  ritualMinute: number;
+  eveningHour: number;
+  eveningMinute: number;
 }
 
 export type RestoreResult =
@@ -100,6 +104,7 @@ interface AppContextType {
   saveGroundingSession: (senses: GroundingSense[]) => Promise<void>;
   resetAllData: () => Promise<void>;
   setNotificationPref: (key: 'notifRitual' | 'notifEvening' | 'notifMilestone', value: boolean) => Promise<void>;
+  setNotificationTime: (key: 'ritual' | 'evening', hour: number, minute: number) => Promise<void>;
   disableAllNotificationPrefs: () => Promise<void>;
 }
 
@@ -157,6 +162,10 @@ const defaultUser: UserData = {
   notifRitual: true,
   notifEvening: true,
   notifMilestone: true,
+  ritualHour: 9,
+  ritualMinute: 0,
+  eveningHour: 20,
+  eveningMinute: 0,
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -205,8 +214,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return 'undetermined' as const;
     });
     if (state === 'granted') {
-      await scheduleRitualReminder(user.notifRitual).catch((e) => logNotifError('scheduleRitual', e));
-      await scheduleEveningReminder(user.notifEvening).catch((e) => logNotifError('scheduleEvening', e));
+      await scheduleRitualReminder(user.notifRitual, user.ritualHour, user.ritualMinute).catch((e) => logNotifError('scheduleRitual', e));
+      await scheduleEveningReminder(user.notifEvening, user.eveningHour, user.eveningMinute).catch((e) => logNotifError('scheduleEvening', e));
     } else if (state === 'denied') {
       if (user.notifRitual || user.notifEvening || user.notifMilestone) {
         const updated: UserData = { ...user, notifRitual: false, notifEvening: false, notifMilestone: false };
@@ -516,8 +525,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ) => {
     const newUser = { ...userData, [key]: value };
     await saveUser(newUser);
-    if (key === 'notifRitual') await scheduleRitualReminder(value).catch((e) => logNotifError('scheduleRitual', e));
-    if (key === 'notifEvening') await scheduleEveningReminder(value).catch((e) => logNotifError('scheduleEvening', e));
+    if (key === 'notifRitual') await scheduleRitualReminder(value, newUser.ritualHour, newUser.ritualMinute).catch((e) => logNotifError('scheduleRitual', e));
+    if (key === 'notifEvening') await scheduleEveningReminder(value, newUser.eveningHour, newUser.eveningMinute).catch((e) => logNotifError('scheduleEvening', e));
+  }, [userData]);
+
+  const setNotificationTime = useCallback(async (
+    key: 'ritual' | 'evening',
+    hour: number,
+    minute: number,
+  ) => {
+    const newUser = key === 'ritual'
+      ? { ...userData, ritualHour: hour, ritualMinute: minute }
+      : { ...userData, eveningHour: hour, eveningMinute: minute };
+    await saveUser(newUser);
+    if (key === 'ritual') await scheduleRitualReminder(newUser.notifRitual, hour, minute).catch((e) => logNotifError('scheduleRitual', e));
+    if (key === 'evening') await scheduleEveningReminder(newUser.notifEvening, hour, minute).catch((e) => logNotifError('scheduleEvening', e));
   }, [userData]);
 
   const disableAllNotificationPrefs = useCallback(async () => {
@@ -593,6 +615,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveGroundingSession,
       resetAllData,
       setNotificationPref,
+      setNotificationTime,
       disableAllNotificationPrefs,
     }}>
       {children}

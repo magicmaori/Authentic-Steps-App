@@ -33,7 +33,7 @@ export async function requestPermission(): Promise<boolean> {
   return result.granted;
 }
 
-export async function scheduleRitualReminder(enabled: boolean): Promise<void> {
+export async function scheduleRitualReminder(enabled: boolean, hour = 9, minute = 0): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(ID_RITUAL).catch(() => {});
   if (!enabled) return;
   await Notifications.scheduleNotificationAsync({
@@ -46,13 +46,13 @@ export async function scheduleRitualReminder(enabled: boolean): Promise<void> {
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 9,
-      minute: 0,
+      hour,
+      minute,
     } as any,
   });
 }
 
-export async function scheduleEveningReminder(enabled: boolean): Promise<void> {
+export async function scheduleEveningReminder(enabled: boolean, hour = 20, minute = 0): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(ID_EVENING).catch(() => {});
   if (!enabled) return;
   await Notifications.scheduleNotificationAsync({
@@ -65,8 +65,8 @@ export async function scheduleEveningReminder(enabled: boolean): Promise<void> {
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 20,
-      minute: 0,
+      hour,
+      minute,
     } as any,
   });
 }

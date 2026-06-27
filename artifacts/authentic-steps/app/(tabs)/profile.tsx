@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import * as Print from 'expo-print';
 import { router, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemePreference, useApp } from '@/context/AppContext';
@@ -54,9 +55,10 @@ function formatLastUpdated(date: Date): string {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, disableAllNotificationPrefs } = useApp();
+  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs } = useApp();
   const [isDeleting, setIsDeleting] = useState(false);
   const [notifBlocked, setNotifBlocked] = useState(false);
+  const [timePickerOpen, setTimePickerOpen] = useState<'ritual' | 'evening' | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [codeRefreshed, setCodeRefreshed] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
@@ -71,8 +73,8 @@ export default function ProfileScreen() {
       if (state === 'undetermined') {
         const granted = await requestNotifPermission();
         if (granted) {
-          await scheduleRitualReminder(userData.notifRitual).catch(() => {});
-          await scheduleEveningReminder(userData.notifEvening).catch(() => {});
+          await scheduleRitualReminder(userData.notifRitual, userData.ritualHour ?? 9, userData.ritualMinute ?? 0).catch(() => {});
+          await scheduleEveningReminder(userData.notifEvening, userData.eveningHour ?? 20, userData.eveningMinute ?? 0).catch(() => {});
         } else {
           await disableAllNotificationPrefs();
           setNotifBlocked(true);
@@ -496,47 +498,76 @@ export default function ProfileScreen() {
 
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Notifications</Text>
-          {(
-            [
-              { label: 'Daily ritual reminder', key: 'notifRitual' as const, value: userData.notifRitual },
-              { label: 'Evening intention check-in', key: 'notifEvening' as const, value: userData.notifEvening },
-              { label: 'Milestone celebrations', key: 'notifMilestone' as const, value: userData.notifMilestone },
-            ] as const
-          ).map((item, i) => (
-            <Pressable
-              key={item.label}
-              onPress={async () => {
-                Haptics.selectionAsync();
-                const next = !item.value;
-                if (next) {
-                  const granted = await requestNotifPermission();
-                  if (!granted) {
-                    await disableAllNotificationPrefs();
-                    setNotifBlocked(true);
-                    return;
-                  }
-                  setNotifBlocked(false);
-                }
-                setNotificationPref(item.key, next);
-              }}
-              style={[styles.settingRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
-            >
-              <Text style={[styles.settingLabel, { color: colors.foreground }]}>{item.label}</Text>
-              <View
-                style={[
-                  styles.toggle,
-                  { backgroundColor: item.value ? colors.primary : colors.border },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.toggleThumb,
-                    item.value ? styles.toggleThumbOn : styles.toggleThumbOff,
-                  ]}
-                />
+
+          {([
+            { label: 'Daily ritual reminder', key: 'notifRitual' as const, value: userData.notifRitual, timeKey: 'ritual' as const, hour: userData.ritualHour ?? 9, minute: userData.ritualMinute ?? 0 },
+            { label: 'Evening intention check-in', key: 'notifEvening' as const, value: userData.notifEvening, timeKey: 'evening' as const, hour: userData.eveningHour ?? 20, minute: userData.eveningMinute ?? 0 },
+          ]).map((item, i) => {
+            const h12 = item.hour % 12 === 0 ? 12 : item.hour % 12;
+            const ampm = item.hour >= 12 ? 'PM' : 'AM';
+            const timeLabel = `${h12}:${String(item.minute).padStart(2, '0')} ${ampm}`;
+            return (
+              <View key={item.label} style={[styles.settingRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setTimePickerOpen(item.timeKey);
+                  }}
+                  style={styles.notifLabelArea}
+                >
+                  <Text style={[styles.settingLabel, { color: colors.foreground }]}>{item.label}</Text>
+                  <View style={styles.notifTimeRow}>
+                    <Ionicons name="time-outline" size={13} color={colors.mutedForeground} />
+                    <Text style={[styles.notifTimeLabel, { color: colors.mutedForeground }]}>{timeLabel}</Text>
+                  </View>
+                </Pressable>
+                <Pressable
+                  onPress={async () => {
+                    Haptics.selectionAsync();
+                    const next = !item.value;
+                    if (next) {
+                      const granted = await requestNotifPermission();
+                      if (!granted) {
+                        await disableAllNotificationPrefs();
+                        setNotifBlocked(true);
+                        return;
+                      }
+                      setNotifBlocked(false);
+                    }
+                    setNotificationPref(item.key, next);
+                  }}
+                >
+                  <View style={[styles.toggle, { backgroundColor: item.value ? colors.primary : colors.border }]}>
+                    <View style={[styles.toggleThumb, item.value ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+                  </View>
+                </Pressable>
               </View>
-            </Pressable>
-          ))}
+            );
+          })}
+
+          <Pressable
+            onPress={async () => {
+              Haptics.selectionAsync();
+              const next = !userData.notifMilestone;
+              if (next) {
+                const granted = await requestNotifPermission();
+                if (!granted) {
+                  await disableAllNotificationPrefs();
+                  setNotifBlocked(true);
+                  return;
+                }
+                setNotifBlocked(false);
+              }
+              setNotificationPref('notifMilestone', next);
+            }}
+            style={[styles.settingRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
+          >
+            <Text style={[styles.settingLabel, { color: colors.foreground }]}>Milestone celebrations</Text>
+            <View style={[styles.toggle, { backgroundColor: userData.notifMilestone ? colors.primary : colors.border }]}>
+              <View style={[styles.toggleThumb, userData.notifMilestone ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+            </View>
+          </Pressable>
+
           {notifBlocked && (
             <View style={[styles.notifBlockedNote, { backgroundColor: colors.muted }]}>
               <Ionicons name="notifications-off-outline" size={14} color={colors.mutedForeground} />
@@ -546,6 +577,67 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
+
+        {timePickerOpen !== null && Platform.OS === 'android' && (
+          <DateTimePicker
+            mode="time"
+            value={(() => {
+              const d = new Date();
+              d.setHours(timePickerOpen === 'ritual' ? (userData.ritualHour ?? 9) : (userData.eveningHour ?? 20));
+              d.setMinutes(timePickerOpen === 'ritual' ? (userData.ritualMinute ?? 0) : (userData.eveningMinute ?? 0));
+              d.setSeconds(0);
+              return d;
+            })()}
+            is24Hour={false}
+            onChange={(_e: DateTimePickerEvent, date?: Date) => {
+              const key = timePickerOpen;
+              setTimePickerOpen(null);
+              if (date && key) {
+                Haptics.selectionAsync();
+                setNotificationTime(key, date.getHours(), date.getMinutes());
+              }
+            }}
+          />
+        )}
+
+        {timePickerOpen !== null && Platform.OS === 'ios' && (
+          <Modal transparent animationType="fade" onRequestClose={() => setTimePickerOpen(null)}>
+            <TouchableWithoutFeedback onPress={() => setTimePickerOpen(null)}>
+              <View style={styles.pickerOverlay}>
+                <TouchableWithoutFeedback>
+                  <View style={[styles.pickerSheet, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.pickerTitle, { color: colors.foreground }]}>
+                      {timePickerOpen === 'ritual' ? 'Daily reminder time' : 'Evening check-in time'}
+                    </Text>
+                    <DateTimePicker
+                      mode="time"
+                      display="spinner"
+                      value={(() => {
+                        const d = new Date();
+                        d.setHours(timePickerOpen === 'ritual' ? (userData.ritualHour ?? 9) : (userData.eveningHour ?? 20));
+                        d.setMinutes(timePickerOpen === 'ritual' ? (userData.ritualMinute ?? 0) : (userData.eveningMinute ?? 0));
+                        d.setSeconds(0);
+                        return d;
+                      })()}
+                      onChange={(_e: DateTimePickerEvent, date?: Date) => {
+                        if (date && timePickerOpen) {
+                          setNotificationTime(timePickerOpen, date.getHours(), date.getMinutes());
+                        }
+                      }}
+                      style={{ width: '100%' }}
+                    />
+                    <Pressable
+                      onPress={() => setTimePickerOpen(null)}
+                      style={[styles.pickerDone, { backgroundColor: colors.primary }]}
+                    >
+                      <Text style={[styles.pickerDoneText, { color: colors.primaryForeground }]}>Done</Text>
+                    </Pressable>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+        )}
 
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Privacy</Text>
@@ -727,6 +819,48 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  notifLabelArea: {
+    flex: 1,
+    gap: 3,
+  },
+  notifTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  notifTimeLabel: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 36,
+    gap: 12,
+    alignItems: 'center',
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter_600SemiBold',
+    alignSelf: 'flex-start',
+  },
+  pickerDone: {
+    alignSelf: 'stretch',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  pickerDoneText: {
+    fontSize: 15,
+    fontFamily: 'Inter_600SemiBold',
   },
   settingLabel: { fontSize: 15, fontFamily: 'Inter_400Regular' },
   toggle: { width: 44, height: 26, borderRadius: 13, justifyContent: 'center', paddingHorizontal: 3 },
