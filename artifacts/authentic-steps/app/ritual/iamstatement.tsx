@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,6 +12,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -172,24 +174,26 @@ export default function IAmScreen() {
           </ScrollView>
         </>
       ) : (
-        <View style={[styles.customContainer, { backgroundColor: colors.background }]}>
-          <Text style={[styles.customPrompt, { color: colors.mutedForeground }]}>
-            Start with "I am..." and write something true about who you are.
-          </Text>
-          <View style={[styles.customCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.iAmPrefix, { color: colors.accent }]}>I am...</Text>
-            <TextInput
-              style={[styles.customInput, { color: colors.foreground }]}
-              placeholder="worthy of good things"
-              placeholderTextColor={colors.mutedForeground}
-              value={customText}
-              onChangeText={setCustomText}
-              multiline
-              maxLength={100}
-              autoFocus
-            />
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={[styles.customContainer, { backgroundColor: colors.background }]}>
+            <Text style={[styles.customPrompt, { color: colors.mutedForeground }]}>
+              Start with "I am..." and write something true about who you are.
+            </Text>
+            <View style={[styles.customCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.iAmPrefix, { color: colors.accent }]}>I am...</Text>
+              <TextInput
+                style={[styles.customInput, { color: colors.foreground }]}
+                placeholder="worthy of good things"
+                placeholderTextColor={colors.mutedForeground}
+                value={customText}
+                onChangeText={setCustomText}
+                multiline
+                maxLength={100}
+                autoFocus
+              />
+            </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       )}
 
       <View
