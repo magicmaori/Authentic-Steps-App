@@ -448,6 +448,76 @@ describe('Support screen – mid-flow intermediate states', () => {
   });
 });
 
+// ─── Non-professional-help routed view tip box ────────────────────────────────
+
+describe('Support screen – non-professional-help routed view tip box', () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  const NON_PROFESSIONAL_TYPE_IDS = [
+    'someone-to-listen',
+    'practical-ideas',
+  ] as const;
+
+  it.each(NON_PROFESSIONAL_TYPE_IDS)(
+    'supportType="%s": tip box is rendered with meaningful text and no call button',
+    async (typeId) => {
+      // Step 1 — open triage
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "today" → area step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+      });
+
+      // Step 3 — choose an area → type step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+      });
+
+      // Step 4 — choose a non-professional support type → routed view
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-type-${typeId}` }).props.onPress();
+      });
+
+      // Tip box must be present
+      const tipBox = root.root.findByProps({ testID: 'triage-tip-box' });
+      expect(tipBox).toBeTruthy();
+
+      // Tip title must contain meaningful text
+      const tipTitle = root.root.findByProps({ testID: 'triage-tip-title' });
+      expect(tipTitle.props.children).toBeTruthy();
+      expect(String(tipTitle.props.children).length).toBeGreaterThan(0);
+
+      // Tip body must contain meaningful text
+      const tipText = root.root.findByProps({ testID: 'triage-tip-text' });
+      expect(tipText.props.children).toBeTruthy();
+      expect(String(tipText.props.children).length).toBeGreaterThan(0);
+
+      // The professional-help call button must NOT appear
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-call-professional' }),
+      ).toThrow();
+    },
+  );
+});
+
 // ─── Web-chat button ───────────────────────────────────────────────────────────
 
 describe('Support screen – web-chat button', () => {

@@ -301,9 +301,9 @@ export default function SupportScreen() {
                     <Text style={styles.bigCallBtnText}>Call Kids Helpline — Free, 24/7</Text>
                   </Pressable>
                 ) : (
-                  <View style={[styles.tipBox, { backgroundColor: colors.secondary }]}>
-                    <Text style={[styles.tipBoxTitle, { color: colors.foreground }]}>A small step that might help</Text>
-                    <Text style={[styles.tipBoxText, { color: colors.mutedForeground }]}>
+                  <View testID="triage-tip-box" style={[styles.tipBox, { backgroundColor: colors.secondary }]}>
+                    <Text testID="triage-tip-title" style={[styles.tipBoxTitle, { color: colors.foreground }]}>A small step that might help</Text>
+                    <Text testID="triage-tip-text" style={[styles.tipBoxText, { color: colors.mutedForeground }]}>
                       When you are ready, try sharing in the Community tab — others here understand. Or reach out to one person you trust.
                     </Text>
                   </View>
