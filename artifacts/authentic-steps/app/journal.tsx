@@ -545,7 +545,7 @@ export default function JournalScreen() {
         </LinearGradient>
 
         {has90Days && (
-          <View style={[styles.milestoneCard, { backgroundColor: isDark ? '#193b83' : '#e6f7f8', borderColor: colors.primary }]}>
+          <View style={[styles.milestoneCard, { backgroundColor: isDark ? colors.card : colors.secondary, borderColor: colors.primary }]}>
             <Text style={styles.milestoneEmoji}>🏆</Text>
             <View style={styles.milestoneText}>
               <Text style={[styles.milestoneTitle, { color: colors.primary }]}>90 Days of Growth</Text>
@@ -664,7 +664,7 @@ function GroundingSessionCard({
   isDark: boolean;
   onDelete: () => void;
 }) {
-  const ACCENT = '#03989e';
+  const ACCENT = colors.primary;
   const totalAnswers = session.senses.reduce((n, s) => n + s.answers.length, 0);
 
   return (
@@ -678,7 +678,7 @@ function GroundingSessionCard({
             <Text style={[styles.gsDate, { color: colors.foreground }]}>{formatDateShort(session.date)}</Text>
             <Text style={[styles.gsTime, { color: colors.mutedForeground }]}>{formatTime(session.timestamp)}</Text>
           </View>
-          <View style={[styles.gsAnswerBadge, { backgroundColor: isDark ? '#0d2a3a' : `${ACCENT}15` }]}>
+          <View style={[styles.gsAnswerBadge, { backgroundColor: colors.secondary }]}>
             <Text style={[styles.gsAnswerBadgeText, { color: ACCENT }]}>{totalAnswers} responses</Text>
           </View>
         </View>
@@ -687,7 +687,7 @@ function GroundingSessionCard({
           style={({ pressed }) => [styles.gsDeleteBtn, { opacity: pressed ? 0.5 : 1 }]}
           hitSlop={8}
         >
-          <Ionicons name="trash-outline" size={17} color="#ef4444" />
+          <Ionicons name="trash-outline" size={17} color={colors.destructive} />
         </Pressable>
       </View>
 
@@ -740,7 +740,7 @@ function JournalCard({
         </View>
         {entry.isComplete && (
           <View style={styles.completeBadge}>
-            <Ionicons name="checkmark" size={13} color="#03989e" />
+            <Ionicons name="checkmark" size={13} color={colors.primary} />
           </View>
         )}
       </LinearGradient>
@@ -758,7 +758,7 @@ function JournalCard({
               .filter((g) => g.text.trim())
               .map((g, i) => (
                 <View key={i} style={styles.gratRow}>
-                  <View style={[styles.gratNum, { backgroundColor: isDark ? '#0d2a5c' : '#e6f7f8' }]}>
+                  <View style={[styles.gratNum, { backgroundColor: colors.secondary }]}>
                     <Text style={[styles.gratNumText, { color: colors.primary }]}>{i + 1}</Text>
                   </View>
                   <View style={styles.gratContent}>
@@ -780,7 +780,7 @@ function JournalCard({
         <View style={styles.section}>
           <View style={styles.sectionLabelRow}>
             <Text style={styles.sectionEmoji}>🎯</Text>
-            <Text style={[styles.sectionLabel, { color: '#193b83' }]}>Intention</Text>
+            <Text style={[styles.sectionLabel, { color: colors.foreground }]}>Intention</Text>
           </View>
           {entry.intention ? (
             <View>
@@ -789,7 +789,7 @@ function JournalCard({
                 {entry.intention}
               </Text>
               {entry.intentionCategory ? (
-                <View style={[styles.tag, { backgroundColor: isDark ? '#0d2a5c' : '#e6f7f8' }]}>
+                <View style={[styles.tag, { backgroundColor: colors.secondary }]}>
                   <Text style={[styles.tagText, { color: colors.primary }]}>
                     {CATEGORY_EMOJI[entry.intentionCategory] ?? ''} {entry.intentionCategory}
                   </Text>

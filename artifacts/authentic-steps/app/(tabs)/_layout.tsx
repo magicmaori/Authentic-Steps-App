@@ -83,10 +83,10 @@ function AnimatedTabLabel({ focused, color, children }: { focused: boolean; colo
 
   return (
     <View style={{ alignItems: "center", justifyContent: "center", height: 14 }}>
-      <Animated.Text style={{ position: "absolute", color, fontWeight: "600", fontSize: 10, opacity: boldOpacity }}>
+      <Animated.Text style={{ position: "absolute", color, fontFamily: "Inter_600SemiBold", fontSize: 10, opacity: boldOpacity }}>
         {children}
       </Animated.Text>
-      <Animated.Text style={{ position: "absolute", color, fontWeight: "400", fontSize: 10, opacity: normalOpacity }}>
+      <Animated.Text style={{ position: "absolute", color, fontFamily: "Inter_400Regular", fontSize: 10, opacity: normalOpacity }}>
         {children}
       </Animated.Text>
     </View>

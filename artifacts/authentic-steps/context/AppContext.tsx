@@ -179,6 +179,7 @@ const STORAGE_KEY_ENTRIES = '@authentic_steps_entries';
 const STORAGE_KEY_EXERCISES = '@authentic_steps_exercises';
 const STORAGE_KEY_GROUNDING = '@authentic_steps_grounding';
 const STORAGE_KEY_UPDATED_AT = '@authentic_steps_updated_at';
+const STORAGE_KEY_THEME = '@authentic_steps_theme';
 
 const API_BASE: string = (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ?? '';
 
@@ -300,7 +301,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (d.userData) {
         const merged: UserData = { ...defaultUser, ...d.userData };
         setUserData(merged);
-        await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(merged));
+        await Promise.all([
+          AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(merged)),
+          AsyncStorage.setItem(STORAGE_KEY_THEME, merged.themePreference),
+        ]);
         reconcileNotifications(merged).catch(() => {});
       }
       if (d.entries) {
@@ -383,6 +387,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   async function loadData() {
     try {
+      // Read theme preference first so it's applied before full user data loads,
+      // preventing a flash of the wrong theme on cold start.
+      const themeRaw = await AsyncStorage.getItem(STORAGE_KEY_THEME);
+      if (themeRaw) {
+        setUserData(prev => ({ ...prev, themePreference: themeRaw as ThemePreference }));
+      }
+
       const [userRaw, entriesRaw, exercisesRaw, groundingRaw] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY_USER),
         AsyncStorage.getItem(STORAGE_KEY_ENTRIES),
@@ -515,6 +526,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(safeUser)),
         AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(safeEntries)),
         AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
+        AsyncStorage.setItem(STORAGE_KEY_THEME, safeUser.themePreference),
       ]);
       setUserData(safeUser);
       setEntries(safeEntries);
@@ -673,7 +685,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setThemePreference = useCallback(async (pref: ThemePreference) => {
     const newUser = { ...userData, themePreference: pref };
-    await saveUser(newUser);
+    await Promise.all([
+      saveUser(newUser),
+      AsyncStorage.setItem(STORAGE_KEY_THEME, pref),
+    ]);
   }, [userData]);
 
   const toggleFavouriteTool = useCallback(async (toolId: string) => {

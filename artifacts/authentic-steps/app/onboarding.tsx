@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppLogo } from '@/components/AppLogo';
 import { type RestoreResult, useApp } from '@/context/AppContext';
+import { useColors } from '@/hooks/useColors';
 
 const RESTORE_ERROR_MESSAGES: Record<Exclude<RestoreResult, { ok: true }>['reason'], string> = {
   format: "That doesn't look like a recovery code. It should start with your username (like BRAVE-FOX-1A2B) followed by a '#' and the rest of the code.",
@@ -37,6 +38,7 @@ const PILLARS = [
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const { completeOnboarding, restoreFromCode, userData, buildRecoveryPayload } = useApp();
 
   const [showRestoreModal, setShowRestoreModal] = useState(false);
@@ -191,7 +193,7 @@ export default function OnboardingScreen() {
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.restoreModal}
+          style={[styles.restoreModal, { backgroundColor: colors.background }]}
           keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
         >
           <ScrollView
@@ -205,26 +207,26 @@ export default function OnboardingScreen() {
           >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
               <View>
-                <Text style={styles.restoreTitle}>Restore your account</Text>
-                <Text style={styles.restoreSubtitle}>
+                <Text style={[styles.restoreTitle, { color: colors.foreground }]}>Restore your account</Text>
+                <Text style={[styles.restoreSubtitle, { color: colors.mutedForeground }]}>
                   Paste the full recovery code you saved. Your username, streaks, and journal entries will be restored.
                 </Text>
 
                 <TextInput
-                  style={styles.codeInput}
+                  style={[styles.codeInput, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.input }]}
                   value={codeInput}
                   onChangeText={t => { setCodeInput(t); setRestoreError(''); }}
                   placeholder="Paste your recovery code here"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.mutedForeground}
                   multiline
                   autoCapitalize="characters"
                   autoCorrect={false}
                 />
 
                 {restoreError ? (
-                  <View style={styles.errorBox}>
+                  <View style={[styles.errorBox, { backgroundColor: `${colors.destructive}10`, borderColor: `${colors.destructive}30` }]}>
                     <Text style={styles.errorIcon}>⚠️</Text>
-                    <Text style={styles.errorText}>{restoreError}</Text>
+                    <Text style={[styles.errorText, { color: colors.destructive }]}>{restoreError}</Text>
                   </View>
                 ) : null}
 
@@ -233,14 +235,15 @@ export default function OnboardingScreen() {
                   disabled={restoring || codeInput.trim().length === 0}
                   style={({ pressed }) => [
                     styles.restoreButton,
+                    { backgroundColor: colors.primary },
                     (restoring || codeInput.trim().length === 0) && styles.restoreButtonDisabled,
                     pressed && styles.ctaPressed,
                   ]}
                 >
                   {restoring ? (
-                    <ActivityIndicator color="#193b83" />
+                    <ActivityIndicator color={colors.primaryForeground} />
                   ) : (
-                    <Text style={styles.restoreButtonText}>Restore</Text>
+                    <Text style={[styles.restoreButtonText, { color: colors.primaryForeground }]}>Restore</Text>
                   )}
                 </Pressable>
 
@@ -248,7 +251,7 @@ export default function OnboardingScreen() {
                   onPress={() => setShowRestoreModal(false)}
                   style={({ pressed }) => [styles.cancelButton, pressed && { opacity: 0.7 }]}
                 >
-                  <Text style={styles.cancelText}>Cancel</Text>
+                  <Text style={[styles.cancelText, { color: colors.mutedForeground }]}>Cancel</Text>
                 </Pressable>
               </View>
             </TouchableWithoutFeedback>
@@ -426,7 +429,6 @@ const styles = StyleSheet.create({
   },
   restoreModal: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   restoreContent: {
     flexGrow: 1,
@@ -436,31 +438,25 @@ const styles = StyleSheet.create({
   restoreTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: 26,
-    color: '#193b83',
   },
   restoreSubtitle: {
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: '#555',
     lineHeight: 22,
   },
   codeInput: {
     borderWidth: 1.5,
-    borderColor: '#D0D5DD',
     borderRadius: 14,
     padding: 16,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     fontSize: 13,
-    color: '#1A1A2E',
     minHeight: 100,
     textAlignVertical: 'top',
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFF0F0',
     borderWidth: 1,
-    borderColor: '#FFCDD2',
     borderRadius: 12,
     padding: 12,
     gap: 8,
@@ -473,11 +469,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: '#B71C1C',
     lineHeight: 19,
   },
   restoreButton: {
-    backgroundColor: '#193b83',
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
@@ -488,7 +482,6 @@ const styles = StyleSheet.create({
   restoreButtonText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 16,
-    color: '#FFFFFF',
   },
   cancelButton: {
     alignSelf: 'center',
@@ -498,6 +491,5 @@ const styles = StyleSheet.create({
   cancelText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 14,
-    color: '#888',
   },
 });
