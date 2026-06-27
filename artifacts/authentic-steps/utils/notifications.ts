@@ -17,6 +17,15 @@ export async function setupAndroidChannel(): Promise<void> {
   });
 }
 
+export type PermissionState = 'granted' | 'denied' | 'undetermined';
+
+export async function getPermissionState(): Promise<PermissionState> {
+  const result = (await Notifications.getPermissionsAsync()) as any;
+  if (result.granted) return 'granted';
+  if (result.canAskAgain !== false) return 'undetermined';
+  return 'denied';
+}
+
 export async function requestPermission(): Promise<boolean> {
   const existing = (await Notifications.getPermissionsAsync()) as unknown as { granted: boolean };
   if (existing.granted) return true;

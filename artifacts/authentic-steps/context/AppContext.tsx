@@ -6,6 +6,7 @@ import { generateAnonymousName } from '@/constants/affirmations';
 import {
   cancelAllReminders,
   fireMilestoneNotification,
+  getPermissionState,
   scheduleEveningReminder,
   scheduleRitualReminder,
   setupAndroidChannel,
@@ -99,6 +100,7 @@ interface AppContextType {
   saveGroundingSession: (senses: GroundingSense[]) => Promise<void>;
   resetAllData: () => Promise<void>;
   setNotificationPref: (key: 'notifRitual' | 'notifEvening' | 'notifMilestone', value: boolean) => Promise<void>;
+  disableAllNotificationPrefs: () => Promise<void>;
 }
 
 function generateRecoveryCode(anonymousName: string): string {
@@ -193,6 +195,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setupAndroidChannel().catch(() => {});
   }, []);
 
+  async function reconcileNotifications(user: UserData) {
+    const state = await getPermissionState().catch(() => 'undetermined' as const);
+    if (state === 'granted') {
+      await scheduleRitualReminder(user.notifRitual).catch(() => {});
+      await scheduleEveningReminder(user.notifEvening).catch(() => {});
+    } else if (state === 'denied') {
+      if (user.notifRitual || user.notifEvening || user.notifMilestone) {
+        const updated: UserData = { ...user, notifRitual: false, notifEvening: false, notifMilestone: false };
+        await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
+        setUserData(updated);
+      }
+      await cancelAllReminders().catch(() => {});
+    }
+  }
+
   async function loadData() {
     try {
       const [userRaw, entriesRaw, exercisesRaw, groundingRaw] = await Promise.all([
@@ -216,6 +233,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!parsed.recoveryCode || !parsed.anonymousName) {
           await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(merged));
         }
+        reconcileNotifications(merged).catch(() => {});
       } else {
         const name = generateAnonymousName();
         const newUser: UserData = {
@@ -225,6 +243,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
         setUserData(newUser);
         await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(newUser));
+        reconcileNotifications(newUser).catch(() => {});
       }
       if (entriesRaw) setEntries(JSON.parse(entriesRaw));
       if (exercisesRaw) {
@@ -494,6 +513,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (key === 'notifEvening') await scheduleEveningReminder(value).catch(() => {});
   }, [userData]);
 
+  const disableAllNotificationPrefs = useCallback(async () => {
+    const newUser = { ...userData, notifRitual: false, notifEvening: false, notifMilestone: false };
+    await saveUser(newUser);
+    await cancelAllReminders().catch(() => {});
+  }, [userData]);
+
   async function resetAllData() {
     await cancelAllReminders().catch(() => {});
     await AsyncStorage.multiRemove([
@@ -561,6 +586,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveGroundingSession,
       resetAllData,
       setNotificationPref,
+      disableAllNotificationPrefs,
     }}>
       {children}
     </AppContext.Provider>

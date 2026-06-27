@@ -49,8 +49,9 @@ function formatLastUpdated(date: Date): string {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref } = useApp();
+  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, disableAllNotificationPrefs } = useApp();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [notifBlocked, setNotifBlocked] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [codeRefreshed, setCodeRefreshed] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
@@ -486,13 +487,11 @@ export default function ProfileScreen() {
                 if (next) {
                   const granted = await requestNotifPermission();
                   if (!granted) {
-                    Alert.alert(
-                      'Notifications blocked',
-                      'To enable reminders, go to your device Settings and allow notifications for Authentic Steps.',
-                      [{ text: 'OK' }]
-                    );
+                    await disableAllNotificationPrefs();
+                    setNotifBlocked(true);
                     return;
                   }
+                  setNotifBlocked(false);
                 }
                 setNotificationPref(item.key, next);
               }}
@@ -514,6 +513,14 @@ export default function ProfileScreen() {
               </View>
             </Pressable>
           ))}
+          {notifBlocked && (
+            <View style={[styles.notifBlockedNote, { backgroundColor: colors.muted }]}>
+              <Ionicons name="notifications-off-outline" size={14} color={colors.mutedForeground} />
+              <Text style={[styles.notifBlockedText, { color: colors.mutedForeground }]}>
+                Notifications are blocked. To enable, go to your device{'\u00a0'}Settings → Authentic Steps.
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -702,6 +709,16 @@ const styles = StyleSheet.create({
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
   toggleThumbOn: { alignSelf: 'flex-end' },
   toggleThumbOff: { alignSelf: 'flex-start' },
+  notifBlockedNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 10,
+  },
+  notifBlockedText: { flex: 1, fontSize: 12, fontFamily: 'Inter_400Regular', lineHeight: 18 },
   themeRow: {
     flexDirection: 'row',
     gap: 8,
