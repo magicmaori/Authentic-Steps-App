@@ -91,6 +91,7 @@ export default function BreathingTimer({ title, description, phases, totalRounds
   const phaseOpacity = useRef(new Animated.Value(1)).current;
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stateRef = useRef({ phaseIndex: 0, count: phases[0].counts, round: 1 });
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   // Tracks the wall-clock instant the app left the foreground so we can
   // compute elapsed seconds when it returns.
@@ -108,14 +109,24 @@ export default function BreathingTimer({ title, description, phases, totalRounds
     }
   };
 
+  const stopAnimation = useCallback(() => {
+    animationRef.current?.stop();
+    animationRef.current = null;
+  }, []);
+
   const animateToScale = useCallback((target: number, duration: number) => {
-    Animated.timing(circleScale, {
+    stopAnimation();
+    const anim = Animated.timing(circleScale, {
       toValue: target,
       duration: duration * 900,
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: true,
-    }).start();
-  }, [circleScale]);
+    });
+    animationRef.current = anim;
+    anim.start(({ finished }) => {
+      if (finished) animationRef.current = null;
+    });
+  }, [circleScale, stopAnimation]);
 
   const flashPhase = useCallback(() => {
     phaseOpacity.setValue(0);
@@ -140,13 +151,14 @@ export default function BreathingTimer({ title, description, phases, totalRounds
 
   const stopExercise = useCallback(() => {
     clearTimer();
+    stopAnimation();
     circleScale.setValue(0.55);
     setStatus('idle');
     setPhaseIndex(0);
     setCount(phases[0].counts);
     setRound(1);
     stateRef.current = { phaseIndex: 0, count: phases[0].counts, round: 1 };
-  }, [phases, circleScale]);
+  }, [phases, circleScale, stopAnimation]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
@@ -190,11 +202,12 @@ export default function BreathingTimer({ title, description, phases, totalRounds
         setAppActive(true);
       } else {
         backgroundedAtRef.current = Date.now();
+        stopAnimation();
         setAppActive(false);
       }
     });
     return () => subscription.remove();
-  }, [phases, totalRounds, playChime, onComplete]);
+  }, [phases, totalRounds, playChime, onComplete, stopAnimation]);
 
   useEffect(() => {
     if (status !== 'running' || !appActive) return;

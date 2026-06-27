@@ -1,6 +1,6 @@
 import { Audio } from 'expo-av';
 import { useCallback, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 type ChimeType = 'in' | 'out' | 'hold' | 'done';
 
@@ -67,6 +67,20 @@ export function useBreathingSound(enabled: boolean) {
         sound.unloadAsync().catch(() => {});
       }
     };
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') {
+        for (const sound of Object.values(soundsRef.current)) {
+          sound.stopAsync().catch(() => {});
+        }
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   const playChime = useCallback(

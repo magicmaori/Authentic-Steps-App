@@ -48,7 +48,7 @@ jest.mock('@expo/vector-icons', () => {
 
 import React from 'react';
 import { act, create } from 'react-test-renderer';
-import { AppState } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 
 import { useApp } from '../context/AppContext';
 import BreathingTimer, { advanceStateByTicks } from '../components/BreathingTimer';
@@ -428,12 +428,12 @@ describe('BreathingTimer – chime toggle', () => {
   });
 
   describe('AppState – background / foreground', () => {
-    let appStateListeners: Array<(state: string) => void>;
+    let appStateListeners: Array<(state: AppStateStatus) => void>;
 
     beforeEach(() => {
       appStateListeners = [];
       jest.spyOn(AppState, 'addEventListener').mockImplementation(
-        (event: string, handler: (state: string) => void) => {
+        (event: string, handler: (state: AppStateStatus) => void) => {
           if (event === 'change') appStateListeners.push(handler);
           return {
             remove: () => {
