@@ -652,6 +652,147 @@ describe('BreathingTimer – chime toggle', () => {
     });
   });
 
+  describe('round-wrap transition – count display', () => {
+    /**
+     * Regression guard for the round-wrap code path in the setInterval callback:
+     *   nextPhaseIndex >= phases.length  →  nextRound ≤ totalRounds  →  WRAP
+     *     stateRef.current = { phaseIndex: 0, count: phases[0].counts, round: nextRound }
+     *     setPhaseIndex(0); setCount(phases[0].counts); setRound(nextRound);
+     *
+     * A render-timing bug (e.g. calling setCount before the correct value is
+     * computed, or calling it with a stale intermediate value) would cause the
+     * count to briefly display the last phase's starting count, the last
+     * rendered count before the wrap (1), or 0 — before settling on the
+     * correct value.  This test captures the rendered count on the exact wrap
+     * tick and asserts it is already correct.
+     *
+     * Setup:
+     *   Phase 0 "Breathe In" counts=3
+     *   Phase 1 "Hold"       counts=2
+     *   totalRounds=2
+     *
+     * Per-round timer arithmetic:
+     *   Tick 1: count 3→2  (Phase 0)
+     *   Tick 2: count 2→1  (Phase 0)
+     *   Tick 3: exhausts Phase 0 → advance to Phase 1, count=2
+     *   Tick 4: count 2→1  (Phase 1)
+     *   Tick 5: exhausts Phase 1 → nextPhaseIndex(2) >= phases.length(2)
+     *           → nextRound=2 (≤ totalRounds=2) → ROUND WRAP
+     *           → phaseIndex=0, count=phases[0].counts=3, round=2
+     *
+     * Immediately after tick 5:
+     *   ✓ count === 3  (phases[0].counts — the correct reset value)
+     *   ✗ count !== 1  (the last value displayed before the wrap tick)
+     *   ✗ count !== 0  (a transitional / unset value)
+     *   ✓ phase label === "Breathe In"  (phaseIndex reset to 0)
+     *   ✓ round display shows 2  (incremented from 1)
+     */
+    it('displays phases[0].counts immediately after the round-wrap tick — not the last count or 0', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const WRAP_TEST_PROPS = {
+        toolId: 'wrap-test',
+        title: 'Wrap Test',
+        description: 'Test',
+        phases: [
+          { label: 'Breathe In', counts: 3, instruction: 'Inhale', targetScale: 1 },
+          { label: 'Hold',       counts: 2, instruction: 'Hold',   targetScale: 1 },
+        ],
+        totalRounds: 2,
+        accentColor: '#6366f1',
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...WRAP_TEST_PROPS} />);
+      });
+
+      // Start the session
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // ── Ticks 1-4: advance to just before the round-wrap tick ─────────────
+      // State after tick 4: phaseIndex=1 (Hold), count=1, round=1
+      await act(async () => { jest.advanceTimersByTime(4000); });
+
+      // Still running, not done
+      const stopBeforeWrap = findPressableByChildText(root!, 'Stop');
+      expect(stopBeforeWrap.length).toBeGreaterThan(0);
+
+      // ── Tick 5: the round-wrap fires ──────────────────────────────────────
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // Session must still be running (totalRounds=2, we just wrapped into round 2)
+      const stopAfterWrap = findPressableByChildText(root!, 'Stop');
+      expect(stopAfterWrap.length).toBeGreaterThan(0);
+
+      // Done screen must NOT appear — round 2 is still in progress
+      const doneAfterWrap = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneAfterWrap.length).toBe(0);
+
+      // ── Count must immediately show phases[0].counts = 3 ─────────────────
+      const countThreeNodes = root!.root.findAll(
+        (node: any) => node.props.children === 3,
+        { deep: true },
+      );
+      expect(countThreeNodes.length).toBeGreaterThan(0);
+
+      // Count must NOT be 1 — the last value rendered before the wrap tick
+      const countOneNodes = root!.root.findAll(
+        (node: any) => node.props.children === 1,
+        { deep: true },
+      );
+      expect(countOneNodes.length).toBe(0);
+
+      // Count must NOT be 0 — a transitional / unset value
+      const countZeroNodes = root!.root.findAll(
+        (node: any) => node.props.children === 0,
+        { deep: true },
+      );
+      expect(countZeroNodes.length).toBe(0);
+
+      // ── Phase label must have reset to phases[0] ──────────────────────────
+      const breatheInNodes = root!.root.findAll(
+        (node: any) => node.props.children === 'Breathe In',
+        { deep: true },
+      );
+      expect(breatheInNodes.length).toBeGreaterThan(0);
+
+      // "Hold" label must not be visible (phaseIndex is back to 0)
+      const holdNodes = root!.root.findAll(
+        (node: any) => node.props.children === 'Hold',
+        { deep: true },
+      );
+      expect(holdNodes.length).toBe(0);
+
+      // ── Round counter must have incremented to 2 ──────────────────────────
+      const roundTwoNodes = root!.root.findAll(
+        (node: any) =>
+          Array.isArray(node.props.children) &&
+          node.props.children[0] === 'Round ' &&
+          node.props.children[1] === 2,
+        { deep: true },
+      );
+      expect(roundTwoNodes.length).toBeGreaterThan(0);
+
+      // Round 1 must no longer be displayed
+      const roundOneNodes = root!.root.findAll(
+        (node: any) =>
+          Array.isArray(node.props.children) &&
+          node.props.children[0] === 'Round ' &&
+          node.props.children[1] === 1,
+        { deep: true },
+      );
+      expect(roundOneNodes.length).toBe(0);
+    });
+  });
+
   describe('AppState – background / foreground', () => {
     let appStateListeners: Array<(state: AppStateStatus) => void>;
 
