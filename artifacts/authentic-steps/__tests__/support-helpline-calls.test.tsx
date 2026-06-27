@@ -813,6 +813,39 @@ describe("Support screen – 'this week' urgency routing", () => {
       ).toThrow();
     },
   );
+
+  it.each(THIS_WEEK_AREAS)(
+    "urgency='this week' → area='%s' → 'professional-help': tapping call button fires Linking.openURL with tel:1800551800",
+    async (areaId) => {
+      // Step 1 — open triage
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "this week" → area step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-this-week' }).props.onPress();
+      });
+
+      // Step 3 — choose the area under test → type step
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+
+      // Step 4 — choose "professional help" → routed view
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-type-professional-help' }).props.onPress();
+      });
+
+      // Step 5 — tap the call button
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-call-professional' }).props.onPress();
+      });
+
+      expect(openURLSpy).toHaveBeenCalledWith('tel:1800551800');
+      expect(openURLSpy).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 // ─── Web-chat button ───────────────────────────────────────────────────────────
