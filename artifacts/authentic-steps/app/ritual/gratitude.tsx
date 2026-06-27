@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -69,7 +70,10 @@ export default function GratitudeScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <LinearGradient
         colors={[colors.gradientStart, '#193b83']}
         style={[styles.headerGrad, { paddingTop: insets.top + 12 }]}
@@ -105,6 +109,7 @@ export default function GratitudeScreen() {
           { paddingBottom: Platform.OS === 'web' ? 160 : 140 },
         ]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
         <VideoPlaceholder
@@ -229,7 +234,7 @@ export default function GratitudeScreen() {
         </Pressable>
       </View>
 
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
