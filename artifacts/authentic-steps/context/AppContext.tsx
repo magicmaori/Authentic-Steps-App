@@ -3,6 +3,13 @@ import { deflateSync, decompressSync, strFromU8, strToU8 } from 'fflate';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { generateAnonymousName } from '@/constants/affirmations';
+import {
+  cancelAllReminders,
+  fireMilestoneNotification,
+  scheduleEveningReminder,
+  scheduleRitualReminder,
+  setupAndroidChannel,
+} from '@/utils/notifications';
 
 export type GratitudeCategory = 'people' | 'experiences' | 'things' | 'self';
 export type IntentionCategory = 'movement' | 'connection' | 'learning' | 'rest' | 'creativity';
@@ -58,6 +65,9 @@ export interface UserData {
   themePreference: ThemePreference;
   recoveryCode: string;
   favouriteTools: string[];
+  notifRitual: boolean;
+  notifEvening: boolean;
+  notifMilestone: boolean;
 }
 
 export type RestoreResult =
@@ -88,6 +98,7 @@ interface AppContextType {
   groundingSessions: GroundingSession[];
   saveGroundingSession: (senses: GroundingSense[]) => Promise<void>;
   resetAllData: () => Promise<void>;
+  setNotificationPref: (key: 'notifRitual' | 'notifEvening' | 'notifMilestone', value: boolean) => Promise<void>;
 }
 
 function generateRecoveryCode(anonymousName: string): string {
@@ -141,6 +152,9 @@ const defaultUser: UserData = {
   themePreference: 'system',
   recoveryCode: '',
   favouriteTools: [],
+  notifRitual: true,
+  notifEvening: true,
+  notifMilestone: true,
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -176,6 +190,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadData();
+    setupAndroidChannel().catch(() => {});
   }, []);
 
   async function loadData() {
@@ -392,6 +407,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     newUser.milestones = newMilestones;
 
+    const addedMilestones = newMilestones.filter(
+      m => !userData.milestones.some(existing => existing.id === m.id)
+    );
+    if (newUser.notifMilestone) {
+      for (const m of addedMilestones) {
+        fireMilestoneNotification(m).catch(() => {});
+      }
+    }
+
     await saveEntries(newEntries);
     await saveUser(newUser);
   }, [entries, userData]);
@@ -460,7 +484,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated));
   }, [groundingSessions]);
 
+  const setNotificationPref = useCallback(async (
+    key: 'notifRitual' | 'notifEvening' | 'notifMilestone',
+    value: boolean,
+  ) => {
+    const newUser = { ...userData, [key]: value };
+    await saveUser(newUser);
+    if (key === 'notifRitual') await scheduleRitualReminder(value).catch(() => {});
+    if (key === 'notifEvening') await scheduleEveningReminder(value).catch(() => {});
+  }, [userData]);
+
   async function resetAllData() {
+    await cancelAllReminders().catch(() => {});
     await AsyncStorage.multiRemove([
       STORAGE_KEY_USER,
       STORAGE_KEY_ENTRIES,
@@ -525,6 +560,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       groundingSessions,
       saveGroundingSession,
       resetAllData,
+      setNotificationPref,
     }}>
       {children}
     </AppContext.Provider>

@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemePreference, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
+import { requestPermission as requestNotifPermission } from '@/utils/notifications';
 
 function escHtml(str: string): string {
   return str
@@ -48,10 +49,7 @@ function formatLastUpdated(date: Date): string {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData } = useApp();
-  const [notifRitual, setNotifRitual] = useState(true);
-  const [notifEvening, setNotifEvening] = useState(true);
-  const [notifMilestone, setNotifMilestone] = useState(true);
+  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref } = useApp();
   const [isDeleting, setIsDeleting] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [codeRefreshed, setCodeRefreshed] = useState(false);
@@ -473,14 +471,31 @@ export default function ProfileScreen() {
 
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Notifications</Text>
-          {[
-            { label: 'Daily ritual reminder', value: notifRitual, set: setNotifRitual },
-            { label: 'Evening intention check-in', value: notifEvening, set: setNotifEvening },
-            { label: 'Milestone celebrations', value: notifMilestone, set: setNotifMilestone },
-          ].map((item, i) => (
+          {(
+            [
+              { label: 'Daily ritual reminder', key: 'notifRitual' as const, value: userData.notifRitual },
+              { label: 'Evening intention check-in', key: 'notifEvening' as const, value: userData.notifEvening },
+              { label: 'Milestone celebrations', key: 'notifMilestone' as const, value: userData.notifMilestone },
+            ] as const
+          ).map((item, i) => (
             <Pressable
               key={item.label}
-              onPress={() => { Haptics.selectionAsync(); item.set(v => !v); }}
+              onPress={async () => {
+                Haptics.selectionAsync();
+                const next = !item.value;
+                if (next) {
+                  const granted = await requestNotifPermission();
+                  if (!granted) {
+                    Alert.alert(
+                      'Notifications blocked',
+                      'To enable reminders, go to your device Settings and allow notifications for Authentic Steps.',
+                      [{ text: 'OK' }]
+                    );
+                    return;
+                  }
+                }
+                setNotificationPref(item.key, next);
+              }}
               style={[styles.settingRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
             >
               <Text style={[styles.settingLabel, { color: colors.foreground }]}>{item.label}</Text>

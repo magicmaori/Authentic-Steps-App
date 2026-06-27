@@ -28,7 +28,15 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#03989e",
+          "defaultChannel": "authentic-steps-default"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
