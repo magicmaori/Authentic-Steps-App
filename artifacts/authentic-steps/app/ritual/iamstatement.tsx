@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
+  LayoutChangeEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -35,6 +36,20 @@ export default function IAmScreen() {
   const [mode, setMode] = useState<'library' | 'custom'>('library');
   const [customText, setCustomText] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const customScrollViewRef = useRef<ScrollView>(null);
+  const customCardY = useRef<number>(0);
+
+  function handleCustomCardLayout(e: LayoutChangeEvent) {
+    customCardY.current = e.nativeEvent.layout.y;
+  }
+
+  function scrollToCustomInput() {
+    customScrollViewRef.current?.scrollTo({
+      y: Math.max(0, customCardY.current - 16),
+      animated: true,
+    });
+  }
 
   const themeAffirmations = affirmations.filter(a => a.theme === activeTheme);
   const finalStatement = mode === 'custom' ? customText.trim() : selected;
@@ -174,26 +189,42 @@ export default function IAmScreen() {
           </ScrollView>
         </>
       ) : (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={[styles.customContainer, { backgroundColor: colors.background }]}>
-            <Text style={[styles.customPrompt, { color: colors.mutedForeground }]}>
-              Start with "I am..." and write something true about who you are.
-            </Text>
-            <View style={[styles.customCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.iAmPrefix, { color: colors.accent }]}>I am...</Text>
-              <TextInput
-                style={[styles.customInput, { color: colors.foreground }]}
-                placeholder="worthy of good things"
-                placeholderTextColor={colors.mutedForeground}
-                value={customText}
-                onChangeText={setCustomText}
-                multiline
-                maxLength={100}
-                autoFocus
-              />
+        <ScrollView
+          ref={customScrollViewRef}
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.customContainer,
+            { paddingBottom: Platform.OS === 'web' ? 160 : 140 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View>
+              <Text style={[styles.customPrompt, { color: colors.mutedForeground }]}>
+                Start with "I am..." and write something true about who you are.
+              </Text>
+              <View
+                onLayout={handleCustomCardLayout}
+                style={[styles.customCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <Text style={[styles.iAmPrefix, { color: colors.accent }]}>I am...</Text>
+                <TextInput
+                  style={[styles.customInput, { color: colors.foreground }]}
+                  placeholder="worthy of good things"
+                  placeholderTextColor={colors.mutedForeground}
+                  value={customText}
+                  onChangeText={setCustomText}
+                  onFocus={scrollToCustomInput}
+                  multiline
+                  maxLength={100}
+                  autoFocus
+                />
+              </View>
             </View>
-          </View>
-        </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
+        </ScrollView>
       )}
 
       <View
@@ -260,7 +291,7 @@ const styles = StyleSheet.create({
   statCardInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   checkCircle: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   statText: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20, flex: 1 },
-  customContainer: { flex: 1, padding: 20, gap: 14 },
+  customContainer: { padding: 20, gap: 14 },
   customPrompt: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 18 },
   customCard: { borderRadius: 16, borderWidth: 1, padding: 18, gap: 6 },
   iAmPrefix: { fontSize: 18, fontFamily: 'Inter_700Bold' },
