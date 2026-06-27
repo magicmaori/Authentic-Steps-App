@@ -37,7 +37,7 @@ function formatLastUpdated(date: Date): string {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, setThemePreference, buildRecoveryPayload } = useApp();
+  const { userData, setThemePreference, buildRecoveryPayload, resetAllData } = useApp();
   const [notifRitual, setNotifRitual] = useState(true);
   const [notifEvening, setNotifEvening] = useState(true);
   const [notifMilestone, setNotifMilestone] = useState(true);
@@ -62,11 +62,18 @@ export default function ProfileScreen() {
 
   function handleDeleteData() {
     Alert.alert(
-      'Delete your data',
-      'This will permanently delete all your ritual entries, streak data, and milestones. This cannot be undone.',
+      'Delete all your data?',
+      'This will permanently erase your journal entries, streaks, milestones, and breathing records. A new anonymous name will be created. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => {} },
+        {
+          text: 'Yes, delete everything',
+          style: 'destructive',
+          onPress: async () => {
+            await resetAllData();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          },
+        },
       ]
     );
   }

@@ -87,6 +87,7 @@ interface AppContextType {
   isExerciseDoneToday: (toolId: string) => boolean;
   groundingSessions: GroundingSession[];
   saveGroundingSession: (senses: GroundingSense[]) => Promise<void>;
+  resetAllData: () => Promise<void>;
 }
 
 function generateRecoveryCode(anonymousName: string): string {
@@ -459,6 +460,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated));
   }, [groundingSessions]);
 
+  async function resetAllData() {
+    await AsyncStorage.multiRemove([
+      STORAGE_KEY_USER,
+      STORAGE_KEY_ENTRIES,
+      STORAGE_KEY_EXERCISES,
+      STORAGE_KEY_GROUNDING,
+    ]);
+    const name = generateAnonymousName();
+    const freshUser: UserData = {
+      ...defaultUser,
+      anonymousName: name,
+      recoveryCode: generateRecoveryCode(name),
+      hasOnboarded: true,
+      themePreference: userData.themePreference,
+    };
+    await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(freshUser));
+    setUserData(freshUser);
+    setEntries({});
+    setCompletedExercises({});
+    setGroundingSessions([]);
+  }
+
   function getStreakCalendar() {
     const days: { date: string; done: boolean; flex: boolean }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -501,6 +524,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isExerciseDoneToday,
       groundingSessions,
       saveGroundingSession,
+      resetAllData,
     }}>
       {children}
     </AppContext.Provider>
