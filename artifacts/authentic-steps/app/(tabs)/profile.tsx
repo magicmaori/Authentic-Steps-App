@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -287,13 +287,18 @@ export default function ProfileScreen() {
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>About</Text>
           {[
-            { label: 'Privacy Policy', icon: 'shield-outline' },
-            { label: 'Terms of Service', icon: 'document-text-outline' },
-            { label: 'Safe Messaging Guidelines', icon: 'heart-outline' },
+            { label: 'Privacy Policy', icon: 'shield-outline', type: 'privacy' },
+            { label: 'Terms of Service', icon: 'document-text-outline', type: 'terms' },
+            { label: 'Safe Messaging Guidelines', icon: 'heart-outline', type: 'safe-messaging' },
           ].map((item, i) => (
             <Pressable
               key={item.label}
-              style={[styles.settingRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
+              onPress={() => router.push(`/legal?type=${item.type}` as any)}
+              style={({ pressed }) => [
+                styles.settingRow,
+                i > 0 && { borderTopWidth: 1, borderTopColor: colors.border },
+                pressed && { opacity: 0.6 },
+              ]}
             >
               <Text style={[styles.settingLabel, { color: colors.foreground }]}>{item.label}</Text>
               <Ionicons name={item.icon as any} size={18} color={colors.mutedForeground} />

@@ -49,6 +49,7 @@ function RootLayoutNav() {
         <Stack.Screen name="sos" options={{ presentation: "modal", headerShown: false }} />
         <Stack.Screen name="journal" options={{ headerShown: false }} />
         <Stack.Screen name="grounding-history" options={{ headerShown: false }} />
+        <Stack.Screen name="legal" options={{ headerShown: false }} />
       </Stack>
     </OnboardingGate>
   );
