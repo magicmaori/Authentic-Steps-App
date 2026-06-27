@@ -579,6 +579,80 @@ describe('Support screen – non-professional-help routed view tip box', () => {
   });
 });
 
+// ─── 'this week' urgency routing ──────────────────────────────────────────────
+
+describe("Support screen – 'this week' urgency routing", () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("urgency='this week' advances to the area step, not directly to routed view", async () => {
+    // Step 1 — open triage
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+
+    // Step 2 — choose "this week"
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-this-week' }).props.onPress();
+    });
+
+    // Area step options must now be visible
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-area-emotions' }),
+    ).not.toThrow();
+
+    // The routed-view reset button must NOT be present yet
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-reset-btn' }),
+    ).toThrow();
+  });
+
+  it("urgency='this week' → area → 'someone-to-listen': tip box is shown with no call button", async () => {
+    // Step 1 — open triage
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+
+    // Step 2 — choose "this week" → area step
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-this-week' }).props.onPress();
+    });
+
+    // Step 3 — choose an area → type step
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+    });
+
+    // Step 4 — choose "someone to listen" → routed view
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-type-someone-to-listen' }).props.onPress();
+    });
+
+    // Tip box must be present
+    const tipBox = root.root.findByProps({ testID: 'triage-tip-box' });
+    expect(tipBox).toBeTruthy();
+
+    // The professional-help call button must NOT appear
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-call-professional' }),
+    ).toThrow();
+  });
+});
+
 // ─── Web-chat button ───────────────────────────────────────────────────────────
 
 describe('Support screen – web-chat button', () => {
