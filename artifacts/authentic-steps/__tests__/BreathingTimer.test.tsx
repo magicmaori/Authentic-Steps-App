@@ -1443,6 +1443,93 @@ describe('BreathingTimer – force-quit interruption notice', () => {
 
     act(() => { root!.unmount(); });
   });
+
+  describe('phase transition – count display', () => {
+    /**
+     * Regression guard: when the countdown exhausts phase 0 and advances to
+     * phase 1, the displayed count must immediately show phase 1's `counts`
+     * value — not 0, not the last value from phase 1, and not any stale
+     * carry-over from phase 0.
+     *
+     * Config: 2 phases.
+     *   Phase 0 "Breathe In"  counts=3  (exhausted on tick 3)
+     *   Phase 1 "Hold"        counts=5  (the expected count right after transition)
+     *
+     * Timer arithmetic:
+     *   Tick 1: count 3 → 2
+     *   Tick 2: count 2 → 1
+     *   Tick 3: count 1 → 0 → transition to phase 1; count set to 5
+     *
+     * Immediately after tick 3, the displayed count must be 5 (not 0, not 1).
+     */
+    it('shows the new phase counts immediately at the transition tick — no carry-over from the previous phase', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const TRANSITION_PROPS = {
+        title: 'Transition Test',
+        description: 'Test',
+        phases: [
+          { label: 'Breathe In', counts: 3, instruction: 'Inhale', targetScale: 1 },
+          { label: 'Hold',       counts: 5, instruction: 'Hold',   targetScale: 1 },
+        ],
+        totalRounds: 2,
+        accentColor: '#6366f1',
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...TRANSITION_PROPS} />);
+      });
+
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // Ticks 1-2: count decrements within phase 0 (3 → 2 → 1)
+      await act(async () => { jest.advanceTimersByTime(2000); });
+
+      // Sanity-check: still in phase 0 with count 1
+      const countOneBeforeTransition = root!.root.findAll(
+        (node: any) => node.props.children === 1,
+        { deep: true },
+      );
+      expect(countOneBeforeTransition.length).toBeGreaterThan(0);
+
+      // Tick 3: exhausts phase 0 — transition fires, count must become 5 immediately
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // Phase label must now be "Hold" (phase 1)
+      const holdLabel = root!.root.findAll(
+        (node: any) => node.props.children === 'Hold',
+        { deep: true },
+      );
+      expect(holdLabel.length).toBeGreaterThan(0);
+
+      // Count must be phase 1's counts (5), not any residual from phase 0
+      const countFiveNodes = root!.root.findAll(
+        (node: any) => node.props.children === 5,
+        { deep: true },
+      );
+      expect(countFiveNodes.length).toBeGreaterThan(0);
+
+      // Count must NOT be 0 (a sign the transition set count before the phase advanced)
+      const countZeroNodes = root!.root.findAll(
+        (node: any) => node.props.children === 0,
+        { deep: true },
+      );
+      expect(countZeroNodes.length).toBe(0);
+
+      // Count must NOT be 1 (carry-over from phase 0's last value)
+      const countOneNodes = root!.root.findAll(
+        (node: any) => node.props.children === 1,
+        { deep: true },
+      );
+      expect(countOneNodes.length).toBe(0);
+    });
+  });
 });
 
 // ─── advanceStateByTicks – pure-function unit tests ───────────────────────────
