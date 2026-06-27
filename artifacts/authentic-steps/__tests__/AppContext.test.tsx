@@ -158,10 +158,11 @@ describe('AppContext – reminder-time migration', () => {
 
     expect(mockGetScheduledReminderTimes).toHaveBeenCalledTimes(1);
 
-    expect(capturedUserData?.ritualHour).toBe(7);
-    expect(capturedUserData?.ritualMinute).toBe(45);
-    expect(capturedUserData?.eveningHour).toBe(21);
-    expect(capturedUserData?.eveningMinute).toBe(30);
+    const snapshot = capturedUserData as Record<string, unknown> | null;
+    expect(snapshot?.ritualHour).toBe(7);
+    expect(snapshot?.ritualMinute).toBe(45);
+    expect(snapshot?.eveningHour).toBe(21);
+    expect(snapshot?.eveningMinute).toBe(30);
 
     const writeCalls = (AsyncStorage.setItem as jest.Mock).mock.calls.filter(
       ([key]: [string]) => key === STORAGE_KEY_USER,
@@ -217,10 +218,11 @@ describe('AppContext – reminder-time migration', () => {
       await flushPromises();
     });
 
-    expect(capturedUserData?.ritualHour).toBe(9);
-    expect(capturedUserData?.ritualMinute).toBe(0);
-    expect(capturedUserData?.eveningHour).toBe(20);
-    expect(capturedUserData?.eveningMinute).toBe(0);
+    const snapshot = capturedUserData as Record<string, unknown> | null;
+    expect(snapshot?.ritualHour).toBe(9);
+    expect(snapshot?.ritualMinute).toBe(0);
+    expect(snapshot?.eveningHour).toBe(20);
+    expect(snapshot?.eveningMinute).toBe(0);
   });
 });
 
