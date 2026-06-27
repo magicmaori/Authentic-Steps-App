@@ -1927,4 +1927,49 @@ describe('advanceStateByTicks', () => {
     const result = advanceStateByTicks(initial, 0, PHASES, TOTAL_ROUNDS);
     expect(result).toEqual({ ...initial, done: false });
   });
+
+  /**
+   * Minimum-viable session: 1 phase (counts=1), 1 round, 1 tick.
+   *
+   * tick 1: count 1 → 0 → nextCount=0, not > 0 → phase transition branch:
+   *   nextPhaseIndex = 0 + 1 = 1 ≥ phases.length (1) → round boundary:
+   *   nextRound = 1 + 1 = 2 > totalRounds (1) → done = true
+   *
+   * This is the smallest meaningful exercise configuration. Verifying it
+   * guards against an off-by-one on the count→phase→round→done chain that
+   * could leave a single-phase session stuck (never reaching done) or
+   * producing a negative count value.
+   */
+  it('returns done=true after exactly 1 tick for a single-phase single-round session starting at count=1', () => {
+    const SINGLE_PHASE = [{ counts: 1 }];
+    const result = advanceStateByTicks(
+      { phaseIndex: 0, count: 1, round: 1 },
+      1,
+      SINGLE_PHASE,
+      1,
+    );
+    expect(result.done).toBe(true);
+    // count must not be negative — it freezes at the terminal value, not below zero
+    expect(result.count).toBeGreaterThanOrEqual(0);
+  });
+
+  /**
+   * Defensive guard: if count somehow arrives as 0 (unexpected state reset),
+   * the function must not produce a negative count or loop indefinitely.
+   * nextCount = 0 - 1 = -1; -1 > 0 is false → transition branch fires
+   * immediately, so done is reached on the first tick without any runaway.
+   */
+  it('does not produce a negative count and reaches done cleanly when initial count is 0', () => {
+    const SINGLE_PHASE = [{ counts: 1 }];
+    const result = advanceStateByTicks(
+      { phaseIndex: 0, count: 0, round: 1 },
+      1,
+      SINGLE_PHASE,
+      1,
+    );
+    // Must have fired the transition branch (not looped or gotten stuck)
+    expect(result.done).toBe(true);
+    // The returned count must not be negative
+    expect(result.count).toBeGreaterThanOrEqual(0);
+  });
 });
