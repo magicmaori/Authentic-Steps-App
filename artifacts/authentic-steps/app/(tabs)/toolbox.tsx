@@ -112,6 +112,7 @@ function GoToSection() {
         {hasBoxBreathing && (
           <ToolCard toolId="breathing-box" isDone={isExerciseDoneToday('breathing-box')}>
             <BreathingTimer
+              toolId="breathing-box"
               title="Box Breathing"
               description="Used by athletes and first responders to reset fast."
               phases={BOX_BREATHING_PHASES}
@@ -124,6 +125,7 @@ function GoToSection() {
         {has478 && (
           <ToolCard toolId="breathing-478" isDone={isExerciseDoneToday('breathing-478')}>
             <BreathingTimer
+              toolId="breathing-478"
               title="4-7-8 Calm Down"
               description="Great for anxiety, panic, or when you can't sleep."
               phases={CALM_DOWN_PHASES}
@@ -260,6 +262,7 @@ export default function ToolboxScreen() {
 
           <ToolCard toolId="breathing-box" isDone={isExerciseDoneToday('breathing-box')}>
             <BreathingTimer
+              toolId="breathing-box"
               title="Box Breathing"
               description="Used by athletes and first responders to reset fast."
               phases={BOX_BREATHING_PHASES}
@@ -271,6 +274,7 @@ export default function ToolboxScreen() {
 
           <ToolCard toolId="breathing-478" isDone={isExerciseDoneToday('breathing-478')}>
             <BreathingTimer
+              toolId="breathing-478"
               title="4-7-8 Calm Down"
               description="Great for anxiety, panic, or when you can't sleep."
               phases={CALM_DOWN_PHASES}

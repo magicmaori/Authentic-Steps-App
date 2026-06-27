@@ -66,6 +66,7 @@ type Phase = {
 };
 
 type Props = {
+  toolId: string;
   title: string;
   description: string;
   phases: Phase[];
@@ -83,7 +84,7 @@ function phaseChime(label: string): 'in' | 'out' | 'hold' {
   return 'hold';
 }
 
-export default function BreathingTimer({ title, description, phases, totalRounds, accentColor, onComplete }: Props) {
+export default function BreathingTimer({ toolId, title, description, phases, totalRounds, accentColor, onComplete }: Props) {
   const colors = useColors();
   const { userData, setChimeEnabled } = useApp();
   const [status, setStatus] = useState<Status>('idle');
@@ -104,16 +105,19 @@ export default function BreathingTimer({ title, description, phases, totalRounds
   const [interrupted, setInterrupted] = useState(false);
 
   // ── Mount: detect stale session from a previous force-quit ────────────────
+  // The stored value is the toolId of the exercise that was running when the
+  // app was killed.  Only show the notice if the stored ID matches THIS card's
+  // toolId so that other breathing cards are not affected.
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY_BREATHING_SESSION)
       .then(value => {
-        if (value !== null) {
+        if (value === toolId) {
           setInterrupted(true);
           AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
         }
       })
       .catch(() => {});
-  }, []);
+  }, [toolId]);
 
   const circleScale = useRef(new Animated.Value(0.55)).current;
   const phaseOpacity = useRef(new Animated.Value(1)).current;
@@ -174,12 +178,13 @@ export default function BreathingTimer({ title, description, phases, totalRounds
     setInterrupted(false);
     setStatus('running');
     // Mark the session as active so we can detect a force-quit on the next cold start.
-    AsyncStorage.setItem(STORAGE_KEY_BREATHING_SESSION, '1').catch(() => {});
+    // Store the toolId so only this card's interrupted notice shows on remount.
+    AsyncStorage.setItem(STORAGE_KEY_BREATHING_SESSION, toolId).catch(() => {});
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     playChime(phaseChime(phases[0].label));
     animateToScale(phases[0].targetScale, phases[0].counts);
     flashPhase();
-  }, [circleScale, phases, animateToScale, flashPhase, playChime]);
+  }, [toolId, circleScale, phases, animateToScale, flashPhase, playChime]);
 
   const stopExercise = useCallback(() => {
     clearTimer();

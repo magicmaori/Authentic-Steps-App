@@ -73,6 +73,7 @@ const TEST_PHASES = [
 ];
 
 const DEFAULT_PROPS = {
+  toolId: 'box-breathing',
   title: 'Box Breathing',
   description: 'A calming technique',
   phases: TEST_PHASES,
@@ -245,6 +246,7 @@ describe('BreathingTimer – chime toggle', () => {
       });
 
       const MULTI_PHASE_PROPS = {
+        toolId: 'test-breathing',
         title: 'Test Breathing',
         description: 'Test',
         phases: [
@@ -396,6 +398,7 @@ describe('BreathingTimer – chime toggle', () => {
       });
 
       const ONE_ROUND_PROPS = {
+        toolId: 'test-breathing',
         title: 'Test Breathing',
         description: 'Test',
         phases: [{ label: 'Breathe In', counts: 1, instruction: 'Inhale', targetScale: 1 }],
@@ -464,6 +467,7 @@ describe('BreathingTimer – chime toggle', () => {
       });
 
       const ONE_TICK_PROPS = {
+        toolId: 'test-breathing',
         title: 'Test Breathing',
         description: 'Test',
         phases: [{ label: 'Breathe In', counts: 1, instruction: 'Inhale', targetScale: 1 }],
@@ -534,6 +538,7 @@ describe('BreathingTimer – chime toggle', () => {
       });
 
       const TWO_PHASE_TWO_ROUND_PROPS = {
+        toolId: 'test-breathing',
         title: 'Boundary Test',
         description: 'Test',
         phases: [
@@ -590,6 +595,7 @@ describe('BreathingTimer – chime toggle', () => {
       });
 
       const ONE_TICK_PROPS = {
+        toolId: 'test-breathing',
         title: 'Test Breathing',
         description: 'Test',
         phases: [{ label: 'Breathe In', counts: 1, instruction: 'Inhale', targetScale: 1 }],
@@ -832,6 +838,7 @@ describe('BreathingTimer – chime toggle', () => {
       });
 
       const SHORT_PROPS = {
+        toolId: 'test-breathing',
         title: 'Short Breathing',
         description: 'Quick test',
         phases: [{ label: 'Breathe In', counts: 2, instruction: 'Inhale', targetScale: 1 }],
@@ -1166,6 +1173,7 @@ describe('BreathingTimer – chime toggle', () => {
       });
 
       const SHORT_PROPS = {
+        toolId: 'test-breathing',
         title: 'Short Breathing',
         description: 'Quick test',
         phases: [{ label: 'Breathe In', counts: 2, instruction: 'Inhale', targetScale: 1 }],
@@ -1298,6 +1306,7 @@ describe('BreathingTimer – chime toggle', () => {
      *   Tick 6:   nextCount = 0  → all phases exhausted, round 1→2
      */
     const TWO_PHASE_PROPS = {
+      toolId: 'test-breathing',
       title: 'Phase Test',
       description: 'Testing phase transitions',
       phases: [
@@ -1451,9 +1460,9 @@ describe('BreathingTimer – force-quit interruption notice', () => {
   });
 
   it('shows the interrupted notice when a stale session flag is found on mount', async () => {
-    // Simulate a stale flag left by a previous force-quit
+    // Simulate a stale flag left by a previous force-quit — value matches this card's toolId
     mockAsyncStorage.getItem.mockImplementation(async (key) => {
-      if (key === STORAGE_KEY_BREATHING_SESSION) return '1';
+      if (key === STORAGE_KEY_BREATHING_SESSION) return DEFAULT_PROPS.toolId;
       return null;
     });
 
@@ -1512,9 +1521,41 @@ describe('BreathingTimer – force-quit interruption notice', () => {
     act(() => { root!.unmount(); });
   });
 
+  it('does not show the interrupted notice when the stale flag belongs to a different exercise', async () => {
+    // A different exercise was interrupted — this card's toolId does not match
+    mockAsyncStorage.getItem.mockImplementation(async (key) => {
+      if (key === STORAGE_KEY_BREATHING_SESSION) return 'some-other-exercise';
+      return null;
+    });
+
+    mockUseApp.mockReturnValue({
+      userData: { chimeEnabled: true },
+      setChimeEnabled: mockSetChimeEnabled,
+    });
+
+    let root: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+    });
+
+    await act(async () => { await Promise.resolve(); });
+
+    const noticeNodes = root!.root.findAll(
+      (node: any) => typeof node.props.children === 'string' &&
+        node.props.children.includes('interrupted'),
+      { deep: true },
+    );
+    expect(noticeNodes.length).toBe(0);
+
+    // The flag must NOT be removed — it belongs to the other exercise
+    expect(mockAsyncStorage.removeItem).not.toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION);
+
+    act(() => { root!.unmount(); });
+  });
+
   it('clears the interrupted notice and writes the session flag when the user starts a new session', async () => {
     mockAsyncStorage.getItem.mockImplementation(async (key) => {
-      if (key === STORAGE_KEY_BREATHING_SESSION) return '1';
+      if (key === STORAGE_KEY_BREATHING_SESSION) return DEFAULT_PROPS.toolId;
       return null;
     });
 
@@ -1548,7 +1589,7 @@ describe('BreathingTimer – force-quit interruption notice', () => {
     expect(stopNodes.length).toBeGreaterThan(0);
 
     // The session flag must have been written for the new session
-    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION, '1');
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION, DEFAULT_PROPS.toolId);
 
     act(() => { root!.unmount(); });
   });
@@ -1572,7 +1613,7 @@ describe('BreathingTimer – force-quit interruption notice', () => {
     const startNodes = findPressableByChildText(root!, 'Start Breathing');
     await act(async () => { startNodes[0].props.onPress(); });
 
-    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION, '1');
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION, DEFAULT_PROPS.toolId);
 
     // Stop manually
     const stopNodes = findPressableByChildText(root!, 'Stop');
@@ -1608,6 +1649,7 @@ describe('BreathingTimer – force-quit interruption notice', () => {
       });
 
       const TRANSITION_PROPS = {
+        toolId: 'test-breathing',
         title: 'Transition Test',
         description: 'Test',
         phases: [
