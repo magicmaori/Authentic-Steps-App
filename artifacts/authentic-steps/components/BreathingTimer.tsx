@@ -154,6 +154,12 @@ export default function BreathingTimer({ toolId, title, description, phases, tot
   const stateRef = useRef({ phaseIndex: 0, count: phases[0].counts, round: 1 });
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
+  // Guards against calling onComplete more than once per session.
+  // Reset in startExercise; set to true the moment onComplete fires.
+  // Prevents a race where the AppState handler and the interval both reach
+  // the done boundary in the same React render cycle and call onComplete twice.
+  const onCompleteCalledRef = useRef(false);
+
   // Tracks the wall-clock instant the app left the foreground so we can
   // compute elapsed seconds when it returns.
   const backgroundedAtRef = useRef<number | null>(null);
@@ -201,6 +207,7 @@ export default function BreathingTimer({ toolId, title, description, phases, tot
   const startExercise = useCallback(() => {
     circleScale.setValue(0.55);
     stateRef.current = { phaseIndex: 0, count: phases[0].counts, round: 1 };
+    onCompleteCalledRef.current = false;
     setPhaseIndex(0);
     setCount(phases[0].counts);
     setRound(1);
@@ -271,7 +278,13 @@ export default function BreathingTimer({ toolId, title, description, phases, tot
               AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               playChime('done');
-              onComplete?.();
+              // Guard: onCompleteCalledRef ensures onComplete is invoked at most once
+              // per session even if the interval fires in the same render cycle that
+              // the AppState handler fires (the race described in the component header).
+              if (!onCompleteCalledRef.current) {
+                onCompleteCalledRef.current = true;
+                onComplete?.();
+              }
             }
           } else {
             // elapsed === 0: no state advanced, but the animation was stopped
@@ -314,7 +327,12 @@ export default function BreathingTimer({ toolId, title, description, phases, tot
             AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             playChime('done');
-            onComplete?.();
+            // Guard: if the AppState handler already called onComplete (background
+            // completion race), do not call it again from the interval.
+            if (!onCompleteCalledRef.current) {
+              onCompleteCalledRef.current = true;
+              onComplete?.();
+            }
             return;
           }
           stateRef.current = { phaseIndex: 0, count: phases[0].counts, round: nextRound };

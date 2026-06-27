@@ -1231,6 +1231,100 @@ describe('BreathingTimer – chime toggle', () => {
       );
       expect(countTwo.length).toBe(0);
     });
+
+    /**
+     * Race-condition guard: onComplete must be called exactly once even if the
+     * interval and the AppState handler both reach the done boundary in the same
+     * React render cycle.
+     *
+     * Scenario:
+     *   1. Session backgrounded for exactly enough time to complete.
+     *   2. App returns to foreground → AppState handler fires, detects done,
+     *      calls setStatus('done'), setAppActive(true), and onComplete.
+     *   3. setAppActive(true) could (in a non-batched render) cause the interval
+     *      effect to re-run while status is still 'running', restarting the
+     *      interval.  If the interval fires before the status update commits, it
+     *      would reach the nextRound > totalRounds branch and call onComplete again.
+     *
+     * The fix (onCompleteCalledRef) ensures the second callsite is a no-op.
+     *
+     * Config: 1 phase (counts=2), 1 round.
+     *   Start: count=2.
+     *   +1 foreground tick: count=1.
+     *   Background for 2 s → 2 elapsed ticks exhausts the session (done=true).
+     *   Foreground: done screen appears, onComplete fires.
+     *   +5 more seconds of timer advancement must NOT trigger a second onComplete
+     *   and must NOT bring back the running UI.
+     */
+    it('calls onComplete exactly once when the session completes while backgrounded, regardless of subsequent timer ticks', async () => {
+      const mockOnComplete = jest.fn();
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const SHORT_PROPS = {
+        toolId: 'test-breathing',
+        title: 'Short Breathing',
+        description: 'Quick test',
+        phases: [{ label: 'Breathe In', counts: 2, instruction: 'Inhale', targetScale: 1 }],
+        totalRounds: 1,
+        accentColor: '#6366f1',
+        onComplete: mockOnComplete,
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...SHORT_PROPS} />);
+      });
+
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // 1 foreground tick: count 2 → 1
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // Background the app
+      await act(async () => { appStateListeners.forEach(l => l('background')); });
+
+      // 2 s in background — enough to exhaust the remaining 1 count and complete
+      await act(async () => { jest.advanceTimersByTime(2000); });
+
+      // Return to foreground: AppState handler detects done, fires onComplete
+      await act(async () => { appStateListeners.forEach(l => l('active')); });
+
+      // Done screen must be visible
+      const doneNodesAfterForeground = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodesAfterForeground.length).toBeGreaterThan(0);
+
+      // onComplete must have fired exactly once so far
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+
+      // Running UI must be gone — the interval must not have restarted
+      const stopNodesAfterDone = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesAfterDone.length).toBe(0);
+
+      // Advance timers by several more seconds to simulate the race window
+      // where a restarted interval might fire and call onComplete a second time.
+      await act(async () => { jest.advanceTimersByTime(5000); });
+
+      // onComplete must still have been called exactly once — not twice
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+
+      // Done screen must still be showing — the running interval did not restart
+      const doneNodesAfterDelay = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodesAfterDelay.length).toBeGreaterThan(0);
+
+      // Running UI must still be absent
+      const stopNodesAfterDelay = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesAfterDelay.length).toBe(0);
+    });
   });
 
   describe('running state', () => {
