@@ -759,3 +759,81 @@ describe('Support screen – tip box reachable via all area types', () => {
     },
   );
 });
+
+// ─── practical-ideas tip box reachable via every area type ────────────────────
+
+/**
+ * Regression guard: the 'practical-ideas' path uses the same routing code as
+ * 'someone-to-listen' but was previously only exercised through the 'emotions'
+ * area. A copy-paste bug or per-area conditional that returns the wrong tip for
+ * 'practical-ideas' via other areas would go undetected without this suite.
+ */
+describe('Support screen – practical-ideas tip box reachable via all area types', () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  const ALL_AREAS: Array<{ areaId: string; label: string }> = [
+    { areaId: 'emotions',       label: 'emotions'       },
+    { areaId: 'relationships',  label: 'relationships'  },
+    { areaId: 'school-or-home', label: 'school or home' },
+    { areaId: 'habits',         label: 'habits'         },
+    { areaId: 'something-else', label: 'something else' },
+  ];
+
+  it.each(ALL_AREAS)(
+    'area="$label" → practical-ideas: tip box present, title contains "try", body contains "grounding", no call button',
+    async ({ areaId }) => {
+      // Step 1 — open triage
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "today" → area step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+      });
+
+      // Step 3 — choose the area under test → type step
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+
+      // Step 4 — choose "practical ideas" → routed view
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-type-practical-ideas' }).props.onPress();
+      });
+
+      // Tip box must be present
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-tip-box' }),
+      ).not.toThrow();
+
+      // Tip title must contain "try"
+      const tipTitle = root.root.findByProps({ testID: 'triage-tip-title' });
+      expect(String(tipTitle.props.children).toLowerCase()).toContain('try');
+
+      // Tip body must contain "grounding"
+      const tipText = root.root.findByProps({ testID: 'triage-tip-text' });
+      expect(String(tipText.props.children).toLowerCase()).toContain('grounding');
+
+      // The professional-help call button must NOT be present
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-call-professional' }),
+      ).toThrow();
+    },
+  );
+});
