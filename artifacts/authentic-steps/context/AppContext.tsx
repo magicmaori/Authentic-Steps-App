@@ -195,18 +195,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setupAndroidChannel().catch(() => {});
   }, []);
 
+  function logNotifError(label: string, err: unknown) {
+    if (__DEV__) console.warn(`[Notifications] ${label}`, err);
+  }
+
   async function reconcileNotifications(user: UserData) {
-    const state = await getPermissionState().catch(() => 'undetermined' as const);
+    const state = await getPermissionState().catch((e) => {
+      logNotifError('getPermissionState', e);
+      return 'undetermined' as const;
+    });
     if (state === 'granted') {
-      await scheduleRitualReminder(user.notifRitual).catch(() => {});
-      await scheduleEveningReminder(user.notifEvening).catch(() => {});
+      await scheduleRitualReminder(user.notifRitual).catch((e) => logNotifError('scheduleRitual', e));
+      await scheduleEveningReminder(user.notifEvening).catch((e) => logNotifError('scheduleEvening', e));
     } else if (state === 'denied') {
       if (user.notifRitual || user.notifEvening || user.notifMilestone) {
         const updated: UserData = { ...user, notifRitual: false, notifEvening: false, notifMilestone: false };
         await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
         setUserData(updated);
       }
-      await cancelAllReminders().catch(() => {});
+      await cancelAllReminders().catch((e) => logNotifError('cancelAll', e));
     }
   }
 
@@ -509,14 +516,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ) => {
     const newUser = { ...userData, [key]: value };
     await saveUser(newUser);
-    if (key === 'notifRitual') await scheduleRitualReminder(value).catch(() => {});
-    if (key === 'notifEvening') await scheduleEveningReminder(value).catch(() => {});
+    if (key === 'notifRitual') await scheduleRitualReminder(value).catch((e) => logNotifError('scheduleRitual', e));
+    if (key === 'notifEvening') await scheduleEveningReminder(value).catch((e) => logNotifError('scheduleEvening', e));
   }, [userData]);
 
   const disableAllNotificationPrefs = useCallback(async () => {
     const newUser = { ...userData, notifRitual: false, notifEvening: false, notifMilestone: false };
     await saveUser(newUser);
-    await cancelAllReminders().catch(() => {});
+    await cancelAllReminders().catch((e) => logNotifError('cancelAll', e));
   }, [userData]);
 
   async function resetAllData() {
