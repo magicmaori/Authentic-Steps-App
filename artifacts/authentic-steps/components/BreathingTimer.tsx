@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -6,6 +7,18 @@ import { Animated, AppState, AppStateStatus, Easing, Pressable, StyleSheet, Text
 import { useColors } from '@/hooks/useColors';
 import { useBreathingSound } from '@/hooks/useBreathingSound';
 import { useApp } from '@/context/AppContext';
+
+/**
+ * AsyncStorage key used to detect sessions that were interrupted by a force-quit.
+ *
+ * Written when a session starts, removed when it ends normally (stop or done).
+ * On mount, if this key is present it means a previous session was cut short.
+ *
+ * DECISION: show an "interrupted" notice rather than persist-and-resume.
+ * Breathing exercises require active participation; resuming a paused timer
+ * after an arbitrary gap would not serve the user's wellbeing goal.
+ */
+export const STORAGE_KEY_BREATHING_SESSION = '@authentic_steps_breathing_active';
 
 /**
  * Advance a breathing session's state by `ticks` elapsed seconds.
@@ -87,6 +100,21 @@ export default function BreathingTimer({ title, description, phases, totalRounds
 
   const [appActive, setAppActive] = useState(true);
 
+  // True when we detect a stale session flag left by a previous force-quit.
+  const [interrupted, setInterrupted] = useState(false);
+
+  // ── Mount: detect stale session from a previous force-quit ────────────────
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY_BREATHING_SESSION)
+      .then(value => {
+        if (value !== null) {
+          setInterrupted(true);
+          AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const circleScale = useRef(new Animated.Value(0.55)).current;
   const phaseOpacity = useRef(new Animated.Value(1)).current;
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -143,7 +171,10 @@ export default function BreathingTimer({ title, description, phases, totalRounds
     setPhaseIndex(0);
     setCount(phases[0].counts);
     setRound(1);
+    setInterrupted(false);
     setStatus('running');
+    // Mark the session as active so we can detect a force-quit on the next cold start.
+    AsyncStorage.setItem(STORAGE_KEY_BREATHING_SESSION, '1').catch(() => {});
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     playChime(phaseChime(phases[0].label));
     animateToScale(phases[0].targetScale, phases[0].counts);
@@ -159,6 +190,8 @@ export default function BreathingTimer({ title, description, phases, totalRounds
     setCount(phases[0].counts);
     setRound(1);
     stateRef.current = { phaseIndex: 0, count: phases[0].counts, round: 1 };
+    // Session ended normally — clear the flag so the interrupted notice won't show.
+    AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
   }, [phases, circleScale, stopAnimation]);
 
   useEffect(() => {
@@ -192,6 +225,8 @@ export default function BreathingTimer({ title, description, phases, totalRounds
               // (the interval effect is gated on appActive — leaving it false would
               // block the timer from restarting on the next session).
               setStatus('done');
+              // Clear the session flag — the session ended normally (just while backgrounded).
+              AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               playChime('done');
               onComplete?.();
@@ -228,6 +263,8 @@ export default function BreathingTimer({ title, description, phases, totalRounds
           if (nextRound > totalRounds) {
             clearTimer();
             setStatus('done');
+            // Clear the session flag — session completed normally in the foreground.
+            AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).catch(() => {});
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             playChime('done');
             onComplete?.();
@@ -266,6 +303,18 @@ export default function BreathingTimer({ title, description, phases, totalRounds
       </View>
       <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
       <Text style={[styles.desc, { color: colors.mutedForeground }]}>{description}</Text>
+
+      {status === 'idle' && interrupted && (
+        <View
+          style={[styles.interruptedBanner, { backgroundColor: `${accentColor}18`, borderColor: `${accentColor}40` }]}
+          accessibilityRole="alert"
+        >
+          <Ionicons name="alert-circle-outline" size={14} color={accentColor} />
+          <Text style={[styles.interruptedText, { color: accentColor }]}>
+            Your last session was interrupted. Start when you're ready.
+          </Text>
+        </View>
+      )}
 
       {status === 'idle' && (
         <View style={styles.idleActions}>
@@ -385,6 +434,17 @@ const styles = StyleSheet.create({
   iconText: { fontSize: 20 },
   title: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   desc: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 18 },
+  interruptedBanner: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  interruptedText: { fontSize: 12, fontFamily: 'Inter_400Regular', flex: 1, lineHeight: 16 },
   idleActions: { alignSelf: 'stretch', gap: 8 },
   startBtn: {
     alignSelf: 'stretch',

@@ -9,6 +9,12 @@
 
 // ─── Module mocks (self-contained — no outer variable refs) ──────────────────
 
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn().mockResolvedValue(null),
+  setItem: jest.fn().mockResolvedValue(undefined),
+  removeItem: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('@/context/AppContext', () => ({
   useApp: jest.fn(),
   useAppOptional: jest.fn().mockReturnValue(null),
@@ -49,9 +55,10 @@ jest.mock('@expo/vector-icons', () => {
 import React from 'react';
 import { act, create } from 'react-test-renderer';
 import { AppState, AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useApp } from '../context/AppContext';
-import BreathingTimer, { advanceStateByTicks } from '../components/BreathingTimer';
+import BreathingTimer, { advanceStateByTicks, STORAGE_KEY_BREATHING_SESSION } from '../components/BreathingTimer';
 
 // ─── Typed mock reference ─────────────────────────────────────────────────────
 
@@ -1201,6 +1208,165 @@ describe('BreathingTimer – chime toggle', () => {
       );
       expect(breatheInNewRound.length).toBeGreaterThan(0);
     });
+  });
+});
+
+// ─── Force-quit / remount interruption notice ─────────────────────────────────
+//
+// When the user force-quits the app mid-session and reopens it, the component
+// remounts in 'idle' state.  A stale AsyncStorage flag left by the previous
+// session signals that the session was interrupted — the component must show a
+// notice and clear the flag so subsequent mounts are clean.
+
+describe('BreathingTimer – force-quit interruption notice', () => {
+  let mockSetChimeEnabled: jest.Mock;
+  const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+    mockSetChimeEnabled = jest.fn().mockResolvedValue(undefined);
+    // Default: no stale flag (clean start)
+    mockAsyncStorage.getItem.mockResolvedValue(null);
+    mockAsyncStorage.setItem.mockResolvedValue(undefined);
+    mockAsyncStorage.removeItem.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('shows the interrupted notice when a stale session flag is found on mount', async () => {
+    // Simulate a stale flag left by a previous force-quit
+    mockAsyncStorage.getItem.mockImplementation(async (key) => {
+      if (key === STORAGE_KEY_BREATHING_SESSION) return '1';
+      return null;
+    });
+
+    mockUseApp.mockReturnValue({
+      userData: { chimeEnabled: true },
+      setChimeEnabled: mockSetChimeEnabled,
+    });
+
+    let root: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+    });
+
+    // Allow the async AsyncStorage.getItem call to resolve
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Interrupted notice must be visible
+    const noticeNodes = root!.root.findAll(
+      (node: any) => typeof node.props.children === 'string' &&
+        node.props.children.includes('interrupted'),
+      { deep: true },
+    );
+    expect(noticeNodes.length).toBeGreaterThan(0);
+
+    // The stale key must have been removed
+    expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION);
+
+    act(() => { root!.unmount(); });
+  });
+
+  it('does not show the interrupted notice when no stale flag exists', async () => {
+    // No stale flag — normal cold start
+    mockAsyncStorage.getItem.mockResolvedValue(null);
+
+    mockUseApp.mockReturnValue({
+      userData: { chimeEnabled: true },
+      setChimeEnabled: mockSetChimeEnabled,
+    });
+
+    let root: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+    });
+
+    await act(async () => { await Promise.resolve(); });
+
+    const noticeNodes = root!.root.findAll(
+      (node: any) => typeof node.props.children === 'string' &&
+        node.props.children.includes('interrupted'),
+      { deep: true },
+    );
+    expect(noticeNodes.length).toBe(0);
+
+    act(() => { root!.unmount(); });
+  });
+
+  it('clears the interrupted notice and writes the session flag when the user starts a new session', async () => {
+    mockAsyncStorage.getItem.mockImplementation(async (key) => {
+      if (key === STORAGE_KEY_BREATHING_SESSION) return '1';
+      return null;
+    });
+
+    mockUseApp.mockReturnValue({
+      userData: { chimeEnabled: false },
+      setChimeEnabled: mockSetChimeEnabled,
+    });
+
+    let root: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+    });
+
+    await act(async () => { await Promise.resolve(); });
+
+    // Interrupted notice should be visible before starting
+    const noticeBefore = root!.root.findAll(
+      (node: any) => typeof node.props.children === 'string' &&
+        node.props.children.includes('interrupted'),
+      { deep: true },
+    );
+    expect(noticeBefore.length).toBeGreaterThan(0);
+
+    // Start a new session
+    const startNodes = findPressableByChildText(root!, 'Start Breathing');
+    expect(startNodes.length).toBeGreaterThan(0);
+    await act(async () => { startNodes[0].props.onPress(); });
+
+    // The running UI must be visible now
+    const stopNodes = findPressableByChildText(root!, 'Stop');
+    expect(stopNodes.length).toBeGreaterThan(0);
+
+    // The session flag must have been written for the new session
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION, '1');
+
+    act(() => { root!.unmount(); });
+  });
+
+  it('writes the session flag on start and removes it when the user stops manually', async () => {
+    mockAsyncStorage.getItem.mockResolvedValue(null);
+
+    mockUseApp.mockReturnValue({
+      userData: { chimeEnabled: false },
+      setChimeEnabled: mockSetChimeEnabled,
+    });
+
+    let root: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+    });
+
+    await act(async () => { await Promise.resolve(); });
+
+    // Start
+    const startNodes = findPressableByChildText(root!, 'Start Breathing');
+    await act(async () => { startNodes[0].props.onPress(); });
+
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION, '1');
+
+    // Stop manually
+    const stopNodes = findPressableByChildText(root!, 'Stop');
+    await act(async () => { stopNodes[0].props.onPress(); });
+
+    expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION);
+
+    act(() => { root!.unmount(); });
   });
 });
 
