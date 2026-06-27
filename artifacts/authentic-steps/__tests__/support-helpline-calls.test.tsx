@@ -516,6 +516,67 @@ describe('Support screen – non-professional-help routed view tip box', () => {
       ).toThrow();
     },
   );
+
+  /**
+   * Per-type keyword assertions — each support type must show its own
+   * distinct tip copy. If a future change accidentally merges or swaps the
+   * text these tests will catch it immediately.
+   */
+
+  async function navigateToRoutedView(typeId: string) {
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: `triage-type-${typeId}` }).props.onPress();
+    });
+  }
+
+  it('supportType="someone-to-listen": tip title contains "listen" and tip body contains "trusted"', async () => {
+    await navigateToRoutedView('someone-to-listen');
+
+    const tipTitle = root.root.findByProps({ testID: 'triage-tip-title' });
+    expect(String(tipTitle.props.children).toLowerCase()).toContain('listen');
+
+    const tipText = root.root.findByProps({ testID: 'triage-tip-text' });
+    expect(String(tipText.props.children).toLowerCase()).toContain('trusted');
+  });
+
+  it('supportType="practical-ideas": tip title contains "try" and tip body contains "grounding"', async () => {
+    await navigateToRoutedView('practical-ideas');
+
+    const tipTitle = root.root.findByProps({ testID: 'triage-tip-title' });
+    expect(String(tipTitle.props.children).toLowerCase()).toContain('try');
+
+    const tipText = root.root.findByProps({ testID: 'triage-tip-text' });
+    expect(String(tipText.props.children).toLowerCase()).toContain('grounding');
+  });
+
+  it('tip content differs between "someone-to-listen" and "practical-ideas"', async () => {
+    // Capture someone-to-listen tip text
+    await navigateToRoutedView('someone-to-listen');
+    const listenTitle = String(root.root.findByProps({ testID: 'triage-tip-title' }).props.children);
+    const listenBody  = String(root.root.findByProps({ testID: 'triage-tip-text' }).props.children);
+
+    // Reset and capture practical-ideas tip text
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-reset-btn' }).props.onPress();
+    });
+    await navigateToRoutedView('practical-ideas');
+    const ideasTitle = String(root.root.findByProps({ testID: 'triage-tip-title' }).props.children);
+    const ideasBody  = String(root.root.findByProps({ testID: 'triage-tip-text' }).props.children);
+
+    // Titles must differ
+    expect(listenTitle).not.toEqual(ideasTitle);
+    // Bodies must differ
+    expect(listenBody).not.toEqual(ideasBody);
+  });
 });
 
 // ─── Web-chat button ───────────────────────────────────────────────────────────

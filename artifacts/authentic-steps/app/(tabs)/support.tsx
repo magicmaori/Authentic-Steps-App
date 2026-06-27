@@ -304,10 +304,21 @@ export default function SupportScreen() {
                   </Pressable>
                 ) : (
                   <View testID="triage-tip-box" style={[styles.tipBox, { backgroundColor: colors.secondary }]}>
-                    <Text testID="triage-tip-title" style={[styles.tipBoxTitle, { color: colors.foreground }]}>A small step that might help</Text>
-                    <Text testID="triage-tip-text" style={[styles.tipBoxText, { color: colors.mutedForeground }]}>
-                      When you are ready, try sharing in the Community tab — others here understand. Or reach out to one person you trust.
-                    </Text>
+                    {supportType === 'someone to listen' ? (
+                      <>
+                        <Text testID="triage-tip-title" style={[styles.tipBoxTitle, { color: colors.foreground }]}>Find someone who will listen</Text>
+                        <Text testID="triage-tip-text" style={[styles.tipBoxText, { color: colors.mutedForeground }]}>
+                          You don&apos;t need the perfect words. Letting one trusted person know you want to talk is a powerful first step. Kids Helpline counsellors are also free to chat online anytime.
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Text testID="triage-tip-title" style={[styles.tipBoxTitle, { color: colors.foreground }]}>A small step you can try now</Text>
+                        <Text testID="triage-tip-text" style={[styles.tipBoxText, { color: colors.mutedForeground }]}>
+                          Writing down what&apos;s on your mind, trying a grounding exercise in this app, or browsing what others have shared in the Community tab can all help you find a way forward.
+                        </Text>
+                      </>
+                    )}
                   </View>
                 )}
               </>
