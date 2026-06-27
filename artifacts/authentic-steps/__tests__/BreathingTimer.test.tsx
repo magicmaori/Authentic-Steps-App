@@ -1985,6 +1985,109 @@ describe('BreathingTimer – force-quit interruption notice', () => {
     });
   });
 
+  it('does not show the interrupted notice after remount when the session completed while backgrounded', async () => {
+    /**
+     * Coverage gap: the backgrounded-completion path calls AsyncStorage.removeItem
+     * directly (not via stopExercise).  This test verifies that the stale flag is
+     * cleared in that code path so a subsequent remount shows no interrupted notice.
+     *
+     * Scenario:
+     *   1. Mount BreathingTimer and start a 1-phase / 1-round session.
+     *   2. Advance 1 foreground tick (count 2 → 1), then background the app.
+     *   3. Advance 2 s in the background — exhausts the remaining count, session done.
+     *   4. Return to foreground — AppState handler calls setStatus('done') and
+     *      AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION).
+     *   5. Unmount and remount the component.
+     *   6. Assert the interrupted notice is absent — the flag was correctly cleared.
+     */
+
+    // Set up AppState mock locally (the force-quit describe has no shared beforeEach for this)
+    const localListeners: Array<(state: AppStateStatus) => void> = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation(
+      (event: string, handler: (state: AppStateStatus) => void) => {
+        if (event === 'change') localListeners.push(handler);
+        return {
+          remove: () => {
+            const idx = localListeners.indexOf(handler);
+            if (idx !== -1) localListeners.splice(idx, 1);
+          },
+        };
+      },
+    );
+
+    mockUseApp.mockReturnValue({
+      userData: { chimeEnabled: false },
+      setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+    });
+
+    // 1-phase / 1-round session so completion is quick and deterministic
+    const SHORT_PROPS = {
+      toolId: DEFAULT_PROPS.toolId,
+      title: 'Short Breathing',
+      description: 'Quick test',
+      phases: [{ label: 'Breathe In', counts: 2, instruction: 'Inhale', targetScale: 1 }],
+      totalRounds: 1,
+      accentColor: '#6366f1',
+    };
+
+    // ── Phase 1: mount and complete the session in the background ─────────────
+
+    let root: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      root = create(<BreathingTimer {...SHORT_PROPS} />);
+    });
+    // Allow the async AsyncStorage.getItem call (mount check) to resolve
+    await act(async () => { await Promise.resolve(); });
+
+    // Start the session — writes the session flag to AsyncStorage
+    const startNodes = findPressableByChildText(root!, 'Start Breathing');
+    expect(startNodes.length).toBeGreaterThan(0);
+    await act(async () => { startNodes[0].props.onPress(); });
+
+    // 1 foreground tick: count 2 → 1
+    await act(async () => { jest.advanceTimersByTime(1000); });
+
+    // Background the app
+    await act(async () => { localListeners.forEach(l => l('background')); });
+
+    // 2 s in background — exhausts the remaining 1 count → session done
+    await act(async () => { jest.advanceTimersByTime(2000); });
+
+    // Return to foreground — the AppState handler detects done and calls
+    // AsyncStorage.removeItem(STORAGE_KEY_BREATHING_SESSION)
+    await act(async () => { localListeners.forEach(l => l('active')); });
+
+    // The flag must have been removed via the backgrounded-completion path
+    expect(mockAsyncStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY_BREATHING_SESSION);
+
+    act(() => { root!.unmount(); });
+    jest.restoreAllMocks();
+
+    // ── Phase 2: remount and assert no interrupted notice ─────────────────────
+
+    // AsyncStorage has no session flag — mirrors the real cleared state.
+    // The describe's beforeEach already sets getItem to return null, which
+    // reflects the flag having been removed in the completed session above.
+    mockAsyncStorage.getItem.mockResolvedValue(null);
+
+    let remountRoot: ReturnType<typeof create> | undefined;
+    await act(async () => {
+      remountRoot = create(<BreathingTimer {...SHORT_PROPS} />);
+    });
+    await act(async () => { await Promise.resolve(); });
+
+    // The interrupted notice must NOT appear — the flag was cleared by the
+    // backgrounded-completion handler, not left stale for the next cold start.
+    const noticeNodes = remountRoot!.root.findAll(
+      (node: any) => typeof node.props.children === 'string' &&
+        node.props.children.includes('interrupted'),
+      { deep: true },
+    );
+    expect(noticeNodes.length).toBe(0);
+
+    act(() => { remountRoot!.unmount(); });
+  });
+
   describe('phase transition – count display', () => {
     /**
      * Regression guard: when the countdown exhausts phase 0 and advances to
