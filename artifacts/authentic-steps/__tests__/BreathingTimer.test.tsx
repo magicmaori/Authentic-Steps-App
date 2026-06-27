@@ -51,7 +51,7 @@ import { act, create } from 'react-test-renderer';
 import { AppState } from 'react-native';
 
 import { useApp } from '../context/AppContext';
-import BreathingTimer from '../components/BreathingTimer';
+import BreathingTimer, { advanceStateByTicks } from '../components/BreathingTimer';
 
 // ─── Typed mock reference ─────────────────────────────────────────────────────
 
@@ -478,22 +478,36 @@ describe('BreathingTimer – chime toggle', () => {
         appStateListeners.forEach(l => l('background'));
       });
 
-      // Advance another 2 s — the interval must NOT fire because it was cleared
-      const countBeforePause = root!.root.findAll(
-        (node: any) => node.props.children === 3,
-        { deep: true },
-      );
+      // Advance another 2 s — the setInterval must NOT fire because it was cleared
       await act(async () => { jest.advanceTimersByTime(2000); });
-      const countAfterPause = root!.root.findAll(
-        (node: any) => node.props.children === 3,
-        { deep: true },
-      );
 
-      // Count must still be 3 — no ticks while backgrounded
-      expect(countBeforePause.length).toBe(countAfterPause.length);
+      // The running UI must still be present (no accidental completion/reset)
+      const stopNodesWhileBackground = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesWhileBackground.length).toBeGreaterThan(0);
     });
 
-    it('resumes the countdown when the app returns to the foreground', async () => {
+    /**
+     * Elapsed-time advance: on foreground the component fast-forwards the
+     * session state by the wall-clock seconds spent backgrounded.
+     *
+     * DEFAULT_PROPS phases (each 4 counts), 2 rounds:
+     *   Phase 0 "Breathe In" (counts=4)
+     *   Phase 1 "Hold"       (counts=4)
+     *   Phase 2 "Breathe Out"(counts=4)
+     *
+     * Starting state after 1 foreground tick: { phaseIndex: 0, count: 3 }
+     * 5 elapsed seconds applied on foreground:
+     *   tick 1: count 3 → 2
+     *   tick 2: count 2 → 1
+     *   tick 3: count 1 → 0 → advance to phase 1 (Hold, count = 4)
+     *   tick 4: count 4 → 3
+     *   tick 5: count 3 → 2
+     * Fast-forwarded state: { phaseIndex: 1, count: 2 }
+     *
+     * 1 more second on foreground: count 2 → 1
+     * Expected final count: 1 (phase "Hold" label visible)
+     */
+    it('advances the countdown by elapsed wall-clock seconds when returning from background', async () => {
       mockUseApp.mockReturnValue({
         userData: { chimeEnabled: false },
         setChimeEnabled: jest.fn().mockResolvedValue(undefined),
@@ -503,42 +517,49 @@ describe('BreathingTimer – chime toggle', () => {
         root = create(<BreathingTimer {...DEFAULT_PROPS} />);
       });
 
-      // Start the session
       const startNodes = findPressableByChildText(root!, 'Start Breathing');
       await act(async () => { startNodes[0].props.onPress(); });
 
       // Advance 1 s to tick: 4 → 3
       await act(async () => { jest.advanceTimersByTime(1000); });
 
-      // Background the app
-      await act(async () => {
-        appStateListeners.forEach(l => l('background'));
-      });
+      // Background the app (fake-timer Date.now() is recorded)
+      await act(async () => { appStateListeners.forEach(l => l('background')); });
 
-      // Advance 5 s while backgrounded — count must not change
+      // Advance 5 s while backgrounded — fake Date.now() advances too
       await act(async () => { jest.advanceTimersByTime(5000); });
 
-      // Foreground the app
-      await act(async () => {
-        appStateListeners.forEach(l => l('active'));
-      });
+      // Foreground: component calculates elapsed = 5 s and fast-forwards state
+      await act(async () => { appStateListeners.forEach(l => l('active')); });
 
-      // Advance 1 s — countdown should resume from where it left off (3 → 2)
-      await act(async () => { jest.advanceTimersByTime(1000); });
-
-      // The running UI must still be visible (not done, not idle)
+      // Running UI must still be present
       const stopNodesAfterResume = findPressableByChildText(root!, 'Stop');
       expect(stopNodesAfterResume.length).toBeGreaterThan(0);
 
-      // Count should now read 2 (advanced by exactly 1 tick after resume)
+      // Phase must have advanced to "Hold" (phaseIndex 1) — not still "Breathe In"
+      const holdLabel = root!.root.findAll(
+        (node: any) => node.props.children === 'Hold',
+        { deep: true },
+      );
+      expect(holdLabel.length).toBeGreaterThan(0);
+
+      const breatheInLabel = root!.root.findAll(
+        (node: any) => node.props.children === 'Breathe In',
+        { deep: true },
+      );
+      expect(breatheInLabel.length).toBe(0);
+
+      // Advance 1 more s → count ticks from 2 → 1
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
       const countAfterResume = root!.root.findAll(
-        (node: any) => node.props.children === 2,
+        (node: any) => node.props.children === 1,
         { deep: true },
       );
       expect(countAfterResume.length).toBeGreaterThan(0);
     });
 
-    it('keeps state coherent (running UI intact) immediately after foregrounding before any new ticks', async () => {
+    it('keeps state coherent (running UI intact) when backgrounded for 0 elapsed seconds', async () => {
       mockUseApp.mockReturnValue({
         userData: { chimeEnabled: false },
         setChimeEnabled: jest.fn().mockResolvedValue(undefined),
@@ -551,7 +572,8 @@ describe('BreathingTimer – chime toggle', () => {
       const startNodes = findPressableByChildText(root!, 'Start Breathing');
       await act(async () => { startNodes[0].props.onPress(); });
 
-      // Background then immediately foreground without advancing time
+      // Background then immediately foreground without advancing fake time
+      // elapsed = Math.floor(0 / 1000) = 0 — no state change, timer just resumes
       await act(async () => { appStateListeners.forEach(l => l('background')); });
       await act(async () => { appStateListeners.forEach(l => l('active')); });
 
@@ -561,6 +583,150 @@ describe('BreathingTimer – chime toggle', () => {
 
       const idleNodes = findPressableByChildText(root!, 'Start Breathing');
       expect(idleNodes.length).toBe(0);
+
+      // Exactly 1 tick per second — no duplicate intervals from re-registration
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      const countThree = root!.root.findAll(
+        (node: any) => node.props.children === 3,
+        { deep: true },
+      );
+      expect(countThree.length).toBeGreaterThan(0);
+    });
+
+    /**
+     * If the total elapsed time while backgrounded exceeds the remaining session
+     * length, the session should complete rather than silently clamping.
+     *
+     * ONE_ROUND_PROPS: 1 phase (counts=2), 1 round
+     * Start: count=2. After 1 foreground tick: count=1.
+     * Background for 2 s → 2 elapsed ticks:
+     *   tick 1: count 1 → 0 → phase done → round done → DONE
+     * On foreground the component must fire the done state without needing
+     * any additional foreground ticks.
+     */
+    it('completes the session when backgrounded duration exceeds remaining time', async () => {
+      const mockOnComplete = jest.fn();
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const SHORT_PROPS = {
+        title: 'Short Breathing',
+        description: 'Quick test',
+        phases: [{ label: 'Breathe In', counts: 2, instruction: 'Inhale', targetScale: 1 }],
+        totalRounds: 1,
+        accentColor: '#6366f1',
+        onComplete: mockOnComplete,
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...SHORT_PROPS} />);
+      });
+
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // 1 tick: count 2 → 1
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // Background the app
+      await act(async () => { appStateListeners.forEach(l => l('background')); });
+
+      // 2 elapsed seconds — enough to consume the remaining 1 count and exhaust the session
+      await act(async () => { jest.advanceTimersByTime(2000); });
+
+      // Foreground: component detects session completed while backgrounded
+      await act(async () => { appStateListeners.forEach(l => l('active')); });
+
+      // Done screen must be visible
+      const doneNodes = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodes.length).toBeGreaterThan(0);
+
+      // onComplete must have been called
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+
+      // Running UI must be gone
+      const stopNodes = findPressableByChildText(root!, 'Stop');
+      expect(stopNodes.length).toBe(0);
+    });
+
+    /**
+     * Regression: when the session completes while backgrounded and the user
+     * presses "Go Again" from the done screen, the interval must restart.
+     *
+     * If appActive were left as false after the foreground handler fires,
+     * the interval effect guard (status !== 'running' || !appActive) would
+     * silently block the timer from ticking again.
+     */
+    it('restarts the interval correctly after "Go Again" following a background-completion', async () => {
+      const mockOnComplete = jest.fn();
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const SHORT_PROPS = {
+        title: 'Short Breathing',
+        description: 'Quick test',
+        phases: [{ label: 'Breathe In', counts: 2, instruction: 'Inhale', targetScale: 1 }],
+        totalRounds: 1,
+        accentColor: '#6366f1',
+        onComplete: mockOnComplete,
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...SHORT_PROPS} />);
+      });
+
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // 1 tick: count 2 → 1
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // Background then wait long enough to exhaust the session (2 elapsed s)
+      await act(async () => { appStateListeners.forEach(l => l('background')); });
+      await act(async () => { jest.advanceTimersByTime(2000); });
+
+      // Foreground: session completes, appActive must be restored to true
+      await act(async () => { appStateListeners.forEach(l => l('active')); });
+
+      // Done screen must be showing
+      const doneNodes = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodes.length).toBeGreaterThan(0);
+
+      // Press "Go Again" — starts a new session
+      const goAgainNodes = findPressableByChildText(root!, 'Go Again');
+      expect(goAgainNodes.length).toBeGreaterThan(0);
+      await act(async () => { goAgainNodes[0].props.onPress(); });
+
+      // Running UI must be visible
+      const stopNodesAfterRestart = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesAfterRestart.length).toBeGreaterThan(0);
+
+      // Advance 1 s — the interval must tick (count 2 → 1)
+      // If appActive were still false the tick would not fire and count would stay 2
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      const countOne = root!.root.findAll(
+        (node: any) => node.props.children === 1,
+        { deep: true },
+      );
+      expect(countOne.length).toBeGreaterThan(0);
+
+      const countTwo = root!.root.findAll(
+        (node: any) => node.props.children === 2,
+        { deep: true },
+      );
+      expect(countTwo.length).toBe(0);
     });
   });
 
@@ -761,5 +927,95 @@ describe('BreathingTimer – chime toggle', () => {
       );
       expect(breatheInNewRound.length).toBeGreaterThan(0);
     });
+  });
+});
+
+// ─── advanceStateByTicks – pure-function unit tests ───────────────────────────
+//
+// These cover the helper that computes elapsed-time advance on foreground.
+// They run independently of React rendering.
+
+describe('advanceStateByTicks', () => {
+  const PHASES = [
+    { counts: 4 }, // phase 0
+    { counts: 4 }, // phase 1
+    { counts: 4 }, // phase 2
+  ];
+  const TOTAL_ROUNDS = 2;
+
+  it('decrements count within the same phase when ticks < remaining count', () => {
+    const result = advanceStateByTicks(
+      { phaseIndex: 0, count: 4, round: 1 },
+      2,
+      PHASES,
+      TOTAL_ROUNDS,
+    );
+    expect(result).toEqual({ phaseIndex: 0, count: 2, round: 1, done: false });
+  });
+
+  it('advances to the next phase when ticks exactly exhaust the current count', () => {
+    // count=4, 4 ticks → last tick triggers phase advance
+    // tick 1-3: count 4→3→2→1; tick 4: count=0 → nextPhase
+    const result = advanceStateByTicks(
+      { phaseIndex: 0, count: 4, round: 1 },
+      4,
+      PHASES,
+      TOTAL_ROUNDS,
+    );
+    expect(result).toEqual({ phaseIndex: 1, count: 4, round: 1, done: false });
+  });
+
+  it('advances multiple phases in a single call', () => {
+    // From phase 0, count 4: 4 ticks exhaust phase 0 → phase 1 (count=4)
+    // Then 4 more ticks exhaust phase 1 → phase 2 (count=4)
+    // Then 2 more ticks: count 4→3→2
+    const result = advanceStateByTicks(
+      { phaseIndex: 0, count: 4, round: 1 },
+      10,
+      PHASES,
+      TOTAL_ROUNDS,
+    );
+    expect(result).toEqual({ phaseIndex: 2, count: 2, round: 1, done: false });
+  });
+
+  it('wraps to round 2 when all phases in round 1 are exhausted', () => {
+    // 3 phases × 4 counts = 12 ticks to finish round 1
+    // Ticks 1-11: deplete phases 0-2 within round 1
+    // Tick 12: exhausts phase 2 → round 2, phaseIndex reset to 0, count=4
+    // 1 more tick: count 4→3
+    const result = advanceStateByTicks(
+      { phaseIndex: 0, count: 4, round: 1 },
+      13,
+      PHASES,
+      TOTAL_ROUNDS,
+    );
+    expect(result).toEqual({ phaseIndex: 0, count: 3, round: 2, done: false });
+  });
+
+  it('returns done=true when ticks exceed total session length', () => {
+    // 3 phases × 4 counts × 2 rounds = 24 ticks total
+    const result = advanceStateByTicks(
+      { phaseIndex: 0, count: 4, round: 1 },
+      24,
+      PHASES,
+      TOTAL_ROUNDS,
+    );
+    expect(result.done).toBe(true);
+  });
+
+  it('returns done=true even when ticks greatly exceed session length', () => {
+    const result = advanceStateByTicks(
+      { phaseIndex: 0, count: 1, round: 1 },
+      999,
+      PHASES,
+      TOTAL_ROUNDS,
+    );
+    expect(result.done).toBe(true);
+  });
+
+  it('returns unchanged state when ticks = 0', () => {
+    const initial = { phaseIndex: 1, count: 3, round: 2 };
+    const result = advanceStateByTicks(initial, 0, PHASES, TOTAL_ROUNDS);
+    expect(result).toEqual({ ...initial, done: false });
   });
 });

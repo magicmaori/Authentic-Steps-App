@@ -7,6 +7,44 @@ import { useColors } from '@/hooks/useColors';
 import { useBreathingSound } from '@/hooks/useBreathingSound';
 import { useApp } from '@/context/AppContext';
 
+/**
+ * Advance a breathing session's state by `ticks` elapsed seconds.
+ *
+ * This is exported so it can be unit-tested independently of the component.
+ * It is a pure function with no side effects.
+ */
+export function advanceStateByTicks(
+  state: { phaseIndex: number; count: number; round: number },
+  ticks: number,
+  phases: { counts: number }[],
+  totalRounds: number,
+): { phaseIndex: number; count: number; round: number; done: boolean } {
+  let { phaseIndex, count, round } = state;
+
+  for (let i = 0; i < ticks; i++) {
+    const nextCount = count - 1;
+    if (nextCount > 0) {
+      count = nextCount;
+    } else {
+      const nextPhaseIndex = phaseIndex + 1;
+      if (nextPhaseIndex >= phases.length) {
+        const nextRound = round + 1;
+        if (nextRound > totalRounds) {
+          return { phaseIndex, count, round, done: true };
+        }
+        phaseIndex = 0;
+        count = phases[0].counts;
+        round = nextRound;
+      } else {
+        phaseIndex = nextPhaseIndex;
+        count = phases[nextPhaseIndex].counts;
+      }
+    }
+  }
+
+  return { phaseIndex, count, round, done: false };
+}
+
 type Phase = {
   label: string;
   counts: number;
@@ -53,6 +91,15 @@ export default function BreathingTimer({ title, description, phases, totalRounds
   const phaseOpacity = useRef(new Animated.Value(1)).current;
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stateRef = useRef({ phaseIndex: 0, count: phases[0].counts, round: 1 });
+
+  // Tracks the wall-clock instant the app left the foreground so we can
+  // compute elapsed seconds when it returns.
+  const backgroundedAtRef = useRef<number | null>(null);
+
+  // Mirrors `status` into a ref so the AppState handler (registered once) can
+  // read the current status without being recreated on every status change.
+  const statusRef = useRef<Status>('idle');
+  useEffect(() => { statusRef.current = status; }, [status]);
 
   const clearTimer = () => {
     if (intervalRef.current) {
@@ -103,10 +150,51 @@ export default function BreathingTimer({ title, description, phases, totalRounds
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
-      setAppActive(nextState === 'active');
+      if (nextState === 'active') {
+        // DELIBERATE PRODUCT CHOICE: elapsed-time advance.
+        //
+        // When the screen turns off or the app is backgrounded, we record the
+        // wall-clock timestamp. On return to the foreground we calculate the
+        // elapsed seconds and fast-forward the session state by that amount,
+        // so the timer reflects real time rather than silently pausing.
+        //
+        // Alternative (pause): remove the elapsed calculation below and simply
+        // call `setAppActive(true)` — the interval restarts from exactly where
+        // it stopped, ignoring the time spent backgrounded.
+        if (backgroundedAtRef.current !== null && statusRef.current === 'running') {
+          const elapsed = Math.floor((Date.now() - backgroundedAtRef.current) / 1000);
+          backgroundedAtRef.current = null;
+
+          if (elapsed > 0) {
+            const advanced = advanceStateByTicks(stateRef.current, elapsed, phases, totalRounds);
+            stateRef.current = { phaseIndex: advanced.phaseIndex, count: advanced.count, round: advanced.round };
+            setPhaseIndex(advanced.phaseIndex);
+            setCount(advanced.count);
+            setRound(advanced.round);
+
+            if (advanced.done) {
+              // The session finished while the screen was off — complete it now.
+              // Do NOT return early here: setAppActive(true) below is still needed
+              // so that "Go Again" from the done screen can restart the interval
+              // (the interval effect is gated on appActive — leaving it false would
+              // block the timer from restarting on the next session).
+              setStatus('done');
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              playChime('done');
+              onComplete?.();
+            }
+          }
+        } else {
+          backgroundedAtRef.current = null;
+        }
+        setAppActive(true);
+      } else {
+        backgroundedAtRef.current = Date.now();
+        setAppActive(false);
+      }
     });
     return () => subscription.remove();
-  }, []);
+  }, [phases, totalRounds, playChime, onComplete]);
 
   useEffect(() => {
     if (status !== 'running' || !appActive) return;
