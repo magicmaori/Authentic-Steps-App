@@ -5,6 +5,7 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 
 import { useColors } from '@/hooks/useColors';
 import { useBreathingSound } from '@/hooks/useBreathingSound';
+import { useApp } from '@/context/AppContext';
 
 type Phase = {
   label: string;
@@ -33,13 +34,18 @@ function phaseChime(label: string): 'in' | 'out' | 'hold' {
 
 export default function BreathingTimer({ title, description, phases, totalRounds, accentColor, onComplete }: Props) {
   const colors = useColors();
+  const { userData, setChimeEnabled } = useApp();
   const [status, setStatus] = useState<Status>('idle');
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [count, setCount] = useState(phases[0].counts);
   const [round, setRound] = useState(1);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const soundEnabled = userData.chimeEnabled;
 
   const { playChime } = useBreathingSound(soundEnabled);
+
+  const toggleChime = useCallback(() => {
+    setChimeEnabled(!soundEnabled).catch(() => {});
+  }, [soundEnabled, setChimeEnabled]);
 
   const circleScale = useRef(new Animated.Value(0.55)).current;
   const phaseOpacity = useRef(new Animated.Value(1)).current;
@@ -160,7 +166,7 @@ export default function BreathingTimer({ title, description, phases, totalRounds
           </Pressable>
           <Pressable
             style={[styles.soundToggle, { borderColor: colors.border }]}
-            onPress={() => setSoundEnabled(v => !v)}
+            onPress={toggleChime}
             accessibilityLabel={soundEnabled ? 'Mute chimes' : 'Enable chimes'}
             hitSlop={8}
           >
@@ -215,7 +221,7 @@ export default function BreathingTimer({ title, description, phases, totalRounds
             </Pressable>
             <Pressable
               style={styles.soundPill}
-              onPress={() => setSoundEnabled(v => !v)}
+              onPress={toggleChime}
               accessibilityLabel={soundEnabled ? 'Mute chimes' : 'Enable chimes'}
               hitSlop={8}
             >

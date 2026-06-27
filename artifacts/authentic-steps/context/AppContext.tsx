@@ -9,6 +9,7 @@ import {
   cancelAllReminders,
   fireMilestoneNotification,
   getPermissionState,
+  getScheduledReminderTimes,
   scheduleEveningReminder,
   scheduleRitualReminder,
   setupAndroidChannel,
@@ -75,6 +76,7 @@ export interface UserData {
   ritualMinute: number;
   eveningHour: number;
   eveningMinute: number;
+  chimeEnabled: boolean;
 }
 
 export type RestoreResult =
@@ -110,6 +112,7 @@ interface AppContextType {
   setNotificationPref: (key: 'notifRitual' | 'notifEvening' | 'notifMilestone', value: boolean) => Promise<void>;
   setNotificationTime: (key: 'ritual' | 'evening', hour: number, minute: number) => Promise<void>;
   disableAllNotificationPrefs: () => Promise<void>;
+  setChimeEnabled: (value: boolean) => Promise<void>;
 }
 
 function generateRecoveryCode(anonymousName: string): string {
@@ -170,6 +173,7 @@ const defaultUser: UserData = {
   ritualMinute: 0,
   eveningHour: 20,
   eveningMinute: 0,
+  chimeEnabled: true,
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -404,15 +408,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const parsed = JSON.parse(userRaw) as Partial<UserData>;
         const name = parsed.anonymousName || generateAnonymousName();
         const recoveryCode = parsed.recoveryCode || generateRecoveryCode(name);
+
+        // Migration: if an old install didn't persist reminder times, recover them
+        // from whatever was actually scheduled in the OS rather than silently reverting
+        // to the in-code defaults.
+        const needsTimeMigration =
+          typeof parsed.ritualHour !== 'number' ||
+          typeof parsed.ritualMinute !== 'number' ||
+          typeof parsed.eveningHour !== 'number' ||
+          typeof parsed.eveningMinute !== 'number';
+        const scheduledTimes: Awaited<ReturnType<typeof getScheduledReminderTimes>> = needsTimeMigration
+          ? await getScheduledReminderTimes().catch(() => ({}))
+          : {};
+
         const merged: UserData = {
           ...defaultUser,
           ...parsed,
           anonymousName: name,
           recoveryCode,
           hasOnboarded: parsed.hasOnboarded ?? (parsed.totalRituals !== undefined && parsed.totalRituals > 0),
+          ritualHour: parsed.ritualHour ?? scheduledTimes.ritualHour ?? defaultUser.ritualHour,
+          ritualMinute: parsed.ritualMinute ?? scheduledTimes.ritualMinute ?? defaultUser.ritualMinute,
+          eveningHour: parsed.eveningHour ?? scheduledTimes.eveningHour ?? defaultUser.eveningHour,
+          eveningMinute: parsed.eveningMinute ?? scheduledTimes.eveningMinute ?? defaultUser.eveningMinute,
         };
         setUserData(merged);
-        if (!parsed.recoveryCode || !parsed.anonymousName) {
+        const needsSave = !parsed.recoveryCode || !parsed.anonymousName || needsTimeMigration;
+        if (needsSave) {
           await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(merged));
         }
         reconcileNotifications(merged).catch(() => {});
@@ -774,6 +796,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await cancelAllReminders().catch((e) => logNotifError('cancelAll', e));
   }, [userData]);
 
+  const setChimeEnabled = useCallback(async (value: boolean) => {
+    await saveUser({ ...userData, chimeEnabled: value });
+  }, [userData]);
+
   async function resetAllData() {
     await cancelAllReminders().catch(() => {});
     const name = generateAnonymousName();
@@ -852,6 +878,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setNotificationPref,
       setNotificationTime,
       disableAllNotificationPrefs,
+      setChimeEnabled,
     }}>
       {children}
     </AppContext.Provider>

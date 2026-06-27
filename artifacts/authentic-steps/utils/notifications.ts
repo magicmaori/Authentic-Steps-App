@@ -84,6 +84,37 @@ export async function fireMilestoneNotification(milestone: Milestone): Promise<v
   });
 }
 
+export async function getScheduledReminderTimes(): Promise<{
+  ritualHour?: number;
+  ritualMinute?: number;
+  eveningHour?: number;
+  eveningMinute?: number;
+}> {
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const result: {
+      ritualHour?: number;
+      ritualMinute?: number;
+      eveningHour?: number;
+      eveningMinute?: number;
+    } = {};
+    for (const notif of scheduled) {
+      const trigger = notif.trigger as any;
+      if (typeof trigger?.hour !== 'number' || typeof trigger?.minute !== 'number') continue;
+      if (notif.identifier === ID_RITUAL) {
+        result.ritualHour = trigger.hour;
+        result.ritualMinute = trigger.minute;
+      } else if (notif.identifier === ID_EVENING) {
+        result.eveningHour = trigger.hour;
+        result.eveningMinute = trigger.minute;
+      }
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
 export async function cancelAllReminders(): Promise<void> {
   await Promise.all([
     Notifications.cancelScheduledNotificationAsync(ID_RITUAL).catch(() => {}),
