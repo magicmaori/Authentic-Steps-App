@@ -507,6 +507,81 @@ describe('BreathingTimer – chime toggle', () => {
       setValueSpy.mockRestore();
     });
 
+    /**
+     * Regression guard for the final-phase / final-round boundary in the
+     * multi-phase setInterval code path:
+     *   nextPhaseIndex >= phases.length  →  nextRound > totalRounds  →  done
+     *
+     * An off-by-one on `nextRound > totalRounds` would either fire done one
+     * round too early (at tick 6) or prevent done from ever appearing.
+     *
+     * Config: 2 phases (counts=3 each) × 2 rounds = 12 ticks total.
+     *
+     * Timer arithmetic per round:
+     *   Phase 0 (counts=3): ticks 1-2 decrement (3→2→1),
+     *                        tick 3 exhausts → advance to phase 1
+     *   Phase 1 (counts=3): ticks 4-5 decrement (3→2→1),
+     *                        tick 6 exhausts → nextRound check
+     *
+     * Round 1 ends at tick 6  → round becomes 2 (not done; 2 ≤ totalRounds)
+     * Round 2 ends at tick 12 → nextRound = 3 > totalRounds → done fires
+     */
+    it('shows "Well done!" on tick 12 (not before) and calls onComplete exactly once for a 2-phase × 2-round session', async () => {
+      const mockOnComplete = jest.fn();
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const TWO_PHASE_TWO_ROUND_PROPS = {
+        title: 'Boundary Test',
+        description: 'Test',
+        phases: [
+          { label: 'Breathe In', counts: 3, instruction: 'Inhale', targetScale: 1 },
+          { label: 'Hold',       counts: 3, instruction: 'Hold',   targetScale: 1 },
+        ],
+        totalRounds: 2,
+        accentColor: '#6366f1',
+        onComplete: mockOnComplete,
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...TWO_PHASE_TWO_ROUND_PROPS} />);
+      });
+
+      // Start the exercise
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // ── Ticks 1–11: done screen must NOT appear ─────────────────────────────
+      await act(async () => { jest.advanceTimersByTime(11000); });
+
+      const doneNodesEarly = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodesEarly.length).toBe(0);
+
+      // Still in running state (Stop button present, done screen absent)
+      const stopNodesAtTick11 = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesAtTick11.length).toBeGreaterThan(0);
+
+      // onComplete must not have fired yet
+      expect(mockOnComplete).not.toHaveBeenCalled();
+
+      // ── Tick 12: done must appear and onComplete fires exactly once ─────────
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      const doneNodesAtTick12 = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodesAtTick12.length).toBeGreaterThan(0);
+
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+    });
+
     it('calls onComplete once per completed session when "Go Again" is used multiple times', async () => {
       const mockOnComplete = jest.fn();
       mockUseApp.mockReturnValue({
