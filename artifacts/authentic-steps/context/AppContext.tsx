@@ -8,6 +8,19 @@ export type GratitudeCategory = 'people' | 'experiences' | 'things' | 'self';
 export type IntentionCategory = 'movement' | 'connection' | 'learning' | 'rest' | 'creativity';
 export type ThemePreference = 'system' | 'light' | 'dark';
 
+export interface GroundingSense {
+  sense: string;
+  icon: string;
+  answers: string[];
+}
+
+export interface GroundingSession {
+  id: string;
+  date: string;
+  timestamp: number;
+  senses: GroundingSense[];
+}
+
 export interface GratitudeEntry {
   text: string;
   category: GratitudeCategory;
@@ -72,6 +85,8 @@ interface AppContextType {
   completedExercises: Record<string, string>;
   markExerciseDone: (toolId: string) => Promise<void>;
   isExerciseDoneToday: (toolId: string) => boolean;
+  groundingSessions: GroundingSession[];
+  saveGroundingSession: (senses: GroundingSense[]) => Promise<void>;
 }
 
 function generateRecoveryCode(anonymousName: string): string {
@@ -132,6 +147,7 @@ const AppContext = createContext<AppContextType | null>(null);
 const STORAGE_KEY_USER = '@authentic_steps_user';
 const STORAGE_KEY_ENTRIES = '@authentic_steps_entries';
 const STORAGE_KEY_EXERCISES = '@authentic_steps_exercises';
+const STORAGE_KEY_GROUNDING = '@authentic_steps_grounding';
 
 function todayString(): string {
   return new Date().toISOString().split('T')[0];
@@ -154,6 +170,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<UserData>(defaultUser);
   const [entries, setEntries] = useState<Record<string, RitualEntry>>({});
   const [completedExercises, setCompletedExercises] = useState<Record<string, string>>({});
+  const [groundingSessions, setGroundingSessions] = useState<GroundingSession[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -162,10 +179,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   async function loadData() {
     try {
-      const [userRaw, entriesRaw, exercisesRaw] = await Promise.all([
+      const [userRaw, entriesRaw, exercisesRaw, groundingRaw] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY_USER),
         AsyncStorage.getItem(STORAGE_KEY_ENTRIES),
         AsyncStorage.getItem(STORAGE_KEY_EXERCISES),
+        AsyncStorage.getItem(STORAGE_KEY_GROUNDING),
       ]);
       if (userRaw) {
         const parsed = JSON.parse(userRaw) as Partial<UserData>;
@@ -198,6 +216,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (date === today) filtered[toolId] = date;
         }
         setCompletedExercises(filtered);
+      }
+      if (groundingRaw) {
+        const parsed: GroundingSession[] = JSON.parse(groundingRaw);
+        setGroundingSessions(parsed);
       }
     } catch {
     } finally {
@@ -421,6 +443,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return completedExercises[toolId] === todayString();
   }, [completedExercises]);
 
+  const saveGroundingSession = useCallback(async (senses: GroundingSense[]) => {
+    const now = Date.now();
+    const session: GroundingSession = {
+      id: now.toString(),
+      date: todayString(),
+      timestamp: now,
+      senses,
+    };
+    const updated = [session, ...groundingSessions];
+    setGroundingSessions(updated);
+    await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated));
+  }, [groundingSessions]);
+
   function getStreakCalendar() {
     const days: { date: string; done: boolean; flex: boolean }[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -461,6 +496,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       completedExercises,
       markExerciseDone,
       isExerciseDoneToday,
+      groundingSessions,
+      saveGroundingSession,
     }}>
       {children}
     </AppContext.Provider>

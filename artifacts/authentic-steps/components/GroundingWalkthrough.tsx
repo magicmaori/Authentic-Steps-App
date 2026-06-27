@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   Animated,
@@ -13,6 +14,7 @@ import {
   View,
 } from 'react-native';
 
+import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 
 type Step = {
@@ -93,6 +95,7 @@ type Props = {
 
 export default function GroundingWalkthrough({ onComplete }: Props = {}) {
   const colors = useColors();
+  const { saveGroundingSession } = useApp();
   const [status, setStatus] = useState<Status>('idle');
   const [stepIndex, setStepIndex] = useState(0);
   const [responses, setResponses] = useState<string[][]>(initResponses());
@@ -127,6 +130,12 @@ export default function GroundingWalkthrough({ onComplete }: Props = {}) {
       animateTransition(() => setStepIndex(i => i + 1));
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const senses = STEPS.map((s, si) => ({
+        sense: s.sense,
+        icon: s.icon,
+        answers: responses[si].filter(r => r.trim().length > 0),
+      })).filter(s => s.answers.length > 0);
+      saveGroundingSession(senses);
       animateTransition(() => {
         setStatus('done');
         onComplete?.();
@@ -316,6 +325,13 @@ export default function GroundingWalkthrough({ onComplete }: Props = {}) {
             <Pressable style={[styles.startBtn, { backgroundColor: accentColor }]} onPress={reset}>
               <Text style={styles.startBtnText}>Done</Text>
             </Pressable>
+            <Pressable
+              style={[styles.historyBtn, { borderColor: accentColor }]}
+              onPress={() => router.push('/grounding-history' as any)}
+            >
+              <Ionicons name="time-outline" size={15} color={accentColor} />
+              <Text style={[styles.historyBtnText, { color: accentColor }]}>View past sessions</Text>
+            </Pressable>
           </View>
         )}
       </View>
@@ -386,6 +402,17 @@ const styles = StyleSheet.create({
 
   startBtn: { borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
   startBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+
+  historyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    paddingVertical: 10,
+  },
+  historyBtnText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
 
   doneArea: { alignItems: 'center', gap: 10 },
   doneEmoji: { fontSize: 44 },
