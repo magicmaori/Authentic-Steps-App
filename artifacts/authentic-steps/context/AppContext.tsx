@@ -268,10 +268,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [isLoaded, authLoaded, isSignedIn, userId]);
 
+  async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+      }
+      try {
+        return await fetch(url, options);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError;
+  }
+
   async function fetchAndMergeRemoteData(token: string) {
     if (!API_BASE) return;
     try {
-      const resp = await fetch(`${API_BASE}/api/sync`, {
+      const resp = await fetchWithRetry(`${API_BASE}/api/sync`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!resp.ok) return;
