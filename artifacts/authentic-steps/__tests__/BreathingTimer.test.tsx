@@ -170,6 +170,44 @@ describe('BreathingTimer – chime toggle', () => {
     });
   });
 
+  describe('Stop button', () => {
+    it('returns to idle state when Stop is pressed during a session', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: true },
+        setChimeEnabled: mockSetChimeEnabled,
+      });
+
+      await act(async () => {
+        root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+      });
+
+      // Start the exercise — running UI should appear
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+
+      await act(async () => {
+        startNodes[0].props.onPress();
+      });
+
+      // Verify we are in running state (Stop button is present)
+      const stopNodes = findPressableByChildText(root!, 'Stop');
+      expect(stopNodes.length).toBeGreaterThan(0);
+
+      // Press Stop
+      await act(async () => {
+        stopNodes[0].props.onPress();
+      });
+
+      // Component must be back in idle state: "Start Breathing" reappears …
+      const idleStartNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(idleStartNodes.length).toBeGreaterThan(0);
+
+      // … and the running UI (Stop button) is gone
+      const stopNodesAfter = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesAfter.length).toBe(0);
+    });
+  });
+
   describe('running state', () => {
     it('calls setChimeEnabled(false) when chimes are on and the sound pill is pressed during a session', async () => {
       mockUseApp.mockReturnValue({
