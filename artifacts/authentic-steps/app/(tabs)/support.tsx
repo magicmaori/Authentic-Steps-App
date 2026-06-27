@@ -217,6 +217,9 @@ export default function SupportScreen() {
                 <Text style={[styles.triageOptText, { color: colors.foreground }]}>{opt}</Text>
               </Pressable>
             ))}
+            <Pressable testID="triage-area-reset-btn" onPress={resetTriage} style={styles.resetBtn}>
+              <Text style={[styles.resetBtnText, { color: colors.mutedForeground }]}>Start over</Text>
+            </Pressable>
           </View>
         )}
 
@@ -238,6 +241,9 @@ export default function SupportScreen() {
                 <Text style={[styles.triageOptText, { color: colors.foreground }]}>{opt}</Text>
               </Pressable>
             ))}
+            <Pressable testID="triage-type-reset-btn" onPress={resetTriage} style={styles.resetBtn}>
+              <Text style={[styles.resetBtnText, { color: colors.mutedForeground }]}>Start over</Text>
+            </Pressable>
           </View>
         )}
 

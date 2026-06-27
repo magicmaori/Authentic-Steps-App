@@ -297,6 +297,157 @@ describe('Support screen – "Start over" reset', () => {
   });
 });
 
+// ─── Mid-flow intermediate states ─────────────────────────────────────────────
+
+describe('Support screen – mid-flow intermediate states', () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  // Navigate to area step (urgency="today")
+  async function reachAreaStep() {
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+    });
+  }
+
+  // Navigate to type step (urgency="today", area="emotions")
+  async function reachTypeStep() {
+    await reachAreaStep();
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+    });
+  }
+
+  // ── Area → Type step transition ──────────────────────────────────────────
+
+  const AREA_OPTIONS = [
+    'emotions',
+    'relationships',
+    'school-or-home',
+    'habits',
+    'something-else',
+  ];
+
+  it.each(AREA_OPTIONS)(
+    'tapping triage-area-%s advances to the type step',
+    async (areaId) => {
+      await reachAreaStep();
+
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+
+      // Type step must now be visible (one of its options is present)
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-type-someone-to-listen' }),
+      ).not.toThrow();
+
+      // Area step must no longer be visible
+      expect(() =>
+        root.root.findByProps({ testID: `triage-area-${areaId}` }),
+      ).toThrow();
+    },
+  );
+
+  // ── Type → Routed step transition (non-professional paths) ───────────────
+
+  const NON_PROFESSIONAL_TYPES = [
+    'someone-to-listen',
+    'practical-ideas',
+  ];
+
+  it.each(NON_PROFESSIONAL_TYPES)(
+    'tapping triage-type-%s advances to the routed view',
+    async (typeId) => {
+      await reachTypeStep();
+
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-type-${typeId}` }).props.onPress();
+      });
+
+      // Routed view reset button must now be visible
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-reset-btn' }),
+      ).not.toThrow();
+
+      // Type step must no longer be visible
+      expect(() =>
+        root.root.findByProps({ testID: `triage-type-${typeId}` }),
+      ).toThrow();
+
+      // Professional-help call button must NOT be present for these paths
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-call-professional' }),
+      ).toThrow();
+    },
+  );
+
+  // ── "Start over" from area step ──────────────────────────────────────────
+
+  it('"Start over" at the area step returns to idle (start button visible)', async () => {
+    await reachAreaStep();
+
+    // Area-step reset button must be present
+    const resetBtn = root.root.findByProps({ testID: 'triage-area-reset-btn' });
+    expect(resetBtn).toBeTruthy();
+
+    await act(async () => {
+      resetBtn.props.onPress();
+    });
+
+    // After reset the initial start button must be visible again
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-start-btn' }),
+    ).not.toThrow();
+
+    // Area-step reset button must no longer be rendered
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-area-reset-btn' }),
+    ).toThrow();
+  });
+
+  // ── "Start over" from type step ──────────────────────────────────────────
+
+  it('"Start over" at the type step returns to idle (start button visible)', async () => {
+    await reachTypeStep();
+
+    // Type-step reset button must be present
+    const resetBtn = root.root.findByProps({ testID: 'triage-type-reset-btn' });
+    expect(resetBtn).toBeTruthy();
+
+    await act(async () => {
+      resetBtn.props.onPress();
+    });
+
+    // After reset the initial start button must be visible again
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-start-btn' }),
+    ).not.toThrow();
+
+    // Type-step reset button must no longer be rendered
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-type-reset-btn' }),
+    ).toThrow();
+  });
+});
+
 // ─── Web-chat button ───────────────────────────────────────────────────────────
 
 describe('Support screen – web-chat button', () => {
