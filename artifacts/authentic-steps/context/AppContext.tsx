@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@clerk/expo';
+import Constants from 'expo-constants';
 import { deflateSync, decompressSync, strFromU8, strToU8 } from 'fflate';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 import { generateAnonymousName } from '@/constants/affirmations';
 import {
@@ -84,6 +86,7 @@ interface AppContextType {
   entries: Record<string, RitualEntry>;
   todayEntry: RitualEntry | null;
   isLoaded: boolean;
+  lastSynced: Date | null;
   saveGratitude: (gratitudes: GratitudeEntry[]) => Promise<void>;
   saveIntention: (intention: string, category: IntentionCategory | '') => Promise<void>;
   saveIAmStatement: (statement: string) => Promise<void>;
@@ -175,6 +178,17 @@ const STORAGE_KEY_USER = '@authentic_steps_user';
 const STORAGE_KEY_ENTRIES = '@authentic_steps_entries';
 const STORAGE_KEY_EXERCISES = '@authentic_steps_exercises';
 const STORAGE_KEY_GROUNDING = '@authentic_steps_grounding';
+const STORAGE_KEY_UPDATED_AT = '@authentic_steps_updated_at';
+
+const API_BASE: string = (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ?? '';
+
+interface SyncPayload {
+  userData: UserData;
+  entries: Record<string, RitualEntry>;
+  groundingSessions: GroundingSession[];
+  completedExercises: Record<string, string>;
+  updatedAt: string;
+}
 
 function todayString(): string {
   return new Date().toISOString().split('T')[0];
@@ -199,11 +213,151 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [completedExercises, setCompletedExercises] = useState<Record<string, string>>({});
   const [groundingSessions, setGroundingSessions] = useState<GroundingSession[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+
+  const { isSignedIn, getToken, isLoaded: authLoaded, userId } = useAuth();
+
+  const pendingSyncRef = useRef<SyncPayload | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasFetchedRemote = useRef(false);
+  const lastFetchedUserId = useRef<string | null>(null);
 
   useEffect(() => {
     loadData();
     setupAndroidChannel().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !authLoaded) return;
+
+    if (!isSignedIn) {
+      // Reset so we re-fetch when user signs back in
+      hasFetchedRemote.current = false;
+      lastFetchedUserId.current = null;
+      return;
+    }
+
+    const currentUserId = userId ?? null;
+
+    // Reset if a different user signed in
+    if (lastFetchedUserId.current !== null && lastFetchedUserId.current !== currentUserId) {
+      hasFetchedRemote.current = false;
+    }
+
+    if (hasFetchedRemote.current) return;
+
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return; // Leave flag unset; will retry when deps change
+
+        // Mark as fetched before network call to prevent duplicate concurrent fetches
+        hasFetchedRemote.current = true;
+        lastFetchedUserId.current = currentUserId;
+
+        await fetchAndMergeRemoteData(token);
+      } catch {
+        // Allow retry on next relevant state change
+        hasFetchedRemote.current = false;
+      }
+    })();
+  }, [isLoaded, authLoaded, isSignedIn, userId]);
+
+  async function fetchAndMergeRemoteData(token: string) {
+    if (!API_BASE) return;
+    try {
+      const resp = await fetch(`${API_BASE}/api/sync`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!resp.ok) return;
+      const remote = await resp.json() as {
+        found: boolean;
+        data?: SyncPayload;
+        updatedAt?: string;
+      };
+
+      if (!remote.found || !remote.data) {
+        // No cloud record — push local data up so the server has a copy
+        scheduleSyncPush(userData, entries, groundingSessions, completedExercises);
+        setLastSynced(new Date());
+        return;
+      }
+
+      // Compare timestamps: only apply remote data if it's strictly newer than local
+      const localUpdatedAtRaw = await AsyncStorage.getItem(STORAGE_KEY_UPDATED_AT);
+      const remoteUpdatedAt = remote.updatedAt ? new Date(remote.updatedAt) : new Date(0);
+      const localUpdatedAt = localUpdatedAtRaw ? new Date(localUpdatedAtRaw) : new Date(0);
+
+      if (localUpdatedAtRaw && localUpdatedAt >= remoteUpdatedAt) {
+        // Local is newer or the same — push local up and done
+        scheduleSyncPush(userData, entries, groundingSessions, completedExercises);
+        setLastSynced(new Date());
+        return;
+      }
+
+      // Remote is newer — apply remote data
+      const d = remote.data;
+      if (d.userData) {
+        const merged: UserData = { ...defaultUser, ...d.userData };
+        setUserData(merged);
+        await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(merged));
+        reconcileNotifications(merged).catch(() => {});
+      }
+      if (d.entries) {
+        setEntries(d.entries);
+        await AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(d.entries));
+      }
+      if (d.groundingSessions) {
+        setGroundingSessions(d.groundingSessions);
+        await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(d.groundingSessions));
+      }
+      if (d.completedExercises) {
+        const today = todayString();
+        const filtered: Record<string, string> = {};
+        for (const [toolId, date] of Object.entries(d.completedExercises)) {
+          if (date === today) filtered[toolId] = date;
+        }
+        setCompletedExercises(filtered);
+        await AsyncStorage.setItem(STORAGE_KEY_EXERCISES, JSON.stringify(filtered));
+      }
+      // Record the remote's timestamp as our local updated-at so future
+      // comparisons treat this restore as the baseline
+      if (remote.updatedAt) {
+        await AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, remote.updatedAt);
+      }
+      setLastSynced(new Date());
+    } catch {
+      // Silent failure — guest or offline
+    }
+  }
+
+  function scheduleSyncPush(
+    u: UserData,
+    e: Record<string, RitualEntry>,
+    g: GroundingSession[],
+    ce: Record<string, string>,
+  ) {
+    if (!isSignedIn || !API_BASE) return;
+    const updatedAt = new Date().toISOString();
+    pendingSyncRef.current = { userData: u, entries: e, groundingSessions: g, completedExercises: ce, updatedAt };
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
+      const payload = pendingSyncRef.current;
+      if (!payload) return;
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const resp = await fetch(`${API_BASE}/api/sync`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload),
+        });
+        if (resp.ok) setLastSynced(new Date());
+      } catch {
+        // Silent — guest or offline
+      }
+    }, 2000);
+  }
 
   function logNotifError(label: string, err: unknown) {
     if (__DEV__) console.warn(`[Notifications] ${label}`, err);
@@ -282,14 +436,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function saveUser(updated: UserData) {
+  /** Write user data locally and record the local timestamp used for freshness comparison. */
+  async function saveUser(
+    updated: UserData,
+    _entries?: Record<string, RitualEntry>,
+    _groundingSessions?: GroundingSession[],
+    _completedExercises?: Record<string, string>,
+  ) {
+    const now = new Date().toISOString();
     setUserData(updated);
-    await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated)),
+      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
+    ]);
+    scheduleSyncPush(
+      updated,
+      _entries ?? entries,
+      _groundingSessions ?? groundingSessions,
+      _completedExercises ?? completedExercises,
+    );
   }
 
+  /** Write entries locally and record the local timestamp used for freshness comparison. */
   async function saveEntries(updated: Record<string, RitualEntry>) {
+    const now = new Date().toISOString();
     setEntries(updated);
-    await AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(updated));
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(updated)),
+      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
+    ]);
+    scheduleSyncPush(userData, updated, groundingSessions, completedExercises);
   }
 
   function getTodayEntry(): RitualEntry | null {
@@ -334,18 +510,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     const safeEntries: Record<string, RitualEntry> = restoredEntries ?? {};
     try {
+      const now = new Date().toISOString();
       await Promise.all([
         AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(safeUser)),
         AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(safeEntries)),
+        AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
       ]);
       setUserData(safeUser);
       setEntries(safeEntries);
       reconcileNotifications(safeUser).catch(() => {});
+      scheduleSyncPush(safeUser, safeEntries, groundingSessions, completedExercises);
       return { ok: true };
     } catch {
       return { ok: false, reason: 'save_failed' };
     }
-  }, []);
+  }, [entries, groundingSessions, completedExercises, isSignedIn]);
 
   const saveGratitude = useCallback(async (gratitudes: GratitudeEntry[]) => {
     const today = todayString();
@@ -457,8 +636,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    await saveEntries(newEntries);
-    await saveUser(newUser);
+    const now = new Date().toISOString();
+    setEntries(newEntries);
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(newEntries)),
+      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
+    ]);
+    await saveUser(newUser, newEntries, groundingSessions, completedExercises);
   }, [entries, userData]);
 
   const useFlex = useCallback(async (): Promise<boolean> => {
@@ -504,9 +688,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const today = todayString();
     if (completedExercises[toolId] === today) return;
     const updated = { ...completedExercises, [toolId]: today };
+    const now = new Date().toISOString();
     setCompletedExercises(updated);
-    await AsyncStorage.setItem(STORAGE_KEY_EXERCISES, JSON.stringify(updated));
-  }, [completedExercises]);
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEY_EXERCISES, JSON.stringify(updated)),
+      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
+    ]);
+    scheduleSyncPush(userData, entries, groundingSessions, updated);
+  }, [completedExercises, userData, entries, groundingSessions]);
 
   const isExerciseDoneToday = useCallback((toolId: string): boolean => {
     return completedExercises[toolId] === todayString();
@@ -521,15 +710,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       senses,
     };
     const updated = [session, ...groundingSessions];
+    const updatedAt = new Date().toISOString();
     setGroundingSessions(updated);
-    await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated));
-  }, [groundingSessions]);
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated)),
+      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, updatedAt),
+    ]);
+    scheduleSyncPush(userData, entries, updated, completedExercises);
+  }, [groundingSessions, userData, entries, completedExercises]);
 
   const deleteGroundingSession = useCallback(async (id: string) => {
-    const updated = groundingSessions.filter((s) => s.id !== id);
+    const updated = groundingSessions.filter(s => s.id !== id);
+    const updatedAt = new Date().toISOString();
     setGroundingSessions(updated);
-    await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated));
-  }, [groundingSessions]);
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated)),
+      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, updatedAt),
+    ]);
+    scheduleSyncPush(userData, entries, updated, completedExercises);
+  }, [groundingSessions, userData, entries, completedExercises]);
 
   const setNotificationPref = useCallback(async (
     key: 'notifRitual' | 'notifEvening' | 'notifMilestone',
@@ -562,12 +761,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   async function resetAllData() {
     await cancelAllReminders().catch(() => {});
-    await AsyncStorage.multiRemove([
-      STORAGE_KEY_USER,
-      STORAGE_KEY_ENTRIES,
-      STORAGE_KEY_EXERCISES,
-      STORAGE_KEY_GROUNDING,
-    ]);
     const name = generateAnonymousName();
     const freshUser: UserData = {
       ...defaultUser,
@@ -576,11 +769,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       hasOnboarded: true,
       themePreference: userData.themePreference,
     };
-    await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(freshUser));
+    const now = new Date().toISOString();
+    await AsyncStorage.multiRemove([
+      STORAGE_KEY_USER,
+      STORAGE_KEY_ENTRIES,
+      STORAGE_KEY_EXERCISES,
+      STORAGE_KEY_GROUNDING,
+    ]);
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(freshUser)),
+      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
+    ]);
     setUserData(freshUser);
     setEntries({});
     setCompletedExercises({});
     setGroundingSessions([]);
+    setLastSynced(null);
+    // Push the wiped state to cloud so remote mirrors local
+    scheduleSyncPush(freshUser, {}, [], {});
   }
 
   function getStreakCalendar() {
@@ -607,6 +813,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       entries,
       todayEntry,
       isLoaded,
+      lastSynced,
       saveGratitude,
       saveIntention,
       saveIAmStatement,

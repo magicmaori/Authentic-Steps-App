@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAuth } from '@clerk/expo';
 import { ThemePreference, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 import {
@@ -55,7 +56,8 @@ function formatLastUpdated(date: Date): string {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs } = useApp();
+  const { userData, entries, groundingSessions, lastSynced, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs } = useApp();
+  const { isSignedIn } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
   const [notifBlocked, setNotifBlocked] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState<'ritual' | 'evening' | null>(null);
@@ -374,6 +376,20 @@ export default function ProfileScreen() {
           <View style={styles.profileInfo}>
             <Text style={[styles.username, { color: colors.foreground }]}>{userData.anonymousName}</Text>
             <Text style={[styles.anonNote, { color: colors.mutedForeground }]}>Anonymous name — only you see this</Text>
+            {isSignedIn && (
+              <View style={styles.syncRow}>
+                <Ionicons
+                  name="cloud-done-outline"
+                  size={12}
+                  color={lastSynced ? colors.primary : colors.mutedForeground}
+                />
+                <Text style={[styles.syncText, { color: lastSynced ? colors.primary : colors.mutedForeground }]}>
+                  {lastSynced
+                    ? `Synced ${formatLastUpdated(lastSynced)}`
+                    : 'Syncing…'}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -895,6 +911,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   themeLabel: { fontSize: 12, fontFamily: 'Inter_500Medium' },
+  syncRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  syncText: { fontSize: 11, fontFamily: 'Inter_400Regular' },
   brandNote: { borderRadius: 14, padding: 16, alignItems: 'center', gap: 4 },
   brandText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
   brandSub: { fontSize: 11, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 16 },
