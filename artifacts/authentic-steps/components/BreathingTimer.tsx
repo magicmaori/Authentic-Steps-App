@@ -11,8 +11,29 @@ import { useApp } from '@/context/AppContext';
 /**
  * AsyncStorage key used to detect sessions that were interrupted by a force-quit.
  *
- * Written when a session starts, removed when it ends normally (stop or done).
- * On mount, if this key is present it means a previous session was cut short.
+ * ── Flag lifecycle ────────────────────────────────────────────────────────────
+ *  SET   — in startExercise(), written as JSON `{ toolId, startedAt }`.
+ *  CLEAR — in stopExercise()  when the user taps Stop (normal exit).
+ *  CLEAR — in the interval effect when all rounds complete in the foreground.
+ *  CLEAR — in the AppState handler when all rounds complete while backgrounded.
+ *  CLAIM — in the mount effect: if the stored toolId matches THIS card AND the
+ *           flag is not stale, setInterrupted(true) and remove the flag.
+ *
+ * ── toolId-based scoping (prevents two cards both claiming 'interrupted') ─────
+ *  The stored value includes the toolId of the card that started the session.
+ *  On mount, each BreathingTimer card reads the flag and compares the stored
+ *  toolId against its own `toolId` prop:
+ *
+ *    • Match   → the flag belongs to this card; consume it (setInterrupted +
+ *                removeItem).  The removeItem is intentionally inside this
+ *                equality check — a deliberate safeguard ensuring only the
+ *                owning card can clear its own flag.
+ *    • No match → leave the flag untouched so the correct card can consume it
+ *                 when it mounts.
+ *
+ *  This means that even if multiple BreathingTimer cards are on screen at the
+ *  same time (possible with future layout changes), at most one — the one whose
+ *  toolId matches the stored value — will ever show the interrupted notice.
  *
  * DECISION: show an "interrupted" notice rather than persist-and-resume.
  * Breathing exercises require active participation; resuming a paused timer
