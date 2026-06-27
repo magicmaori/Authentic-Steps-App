@@ -211,6 +211,155 @@ describe('BreathingTimer – chime toggle', () => {
   });
 
   describe('completion – done screen', () => {
+    it('"Go Again" resets phaseIndex, round, and count and enters running state', async () => {
+      /**
+       * Setup: 2 phases × 2 rounds so the terminal state is meaningfully different
+       * from the reset state, making every assertion discriminating.
+       *
+       * Phase 0 — "Breathe In": counts=4  (the phase that should be active after reset)
+       * Phase 1 — "Hold":       counts=2  (the phase that is active when 'done' fires)
+       *
+       * Timer arithmetic per round:
+       *   Phase 0: ticks 1-3 decrement count (4→3→2→1), tick 4 exhausts → advance phase
+       *   Phase 1: tick 5 decrements (2→1), tick 6 exhausts → advance round (or done)
+       *
+       * Round 1: 6 ticks → phaseIndex resets to 0, round becomes 2
+       * Round 2: 6 ticks → tick 12 fires done
+       *
+       * Terminal useState values just before 'done' fires:
+       *   phaseIndex = 1 (Hold), count = 1, round = 2
+       *
+       * Expected values after "Go Again" (startExercise resets all):
+       *   phaseIndex = 0 (Breathe In), count = 4, round = 1
+       */
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const MULTI_PHASE_PROPS = {
+        title: 'Test Breathing',
+        description: 'Test',
+        phases: [
+          { label: 'Breathe In', counts: 4, instruction: 'Inhale', targetScale: 1 },
+          { label: 'Hold',        counts: 2, instruction: 'Hold',   targetScale: 1 },
+        ],
+        totalRounds: 2,
+        accentColor: '#6366f1',
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...MULTI_PHASE_PROPS} />);
+      });
+
+      // ── Press Start Breathing ────────────────────────────────────────────────
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+
+      await act(async () => {
+        startNodes[0].props.onPress();
+      });
+
+      // ── Advance through all 12 ticks (2 rounds × 6 ticks) ───────────────────
+      // Advance in two 6-second batches to keep the steps readable
+      await act(async () => {
+        jest.advanceTimersByTime(6000); // round 1 completes
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(6000); // round 2 completes → done
+      });
+
+      // ── Verify terminal state before "Go Again" ──────────────────────────────
+      // Done screen visible
+      const doneNodes = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodes.length).toBeGreaterThan(0);
+
+      // Terminal round was 2 (not yet reset)
+      const terminalRoundNodes = root!.root.findAll(
+        (node: any) =>
+          Array.isArray(node.props.children) &&
+          node.props.children[0] === 'Round ' &&
+          node.props.children[1] === 2,
+        { deep: true },
+      );
+      // Done screen replaces the running area, so round text is hidden — just
+      // check the done screen is showing (already confirmed above).
+      // (round text is only rendered in status==='running')
+
+      // ── Press "Go Again" ─────────────────────────────────────────────────────
+      const goAgainNodes = findPressableByChildText(root!, 'Go Again');
+      expect(goAgainNodes.length).toBeGreaterThan(0);
+
+      await act(async () => {
+        goAgainNodes[0].props.onPress();
+      });
+
+      // ── Running UI is back ────────────────────────────────────────────────────
+      const stopNodes = findPressableByChildText(root!, 'Stop');
+      expect(stopNodes.length).toBeGreaterThan(0);
+
+      // Done screen is gone
+      const doneNodesAfter = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodesAfter.length).toBe(0);
+
+      // ── round reset to 1 (was 2 at completion) ───────────────────────────────
+      const roundOneNodes = root!.root.findAll(
+        (node: any) =>
+          Array.isArray(node.props.children) &&
+          node.props.children[0] === 'Round ' &&
+          node.props.children[1] === 1,
+        { deep: true },
+      );
+      expect(roundOneNodes.length).toBeGreaterThan(0);
+
+      // Round 2 must not be shown
+      const roundTwoNodes = root!.root.findAll(
+        (node: any) =>
+          Array.isArray(node.props.children) &&
+          node.props.children[0] === 'Round ' &&
+          node.props.children[1] === 2,
+        { deep: true },
+      );
+      expect(roundTwoNodes.length).toBe(0);
+
+      // ── phaseIndex reset to 0 — "Breathe In" visible, "Hold" absent ──────────
+      const breatheInNodes = root!.root.findAll(
+        (node: any) => node.props.children === 'Breathe In',
+        { deep: true },
+      );
+      expect(breatheInNodes.length).toBeGreaterThan(0);
+
+      const holdNodes = root!.root.findAll(
+        (node: any) => node.props.children === 'Hold',
+        { deep: true },
+      );
+      expect(holdNodes.length).toBe(0);
+
+      // ── count reset to phases[0].counts = 4 (was 1 at completion) ────────────
+      // The count is rendered as a bare number inside the circle center Text node.
+      // children === 4 (number) matches only that element; the round-text children
+      // is an array so it won't match here.
+      const countFourNodes = root!.root.findAll(
+        (node: any) => node.props.children === 4,
+        { deep: true },
+      );
+      expect(countFourNodes.length).toBeGreaterThan(0);
+
+      // Terminal count (1) must not appear as a standalone bare number
+      const countOneNodes = root!.root.findAll(
+        (node: any) => node.props.children === 1,
+        { deep: true },
+      );
+      expect(countOneNodes.length).toBe(0);
+    });
+
     it('shows "Well done!" and calls onComplete after all rounds complete', async () => {
       const mockOnComplete = jest.fn();
       mockUseApp.mockReturnValue({
