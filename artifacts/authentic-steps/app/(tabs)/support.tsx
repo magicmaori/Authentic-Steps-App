@@ -55,7 +55,9 @@ function contrastRatio(hex1: string, hex2: string): number {
 /** White or near-black text, whichever achieves higher contrast on `bgHex`. */
 function badgeTextColor(bgHex: string): string {
   const L = relativeLuminance(bgHex);
-  return 1.05 / (L + 0.05) >= (L + 0.05) / 0.054 ? '#ffffff' : '#1a1a1a';
+  // White contrast: 1.05/(L+0.05). Black contrast: (L+0.05)/0.05 (black L=0).
+  // White wins when L < ~0.179.
+  return 1.05 / (L + 0.05) >= (L + 0.05) / 0.05 ? '#ffffff' : '#1a1a1a';
 }
 
 /** Alpha-composite `fg` over `bg` at `alpha` (0–1) and return the opaque hex result. */
