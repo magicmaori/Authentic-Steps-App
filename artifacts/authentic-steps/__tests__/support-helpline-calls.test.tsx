@@ -523,7 +523,7 @@ describe('Support screen – non-professional-help routed view tip box', () => {
    * text these tests will catch it immediately.
    */
 
-  async function navigateToRoutedView(typeId: string) {
+  async function navigateToRoutedView(typeId: string, areaId = 'emotions') {
     await act(async () => {
       root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
     });
@@ -531,7 +531,7 @@ describe('Support screen – non-professional-help routed view tip box', () => {
       root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
     });
     await act(async () => {
-      root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+      root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
     });
     await act(async () => {
       root.root.findByProps({ testID: `triage-type-${typeId}` }).props.onPress();
@@ -577,6 +577,41 @@ describe('Support screen – non-professional-help routed view tip box', () => {
     // Bodies must differ
     expect(listenBody).not.toEqual(ideasBody);
   });
+
+  /**
+   * Parameterised over all five areas: regardless of which area is chosen,
+   * the 'someone-to-listen' and 'practical-ideas' tips must remain distinct.
+   * This guards against accidental copy merging as tip text evolves.
+   */
+  const ALL_AREAS = [
+    'emotions',
+    'relationships',
+    'school-or-home',
+    'habits',
+    'something-else',
+  ] as const;
+
+  it.each(ALL_AREAS)(
+    'area="%s": someone-to-listen and practical-ideas tip title + body are distinct',
+    async (areaId) => {
+      // Navigate to someone-to-listen routed view for this area
+      await navigateToRoutedView('someone-to-listen', areaId);
+      const listenTitle = String(root.root.findByProps({ testID: 'triage-tip-title' }).props.children);
+      const listenBody  = String(root.root.findByProps({ testID: 'triage-tip-text' }).props.children);
+
+      // Reset, then navigate to practical-ideas routed view for the same area
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-reset-btn' }).props.onPress();
+      });
+      await navigateToRoutedView('practical-ideas', areaId);
+      const ideasTitle = String(root.root.findByProps({ testID: 'triage-tip-title' }).props.children);
+      const ideasBody  = String(root.root.findByProps({ testID: 'triage-tip-text' }).props.children);
+
+      // Both titles and bodies must differ between the two support types
+      expect(listenTitle).not.toEqual(ideasTitle);
+      expect(listenBody).not.toEqual(ideasBody);
+    },
+  );
 });
 
 // ─── 'this week' urgency routing ──────────────────────────────────────────────
