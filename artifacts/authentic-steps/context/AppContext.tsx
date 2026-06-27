@@ -326,6 +326,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const safeUser: UserData = {
       ...defaultUser,
       ...restoredUser,
+      ritualHour: (typeof restoredUser.ritualHour === 'number' && !isNaN(restoredUser.ritualHour)) ? restoredUser.ritualHour : defaultUser.ritualHour,
+      ritualMinute: (typeof restoredUser.ritualMinute === 'number' && !isNaN(restoredUser.ritualMinute)) ? restoredUser.ritualMinute : defaultUser.ritualMinute,
+      eveningHour: (typeof restoredUser.eveningHour === 'number' && !isNaN(restoredUser.eveningHour)) ? restoredUser.eveningHour : defaultUser.eveningHour,
+      eveningMinute: (typeof restoredUser.eveningMinute === 'number' && !isNaN(restoredUser.eveningMinute)) ? restoredUser.eveningMinute : defaultUser.eveningMinute,
     };
     const safeEntries: Record<string, RitualEntry> = restoredEntries ?? {};
     try {
