@@ -9,6 +9,80 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
 import { useColors } from '@/hooks/useColors';
 
+type HelplineService = {
+  name: string;
+  num: string;
+  display: string;
+  desc: string;
+  initials: string;
+  /** Accent colour verified ≥3:1 against the light card (#FFFFFF). Used for border + badge in light mode. */
+  lightAccent: string;
+  /** Accent colour verified ≥4.5:1 against the dark card (#193b83). Used for border + badge in dark mode. */
+  darkAccent: string;
+};
+
+const HELPLINES: HelplineService[] = [
+  // Kids Helpline — brand orange. Light: darkened to #E05A00 (3.57:1 on white). Dark: #FFAA55 (5.13:1 on #193b83).
+  { name: 'Kids Helpline', num: '1800551800', display: '1800 55 1800', desc: 'Free, private, 24/7 for ages 5–25', initials: 'KH', lightAccent: '#E05A00', darkAccent: '#FFAA55' },
+  // Lifeline — brand orange-flame. #F26522 = 3.15:1 on white ✓. Dark: #FF9966 (4.63:1).
+  { name: 'Lifeline',      num: '131114',     display: '13 11 14',     desc: 'Crisis support, 24/7',              initials: 'LL', lightAccent: '#F26522', darkAccent: '#FF9966' },
+  // Beyond Blue — brand navy. #003D7D = 9.72:1 on white ✓. Dark: #8BBFE8 (4.93:1).
+  { name: 'Beyond Blue',   num: '1300224636', display: '1300 22 4636', desc: 'Anxiety & depression support',      initials: 'BB', lightAccent: '#003D7D', darkAccent: '#8BBFE8' },
+  // 13YARN — brand amber. #C47A1E = 3.17:1 on white ✓. Dark: #F0B040 (5.08:1).
+  { name: '13YARN',        num: '139276',     display: '13 92 76',     desc: 'First Nations, culturally safe, 24/7', initials: '13', lightAccent: '#C47A1E', darkAccent: '#F0B040' },
+  // Emergency — red. #CC0000 = 5.89:1 on white ✓. Dark: #FF9999 (4.56:1).
+  { name: 'Emergency',     num: '000',        display: '000',          desc: 'Immediate danger — call now',       initials: 'SOS', lightAccent: '#CC0000', darkAccent: '#FF9999' },
+];
+
+// ─── Contrast utilities (WCAG 2.1 relative luminance) ─────────────────────────
+
+function relativeLuminance(hex: string): number {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function contrastRatio(hex1: string, hex2: string): number {
+  const L1 = relativeLuminance(hex1);
+  const L2 = relativeLuminance(hex2);
+  const lighter = Math.max(L1, L2);
+  const darker = Math.min(L1, L2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** White or near-black text, whichever achieves higher contrast on `bgHex`. */
+function badgeTextColor(bgHex: string): string {
+  const L = relativeLuminance(bgHex);
+  return 1.05 / (L + 0.05) >= (L + 0.05) / 0.054 ? '#ffffff' : '#1a1a1a';
+}
+
+/** Alpha-composite `fg` over `bg` at `alpha` (0–1) and return the opaque hex result. */
+function blendHex(fg: string, bg: string, alpha: number): string {
+  const fr = parseInt(fg.slice(1, 3), 16);
+  const fg_ = parseInt(fg.slice(3, 5), 16);
+  const fb = parseInt(fg.slice(5, 7), 16);
+  const br = parseInt(bg.slice(1, 3), 16);
+  const bg_ = parseInt(bg.slice(3, 5), 16);
+  const bb = parseInt(bg.slice(5, 7), 16);
+  const r = Math.round(fr * alpha + br * (1 - alpha));
+  const g = Math.round(fg_ * alpha + bg_ * (1 - alpha));
+  const b = Math.round(fb * alpha + bb * (1 - alpha));
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+/**
+ * Returns `accentHex` when it meets `threshold` contrast against `bgHex`,
+ * otherwise falls back to `fallback` (typically `colors.foreground`).
+ */
+function safeTextColor(accentHex: string, bgHex: string, fallback: string, threshold = 4.5): string {
+  return contrastRatio(accentHex, bgHex) >= threshold ? accentHex : fallback;
+}
+
+/** The hex alpha used for the phone-number pill tint (`${accent}22`). */
+const PILL_ALPHA = 0x22 / 255; // ≈ 0.133
+
 type TriageStep = 'idle' | 'urgency' | 'area' | 'type' | 'routed';
 
 async function callNumber(num: string, name: string) {
@@ -220,32 +294,44 @@ export default function SupportScreen() {
 
         <View style={[styles.servicesSection]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Immediate Support Services</Text>
-          {[
-            { name: 'Kids Helpline', num: '1800551800', display: '1800 55 1800', color: '#2D6A4F', desc: 'Free, private, 24/7 for ages 5–25' },
-            { name: 'Lifeline', num: '131114', display: '13 11 14', color: '#3B82F6', desc: 'Crisis support, 24/7' },
-            { name: 'Beyond Blue', num: '1300224636', display: '1300 22 4636', color: '#1D4ED8', desc: 'Anxiety & depression support' },
-            { name: '13YARN', num: '139276', display: '13 92 76', color: '#B45309', desc: 'First Nations, culturally safe, 24/7' },
-            { name: 'Emergency', num: '000', display: '000', color: '#EF4444', desc: 'Immediate danger — call now' },
-          ].map(svc => (
-            <Pressable
-              key={svc.num}
-              onPress={() => callNumber(svc.num, svc.name)}
-              style={({ pressed }) => [
-                styles.svcRow,
-                { backgroundColor: colors.card, borderColor: colors.border },
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={[styles.svcDot, { backgroundColor: svc.color }]} />
-              <View style={styles.svcText}>
-                <Text style={[styles.svcName, { color: colors.foreground }]}>{svc.name}</Text>
-                <Text style={[styles.svcDesc, { color: colors.mutedForeground }]}>{svc.desc}</Text>
-              </View>
-              <View style={[styles.svcBadge, { backgroundColor: `${svc.color}15` }]}>
-                <Text style={[styles.svcNum, { color: svc.color }]}>{svc.display}</Text>
-              </View>
-            </Pressable>
-          ))}
+          {HELPLINES.map(svc => {
+            const cardIsDark = relativeLuminance(colors.card) < 0.18;
+            const accent = cardIsDark ? svc.darkAccent : svc.lightAccent;
+            // Compute the actual opaque colour the phone-number text sits on
+            // (accent tinted at PILL_ALPHA over the card) so contrast is checked
+            // against the real composited surface, not raw colors.card.
+            const pillBg = blendHex(accent, colors.card, PILL_ALPHA);
+            const phoneTextColor = safeTextColor(accent, pillBg, colors.foreground);
+            return (
+              <Pressable
+                key={svc.num}
+                onPress={() => callNumber(svc.num, svc.name)}
+                style={({ pressed }) => [
+                  styles.svcRow,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    borderLeftColor: accent,
+                    borderLeftWidth: 4,
+                  },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={[styles.svcInitialsBadge, { backgroundColor: accent }]}>
+                  <Text style={[styles.svcInitialsText, { color: badgeTextColor(accent) }]}>
+                    {svc.initials}
+                  </Text>
+                </View>
+                <View style={styles.svcText}>
+                  <Text style={[styles.svcName, { color: colors.foreground }]}>{svc.name}</Text>
+                  <Text style={[styles.svcDesc, { color: colors.mutedForeground }]}>{svc.desc}</Text>
+                </View>
+                <View style={[styles.svcBadge, { backgroundColor: `${accent}22` }]}>
+                  <Text style={[styles.svcNum, { color: phoneTextColor }]}>{svc.display}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
 
       </ScrollView>
@@ -313,11 +399,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 14,
-    padding: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderWidth: 1,
     gap: 12,
+    overflow: 'hidden',
   },
-  svcDot: { width: 10, height: 10, borderRadius: 5 },
+  svcInitialsBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  svcInitialsText: {
+    fontSize: 13,
+    fontFamily: 'Inter_700Bold',
+    letterSpacing: 0.5,
+  },
   svcText: { flex: 1, gap: 2 },
   svcName: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   svcDesc: { fontSize: 12, fontFamily: 'Inter_400Regular' },
