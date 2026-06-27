@@ -577,4 +577,46 @@ describe('Support screen – web-chat button', () => {
 
     alertSpy.mockRestore();
   });
+
+  /**
+   * The webchat button (triage-webchat-btn) is intentionally absent from the
+   * 'professional help' routed view. That branch (urgency='today' → any area →
+   * supportType='professional help') already surfaces a direct call button
+   * (triage-call-professional). Adding a second async webchat option alongside
+   * it was considered lower-priority for this high-intent path — a phone call is
+   * the most direct route to professional support.
+   *
+   * This test locks that absence in: if a webchat button is ever added to the
+   * professional-help path it will show up here so the URL can be explicitly
+   * verified before shipping.
+   */
+  it('professional-help path: no webchat button is rendered (call-only path)', async () => {
+    // Re-create a fresh root for this test (beforeEach already navigated to 'right now')
+    act(() => { root.unmount(); });
+    await act(async () => { root = create(<SupportScreen />); });
+
+    // Navigate: start → today → emotions → professional help
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-type-professional-help' }).props.onPress();
+    });
+
+    // The call button must be present (this is the action for this path)
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-call-professional' }),
+    ).not.toThrow();
+
+    // The webchat button must NOT be present on the professional-help path
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-webchat-btn' }),
+    ).toThrow();
+  });
 });
