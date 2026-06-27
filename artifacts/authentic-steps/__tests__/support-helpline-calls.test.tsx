@@ -225,6 +225,39 @@ describe('Support screen – triage flow call buttons', () => {
       expect(openURLSpy).toHaveBeenCalledTimes(1);
     },
   );
+
+  it.each(ALL_AREAS_CALL)(
+    "urgency='this week' → area='%s' → professional-help: call button triggers tel:1800551800",
+    async (areaId) => {
+      // Step 1 — open triage
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "this week" → goes to area step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-this-week' }).props.onPress();
+      });
+
+      // Step 3 — choose the area under test → goes to type step
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+
+      // Step 4 — choose "professional help" → routed with supportType set
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-type-professional-help' }).props.onPress();
+      });
+
+      // Step 5 — tap the call button
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-call-professional' }).props.onPress();
+      });
+
+      expect(openURLSpy).toHaveBeenCalledWith('tel:1800551800');
+      expect(openURLSpy).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 // ─── "Start over" reset ────────────────────────────────────────────────────────
@@ -291,6 +324,42 @@ describe('Support screen – "Start over" reset', () => {
       });
       await act(async () => {
         root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+      });
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-type-professional-help' }).props.onPress();
+      });
+
+      // Reset button must be present in the routed view
+      const resetBtn = root.root.findByProps({ testID: 'triage-reset-btn' });
+      expect(resetBtn).toBeTruthy();
+
+      await act(async () => {
+        resetBtn.props.onPress();
+      });
+
+      // After reset, the initial "I need some support" button must be visible again
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-start-btn' }),
+      ).not.toThrow();
+      // And the routed-view reset button must no longer be rendered
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-reset-btn' }),
+      ).toThrow();
+    },
+  );
+
+  it.each(ALL_AREAS_RESET)(
+    "urgency='this week' → area='%s' → professional-help routed view: tapping 'Start over' returns to idle (start button visible)",
+    async (areaId) => {
+      // Navigate to routed view via 'this week' → professional-help path
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-this-week' }).props.onPress();
       });
       await act(async () => {
         root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
