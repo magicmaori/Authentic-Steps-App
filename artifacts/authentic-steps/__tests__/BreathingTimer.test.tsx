@@ -425,6 +425,84 @@ describe('BreathingTimer – chime toggle', () => {
       // onComplete callback must have been called exactly once
       expect(mockOnComplete).toHaveBeenCalledTimes(1);
     });
+
+    /**
+     * Regression guard: pressing "Go Again" starts a fresh session and each
+     * completed session must independently trigger onComplete.
+     *
+     * Setup: 1 phase (counts=1), 1 round — the session finishes in a single
+     * tick, making the test fast and deterministic.
+     *
+     * Flow:
+     *   1. Start → advance 1 s → session completes → onComplete called once
+     *   2. Press "Go Again" → advance 1 s → session completes again
+     *      → onComplete called a second time (total = 2)
+     *
+     * A bug where "Go Again" reuses stale state or skips the onComplete hook
+     * would result in the callback being called only once.
+     */
+    it('calls onComplete once per completed session when "Go Again" is used multiple times', async () => {
+      const mockOnComplete = jest.fn();
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const ONE_TICK_PROPS = {
+        title: 'Test Breathing',
+        description: 'Test',
+        phases: [{ label: 'Breathe In', counts: 1, instruction: 'Inhale', targetScale: 1 }],
+        totalRounds: 1,
+        accentColor: '#6366f1',
+        onComplete: mockOnComplete,
+      };
+
+      await act(async () => {
+        root = create(<BreathingTimer {...ONE_TICK_PROPS} />);
+      });
+
+      // ── Session 1 ─────────────────────────────────────────────────────────────
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // One tick exhausts the single phase in the single round → done
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // Done screen must be visible after session 1
+      const doneNodesSession1 = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodesSession1.length).toBeGreaterThan(0);
+
+      // onComplete must have fired exactly once so far
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+
+      // ── Session 2 via "Go Again" ───────────────────────────────────────────────
+      const goAgainNodes = findPressableByChildText(root!, 'Go Again');
+      expect(goAgainNodes.length).toBeGreaterThan(0);
+
+      await act(async () => { goAgainNodes[0].props.onPress(); });
+
+      // Running UI must be active again (not stuck on the done screen)
+      const stopNodesSession2 = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesSession2.length).toBeGreaterThan(0);
+
+      // One tick exhausts session 2
+      await act(async () => { jest.advanceTimersByTime(1000); });
+
+      // Done screen must reappear
+      const doneNodesSession2 = root!.root.findAll(
+        (node: any) => node.props.children === 'Well done!',
+        { deep: true },
+      );
+      expect(doneNodesSession2.length).toBeGreaterThan(0);
+
+      // onComplete must have been called a second time — total = 2
+      expect(mockOnComplete).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('AppState – background / foreground', () => {
