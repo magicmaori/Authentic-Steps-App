@@ -681,3 +681,81 @@ describe('Support screen – web-chat button', () => {
     ).toThrow();
   });
 });
+
+// ─── Tip box reachable via every area type ────────────────────────────────────
+
+/**
+ * Regression guard: each of the five triage area options must route correctly
+ * to the non-professional routed view (tip box) when the user picks
+ * "someone to listen". A routing bug confined to one area would previously go
+ * undetected because the other suites only navigate through "emotions".
+ */
+describe('Support screen – tip box reachable via all area types', () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    act(() => {
+      root = create(<SupportScreen />);
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  const ALL_AREAS: Array<{ areaId: string; label: string }> = [
+    { areaId: 'emotions',       label: 'emotions'       },
+    { areaId: 'relationships',  label: 'relationships'  },
+    { areaId: 'school-or-home', label: 'school or home' },
+    { areaId: 'habits',         label: 'habits'         },
+    { areaId: 'something-else', label: 'something else' },
+  ];
+
+  it.each(ALL_AREAS)(
+    'area="$label" → someone-to-listen: tip box visible, no call button',
+    async ({ areaId }) => {
+      // Step 1 — open triage
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+      });
+
+      // Step 2 — choose "today" → area step
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-urgency-today' }).props.onPress();
+      });
+
+      // Step 3 — choose the area under test → type step
+      await act(async () => {
+        root.root.findByProps({ testID: `triage-area-${areaId}` }).props.onPress();
+      });
+
+      // Step 4 — choose "someone to listen" → routed view
+      await act(async () => {
+        root.root.findByProps({ testID: 'triage-type-someone-to-listen' }).props.onPress();
+      });
+
+      // Tip box must be present
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-tip-box' }),
+      ).not.toThrow();
+
+      // Tip title must have meaningful text
+      const tipTitle = root.root.findByProps({ testID: 'triage-tip-title' });
+      expect(String(tipTitle.props.children).length).toBeGreaterThan(0);
+
+      // Tip body must have meaningful text
+      const tipText = root.root.findByProps({ testID: 'triage-tip-text' });
+      expect(String(tipText.props.children).length).toBeGreaterThan(0);
+
+      // The professional-help call button must NOT be present
+      expect(() =>
+        root.root.findByProps({ testID: 'triage-call-professional' }),
+      ).toThrow();
+    },
+  );
+});
