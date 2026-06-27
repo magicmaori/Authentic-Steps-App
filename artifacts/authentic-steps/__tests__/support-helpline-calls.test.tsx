@@ -720,6 +720,38 @@ describe("Support screen – 'this week' urgency routing", () => {
       root.root.findByProps({ testID: 'triage-call-professional' }),
     ).toThrow();
   });
+
+  it("urgency='this week' → area → 'professional-help': call button is shown and tip box is absent", async () => {
+    // Step 1 — open triage
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+
+    // Step 2 — choose "this week" → area step
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-this-week' }).props.onPress();
+    });
+
+    // Step 3 — choose any area → type step
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-area-emotions' }).props.onPress();
+    });
+
+    // Step 4 — choose "professional help" → routed view
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-type-professional-help' }).props.onPress();
+    });
+
+    // The professional-help call button MUST be present
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-call-professional' }),
+    ).not.toThrow();
+
+    // The tip box must NOT appear on this path
+    expect(() =>
+      root.root.findByProps({ testID: 'triage-tip-box' }),
+    ).toThrow();
+  });
 });
 
 // ─── Web-chat button ───────────────────────────────────────────────────────────
