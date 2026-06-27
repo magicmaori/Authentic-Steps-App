@@ -503,12 +503,12 @@ describe('Support screen – non-professional-help routed view tip box', () => {
       // Tip title must contain meaningful text
       const tipTitle = root.root.findByProps({ testID: 'triage-tip-title' });
       expect(tipTitle.props.children).toBeTruthy();
-      expect(String(tipTitle.props.children).length).toBeGreaterThan(0);
+      expect(String(tipTitle.props.children).length).toBeGreaterThan(10);
 
       // Tip body must contain meaningful text
       const tipText = root.root.findByProps({ testID: 'triage-tip-text' });
       expect(tipText.props.children).toBeTruthy();
-      expect(String(tipText.props.children).length).toBeGreaterThan(0);
+      expect(String(tipText.props.children).length).toBeGreaterThan(10);
 
       // The professional-help call button must NOT appear
       expect(() =>
@@ -606,6 +606,12 @@ describe('Support screen – non-professional-help routed view tip box', () => {
       await navigateToRoutedView('practical-ideas', areaId);
       const ideasTitle = String(root.root.findByProps({ testID: 'triage-tip-title' }).props.children);
       const ideasBody  = String(root.root.findByProps({ testID: 'triage-tip-text' }).props.children);
+
+      // Both titles and bodies must be non-trivially long
+      expect(listenTitle.length).toBeGreaterThan(10);
+      expect(listenBody.length).toBeGreaterThan(10);
+      expect(ideasTitle.length).toBeGreaterThan(10);
+      expect(ideasBody.length).toBeGreaterThan(10);
 
       // Both titles and bodies must differ between the two support types
       expect(listenTitle).not.toEqual(ideasTitle);
