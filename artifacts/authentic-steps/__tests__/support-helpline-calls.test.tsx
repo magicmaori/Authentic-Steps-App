@@ -63,7 +63,8 @@ jest.mock('@/components/VideoPlaceholder', () => {
 
 import React from 'react';
 import { act, create } from 'react-test-renderer';
-import { Linking } from 'react-native';
+import { Alert, Linking } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 import SupportScreen from '../app/(tabs)/support';
 
@@ -212,5 +213,66 @@ describe('Support screen – triage flow call buttons', () => {
 
     expect(openURLSpy).toHaveBeenCalledWith('tel:1800551800');
     expect(openURLSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── Web-chat button ───────────────────────────────────────────────────────────
+
+describe('Support screen – web-chat button', () => {
+  let root: ReturnType<typeof create>;
+  let openURLSpy: jest.SpyInstance;
+  let openBrowserSpy: jest.SpyInstance;
+
+  beforeEach(async () => {
+    openURLSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    openBrowserSpy = jest.spyOn(WebBrowser, 'openBrowserAsync').mockResolvedValue({ type: 'opened' } as any);
+
+    await act(async () => {
+      root = create(<SupportScreen />);
+    });
+
+    // Navigate triage to the "right now" routed view where the chat button lives
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-start-btn' }).props.onPress();
+    });
+    await act(async () => {
+      root.root.findByProps({ testID: 'triage-urgency-right-now' }).props.onPress();
+    });
+  });
+
+  afterEach(() => {
+    openURLSpy.mockRestore();
+    openBrowserSpy.mockRestore();
+    act(() => { root.unmount(); });
+  });
+
+  it('calls openBrowserAsync with the Kids Helpline webchat URL', async () => {
+    const btn = root.root.findByProps({ testID: 'triage-webchat-btn' });
+    expect(btn).toBeTruthy();
+
+    await act(async () => { btn.props.onPress(); });
+
+    expect(openBrowserSpy).toHaveBeenCalledWith(
+      'https://kidshelpline.com.au/get-help/webchat',
+    );
+    expect(openBrowserSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an Alert and does not throw when openBrowserAsync rejects', async () => {
+    openBrowserSpy.mockRejectedValueOnce(new Error('browser not available'));
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+
+    const btn = root.root.findByProps({ testID: 'triage-webchat-btn' });
+
+    await expect(
+      act(async () => { btn.props.onPress(); }),
+    ).resolves.not.toThrow();
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Chat unavailable',
+      expect.stringContaining('kidshelpline.com.au'),
+    );
+
+    alertSpy.mockRestore();
   });
 });

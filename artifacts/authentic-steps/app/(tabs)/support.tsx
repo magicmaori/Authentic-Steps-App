@@ -263,7 +263,17 @@ export default function SupportScreen() {
                   <Text style={styles.bigCallBtnText}>Call Kids Helpline — 1800 55 1800</Text>
                 </Pressable>
                 <Pressable
-                  onPress={() => WebBrowser.openBrowserAsync('https://kidshelpline.com.au/get-help/webchat')}
+                  testID="triage-webchat-btn"
+                  onPress={async () => {
+                    try {
+                      await WebBrowser.openBrowserAsync('https://kidshelpline.com.au/get-help/webchat');
+                    } catch {
+                      Alert.alert(
+                        'Chat unavailable',
+                        'Could not open the browser. Visit kidshelpline.com.au/get-help/webchat or call 1800 55 1800.',
+                      );
+                    }
+                  }}
                   style={[styles.chatBtn, { borderColor: colors.primary }]}
                 >
                   <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.primary} />
