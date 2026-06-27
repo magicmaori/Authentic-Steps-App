@@ -800,6 +800,143 @@ describe('BreathingTimer – chime toggle', () => {
      * the interval effect guard (status !== 'running' || !appActive) would
      * silently block the timer from ticking again.
      */
+    /**
+     * Lock/unlock cycle: active → inactive → background → active
+     *
+     * Real phone lock/unlock fires AppState events in rapid succession:
+     *   1. 'inactive'  (screen dimming / locking)
+     *   2. 'background' (shortly after)
+     *   3. 'active'    (phone unlocked)
+     *
+     * Both 'inactive' and 'background' hit the same `else` branch in the
+     * AppState handler, setting appActive=false and recording the wall-clock
+     * instant in backgroundedAtRef. The second call (background) arrives
+     * while appActive is already false; React bails out on the identical
+     * state value, so the interval is neither cleared a second time nor
+     * re-started prematurely.
+     *
+     * On 'active', elapsed is computed from the backgroundedAtRef timestamp
+     * set by the LAST non-active event (background), which is close enough
+     * to the true lock time for the counter to remain correct.
+     *
+     * Arithmetic (DEFAULT_PROPS — 3 phases × 4 counts, 2 rounds):
+     *   After 1 foreground tick: { phase: 0 "Breathe In", count: 3 }
+     *   'inactive' fires  → backgroundedAtRef = T0
+     *   100 ms passes
+     *   'background' fires → backgroundedAtRef = T0+100ms
+     *   3 000 ms passes    → elapsed = floor(3100/1000) = 3
+     *   'active' fires, 3 ticks applied to {phase:0, count:3}:
+     *     tick 1: 3 → 2
+     *     tick 2: 2 → 1
+     *     tick 3: 1 → 0 → advance to phase 1 ("Hold"), count = 4
+     *   Resumed state: { phase: 1 "Hold", count: 4 }
+     *
+     *   1 foreground tick after resume: count 4 → 3
+     *   1 more tick: count 3 → 2  (verifies exactly ONE interval is running)
+     */
+    it('keeps count and round correct across a rapid lock/unlock (inactive→background→active) and fires only one tick per second', async () => {
+      mockUseApp.mockReturnValue({
+        userData: { chimeEnabled: false },
+        setChimeEnabled: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await act(async () => {
+        root = create(<BreathingTimer {...DEFAULT_PROPS} />);
+      });
+
+      const startNodes = findPressableByChildText(root!, 'Start Breathing');
+      expect(startNodes.length).toBeGreaterThan(0);
+      await act(async () => { startNodes[0].props.onPress(); });
+
+      // 1 foreground tick: count 4 → 3
+      await act(async () => { jest.advanceTimersByTime(1000); });
+      const countAfterOneTick = root!.root.findAll(
+        (node: any) => node.props.children === 3,
+        { deep: true },
+      );
+      expect(countAfterOneTick.length).toBeGreaterThan(0);
+
+      // ── Lock sequence ──────────────────────────────────────────────────────────
+      // Step 1: phone screen dims → 'inactive'
+      await act(async () => { appStateListeners.forEach(l => l('inactive')); });
+
+      // 100 ms elapses (phone still locking)
+      await act(async () => { jest.advanceTimersByTime(100); });
+
+      // Step 2: app fully backgrounded → 'background'
+      await act(async () => { appStateListeners.forEach(l => l('background')); });
+
+      // 3 000 ms in background (elapsed = floor(3100/1000) = 3)
+      await act(async () => { jest.advanceTimersByTime(3000); });
+
+      // ── Unlock ─────────────────────────────────────────────────────────────────
+      // Step 3: user unlocks phone → 'active'; component fast-forwards 3 ticks
+      await act(async () => { appStateListeners.forEach(l => l('active')); });
+
+      // Running UI must still be present (no accidental completion — session has
+      // plenty of ticks remaining)
+      const stopNodesAfterUnlock = findPressableByChildText(root!, 'Stop');
+      expect(stopNodesAfterUnlock.length).toBeGreaterThan(0);
+
+      // Phase must have advanced to "Hold" (phaseIndex 1) after 3 elapsed ticks
+      const holdLabel = root!.root.findAll(
+        (node: any) => node.props.children === 'Hold',
+        { deep: true },
+      );
+      expect(holdLabel.length).toBeGreaterThan(0);
+
+      const breatheInLabel = root!.root.findAll(
+        (node: any) => node.props.children === 'Breathe In',
+        { deep: true },
+      );
+      expect(breatheInLabel.length).toBe(0);
+
+      // Count must have reset to phase 1's counts (4)
+      const countFourNodes = root!.root.findAll(
+        (node: any) => node.props.children === 4,
+        { deep: true },
+      );
+      expect(countFourNodes.length).toBeGreaterThan(0);
+
+      // Round must still be 1 (not enough ticks to complete even round 1)
+      const roundOneNodes = root!.root.findAll(
+        (node: any) =>
+          Array.isArray(node.props.children) &&
+          node.props.children[0] === 'Round ' &&
+          node.props.children[1] === 1,
+        { deep: true },
+      );
+      expect(roundOneNodes.length).toBeGreaterThan(0);
+
+      // ── Verify exactly one interval is running ─────────────────────────────────
+      // If a duplicate interval were created (inactive clears + re-creates, then
+      // active creates another), two ticks per second would fire and count would
+      // drop by 2 each second instead of 1.
+      //
+      // Advance 1 s → count 4 → 3
+      await act(async () => { jest.advanceTimersByTime(1000); });
+      const countThreeAfterResume = root!.root.findAll(
+        (node: any) => node.props.children === 3,
+        { deep: true },
+      );
+      expect(countThreeAfterResume.length).toBeGreaterThan(0);
+
+      // Advance 1 more s → count 3 → 2 (not 1, which would indicate a double tick)
+      await act(async () => { jest.advanceTimersByTime(1000); });
+      const countTwoAfterResume = root!.root.findAll(
+        (node: any) => node.props.children === 2,
+        { deep: true },
+      );
+      expect(countTwoAfterResume.length).toBeGreaterThan(0);
+
+      // Count must NOT have jumped to 1 (which would signal duplicate interval)
+      const countOneAfterResume = root!.root.findAll(
+        (node: any) => node.props.children === 1,
+        { deep: true },
+      );
+      expect(countOneAfterResume.length).toBe(0);
+    });
+
     it('restarts the interval correctly after "Go Again" following a background-completion', async () => {
       const mockOnComplete = jest.fn();
       mockUseApp.mockReturnValue({
