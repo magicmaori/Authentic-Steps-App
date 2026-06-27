@@ -633,7 +633,7 @@ describe('Support screen – web-chat button', () => {
 
     expect(alertSpy).toHaveBeenCalledWith(
       'Chat unavailable',
-      expect.stringContaining('kidshelpline.com.au'),
+      expect.stringContaining('https://kidshelpline.com.au/get-help/webchat'),
     );
 
     alertSpy.mockRestore();
