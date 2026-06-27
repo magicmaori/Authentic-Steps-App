@@ -60,7 +60,7 @@ jest.mock('fflate', () => ({
   deflateSync: (data: Uint8Array) => data,
   decompressSync: (data: Uint8Array) => data,
   strToU8: (s: string) => Buffer.from(s),
-  strFromU8: (u: Uint8Array) => u.toString(),
+  strFromU8: (u: Uint8Array) => Buffer.from(u).toString('utf-8'),
 }));
 
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ import { act, create } from 'react-test-renderer';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as notificationUtils from '@/utils/notifications';
-import { AppProvider, useApp } from '../context/AppContext';
+import { AppProvider, useApp, type RestoreResult } from '../context/AppContext';
 
 // ─── Typed mock references ────────────────────────────────────────────────────
 
@@ -344,5 +344,188 @@ describe('AppContext – chime persistence', () => {
     });
 
     expect(capturedAfterRemount).toBe(false);
+  });
+});
+
+// ─── restoreFromCode notification-settings tests ──────────────────────────────
+
+describe('AppContext – restoreFromCode notification settings', () => {
+  const mockScheduleRitual = notificationUtils.scheduleRitualReminder as jest.Mock;
+  const mockScheduleEvening = notificationUtils.scheduleEveningReminder as jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    clearStore();
+    (notificationUtils.getPermissionState as jest.Mock).mockResolvedValue('undetermined');
+    mockGetScheduledReminderTimes.mockResolvedValue({});
+  });
+
+  it('preserves custom reminder times and chimeEnabled=false in AsyncStorage after restoreFromCode', async () => {
+    asyncStore[STORAGE_KEY_USER] = makeStoredUser({
+      ritualHour: 7,
+      ritualMinute: 30,
+      eveningHour: 22,
+      eveningMinute: 15,
+      chimeEnabled: false,
+      notifRitual: true,
+      notifEvening: true,
+    });
+
+    let buildPayload: (() => string) | null = null;
+    let restore: ((code: string) => Promise<RestoreResult>) | null = null;
+
+    function Consumer() {
+      const { buildRecoveryPayload, restoreFromCode, isLoaded } = useApp();
+      useEffect(() => {
+        if (isLoaded) {
+          buildPayload = buildRecoveryPayload;
+          restore = restoreFromCode;
+        }
+      }, [isLoaded, buildRecoveryPayload, restoreFromCode]);
+      return null;
+    }
+
+    await act(async () => {
+      create(<AppProvider><Consumer /></AppProvider>);
+      await flushPromises();
+    });
+
+    const code = buildPayload!();
+
+    (AsyncStorage.setItem as jest.Mock).mockClear();
+
+    let result: RestoreResult | null = null;
+    await act(async () => {
+      result = await restore!(code);
+      await flushPromises();
+    });
+
+    expect(result).toEqual({ ok: true });
+
+    const writeCalls = (AsyncStorage.setItem as jest.Mock).mock.calls.filter(
+      ([key]: [string]) => key === STORAGE_KEY_USER,
+    );
+    expect(writeCalls.length).toBeGreaterThan(0);
+    const lastWrite = JSON.parse(writeCalls[writeCalls.length - 1][1] as string);
+    expect(lastWrite.ritualHour).toBe(7);
+    expect(lastWrite.ritualMinute).toBe(30);
+    expect(lastWrite.eveningHour).toBe(22);
+    expect(lastWrite.eveningMinute).toBe(15);
+    expect(lastWrite.chimeEnabled).toBe(false);
+  });
+
+  it('calls scheduleRitualReminder and scheduleEveningReminder with restored times when permission is granted', async () => {
+    asyncStore[STORAGE_KEY_USER] = makeStoredUser({
+      ritualHour: 6,
+      ritualMinute: 45,
+      eveningHour: 21,
+      eveningMinute: 0,
+      chimeEnabled: false,
+      notifRitual: true,
+      notifEvening: true,
+    });
+
+    let buildPayload: (() => string) | null = null;
+    let restore: ((code: string) => Promise<RestoreResult>) | null = null;
+
+    function Consumer() {
+      const { buildRecoveryPayload, restoreFromCode, isLoaded } = useApp();
+      useEffect(() => {
+        if (isLoaded) {
+          buildPayload = buildRecoveryPayload;
+          restore = restoreFromCode;
+        }
+      }, [isLoaded, buildRecoveryPayload, restoreFromCode]);
+      return null;
+    }
+
+    await act(async () => {
+      create(<AppProvider><Consumer /></AppProvider>);
+      await flushPromises();
+    });
+
+    const code = buildPayload!();
+
+    (notificationUtils.getPermissionState as jest.Mock).mockResolvedValue('granted');
+    mockScheduleRitual.mockClear();
+    mockScheduleEvening.mockClear();
+
+    await act(async () => {
+      await restore!(code);
+      await flushPromises();
+    });
+
+    expect(mockScheduleRitual).toHaveBeenCalledWith(true, 6, 45);
+    expect(mockScheduleEvening).toHaveBeenCalledWith(true, 21, 0);
+  });
+
+  it('does not corrupt notification settings when restoring on top of a fresh install', async () => {
+    asyncStore[STORAGE_KEY_USER] = makeStoredUser({
+      ritualHour: 8,
+      ritualMinute: 0,
+      eveningHour: 20,
+      eveningMinute: 30,
+      chimeEnabled: false,
+    });
+
+    let buildPayload: (() => string) | null = null;
+    let restore: ((code: string) => Promise<RestoreResult>) | null = null;
+
+    function First() {
+      const { buildRecoveryPayload, restoreFromCode, isLoaded } = useApp();
+      useEffect(() => {
+        if (isLoaded) {
+          buildPayload = buildRecoveryPayload;
+          restore = restoreFromCode;
+        }
+      }, [isLoaded, buildRecoveryPayload, restoreFromCode]);
+      return null;
+    }
+
+    await act(async () => {
+      create(<AppProvider><First /></AppProvider>);
+      await flushPromises();
+    });
+
+    const code = buildPayload!();
+
+    // Simulate fresh install: clear everything
+    Object.keys(asyncStore).forEach(k => delete asyncStore[k]);
+    (AsyncStorage.setItem as jest.Mock).mockClear();
+
+    // Mount a brand-new provider (no prior storage) and restore
+    let restore2: ((code: string) => Promise<RestoreResult>) | null = null;
+    let isLoadedAfter = false;
+
+    function Second() {
+      const { restoreFromCode, isLoaded } = useApp();
+      useEffect(() => {
+        restore2 = restoreFromCode;
+        isLoadedAfter = isLoaded;
+      }, [isLoaded, restoreFromCode]);
+      return null;
+    }
+
+    await act(async () => {
+      create(<AppProvider><Second /></AppProvider>);
+      await flushPromises();
+    });
+
+    expect(isLoadedAfter).toBe(true);
+
+    await act(async () => {
+      await restore2!(code);
+      await flushPromises();
+    });
+
+    const writeCalls = (AsyncStorage.setItem as jest.Mock).mock.calls.filter(
+      ([key]: [string]) => key === STORAGE_KEY_USER,
+    );
+    const lastWrite = JSON.parse(writeCalls[writeCalls.length - 1][1] as string);
+    expect(lastWrite.ritualHour).toBe(8);
+    expect(lastWrite.ritualMinute).toBe(0);
+    expect(lastWrite.eveningHour).toBe(20);
+    expect(lastWrite.eveningMinute).toBe(30);
+    expect(lastWrite.chimeEnabled).toBe(false);
   });
 });
