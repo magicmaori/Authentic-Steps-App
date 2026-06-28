@@ -47,17 +47,17 @@ export default function Slide02Problem() {
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 900,
-              fontSize: "5.5vw",
+              fontSize: "4.2vw",
               color: "#193b83",
               lineHeight: 1.05,
               letterSpacing: "-0.025em",
-              margin: "0 0 3.5vh 0",
+              margin: "0 0 2vh 0",
               textWrap: "balance",
             }}
           >
             Young people are struggling — and most apps aren't built for them.
           </h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: "2vh" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5vh" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: "1.2vw" }}>
               <div
                 style={{
@@ -68,7 +68,7 @@ export default function Slide02Problem() {
                   marginTop: "0.3vh",
                 }}
               />
-              <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "3vw", color: "#1a2535", lineHeight: 1.4, margin: 0 }}>
+              <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "2.2vw", color: "#1a2535", lineHeight: 1.4, margin: 0 }}>
                 1 in 7 young people live with a mental health condition
               </p>
             </div>
@@ -82,7 +82,7 @@ export default function Slide02Problem() {
                   marginTop: "0.3vh",
                 }}
               />
-              <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "3vw", color: "#1a2535", lineHeight: 1.4, margin: 0 }}>
+              <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "2.2vw", color: "#1a2535", lineHeight: 1.4, margin: 0 }}>
                 Most support tools are hard to find, expensive, or built for adults
               </p>
             </div>
@@ -96,7 +96,7 @@ export default function Slide02Problem() {
                   marginTop: "0.3vh",
                 }}
               />
-              <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "3vw", color: "#1a2535", lineHeight: 1.4, margin: 0 }}>
+              <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "2.2vw", color: "#1a2535", lineHeight: 1.4, margin: 0 }}>
                 Schools need practical, safe tools they can trust
               </p>
             </div>

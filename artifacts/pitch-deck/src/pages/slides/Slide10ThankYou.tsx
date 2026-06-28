@@ -54,7 +54,7 @@ export default function Slide10ThankYou() {
         }}
       />
 
-      <div className="relative h-full flex flex-col justify-between" style={{ padding: "7vh 6vw 6vh 7vw" }}>
+      <div className="relative h-full flex flex-col justify-between" style={{ padding: "5vh 6vw 4vh 7vw" }}>
         <div>
           <img
             src={`${base}logo.png`}
@@ -82,7 +82,7 @@ export default function Slide10ThankYou() {
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 900,
-              fontSize: "6.5vw",
+              fontSize: "5.2vw",
               color: "#fff7f0",
               lineHeight: 1.0,
               letterSpacing: "-0.03em",
@@ -97,16 +97,16 @@ export default function Slide10ThankYou() {
               height: "0.4vh",
               width: "8vw",
               background: "#03989e",
-              marginBottom: "3.5vh",
+              marginBottom: "2.5vh",
             }}
           />
           <p
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 400,
-              fontSize: "3vw",
+              fontSize: "2.4vw",
               color: "rgba(255,247,240,0.7)",
-              margin: "0 0 4vh 0",
+              margin: "0 0 2.5vh 0",
               lineHeight: 1.5,
               maxWidth: "58vw",
             }}
@@ -120,7 +120,7 @@ export default function Slide10ThankYou() {
               color: "#fff7f0",
               fontFamily: "Inter, sans-serif",
               fontWeight: 700,
-              fontSize: "3vw",
+              fontSize: "2.4vw",
               letterSpacing: "0.02em",
               padding: "1.5vh 3vw",
             }}
