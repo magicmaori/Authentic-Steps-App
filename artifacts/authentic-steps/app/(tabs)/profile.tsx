@@ -348,7 +348,7 @@ export default function ProfileScreen() {
     refreshTimerRef.current = setTimeout(() => setCodeRefreshed(false), 2500);
   }
 
-  const initials = userData.anonymousName.substring(0, 2).toUpperCase();
+  const initials = (userData.anonymousName ?? '').substring(0, 2).toUpperCase();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -390,7 +390,7 @@ export default function ProfileScreen() {
             { label: 'Streak', value: `${userData.currentStreak}d`, icon: 'flame', color: '#F4A261' },
             { label: 'Best', value: `${userData.longestStreak}d`, icon: 'trophy', color: colors.accent },
             { label: 'Total', value: `${userData.totalRituals}`, icon: 'checkmark-circle', color: colors.primary },
-            { label: 'Badges', value: `${userData.milestones.length}`, icon: 'ribbon', color: '#7C3AED' },
+            { label: 'Badges', value: `${userData.milestones?.length ?? 0}`, icon: 'ribbon', color: '#7C3AED' },
           ].map(stat => (
             <View
               key={stat.label}

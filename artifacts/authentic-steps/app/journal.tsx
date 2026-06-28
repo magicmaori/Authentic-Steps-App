@@ -428,9 +428,9 @@ export default function JournalScreen() {
   const [groundingExpanded, setGroundingExpanded] = useState(true);
 
   const sortedDates = useMemo(() => {
-    return Object.keys(entries)
+    return Object.keys(entries ?? {})
       .filter((d) => {
-        const e = entries[d];
+        const e = (entries ?? {})[d];
         return e.isComplete || e.gratitudes.some((g) => g.text.trim()) || e.intention || e.iAmStatement;
       })
       .sort((a, b) => (a < b ? 1 : -1));
@@ -614,9 +614,9 @@ export default function JournalScreen() {
             <Text style={[styles.groundingSectionTitle, { color: colors.foreground }]}>
               Grounding Sessions
             </Text>
-            {groundingSessions.length > 0 && (
+            {(groundingSessions ?? []).length > 0 && (
               <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
-                <Text style={styles.countBadgeText}>{groundingSessions.length}</Text>
+                <Text style={styles.countBadgeText}>{(groundingSessions ?? []).length}</Text>
               </View>
             )}
           </View>
@@ -628,7 +628,7 @@ export default function JournalScreen() {
         </Pressable>
 
         {groundingExpanded && (
-          groundingSessions.length === 0 ? (
+          (groundingSessions ?? []).length === 0 ? (
             <View style={[styles.groundingEmpty, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Ionicons name="leaf-outline" size={32} color={colors.mutedForeground} />
               <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No sessions yet</Text>
@@ -637,7 +637,7 @@ export default function JournalScreen() {
               </Text>
             </View>
           ) : (
-            groundingSessions.map((session) => (
+            (groundingSessions ?? []).map((session) => (
               <GroundingSessionCard
                 key={session.id}
                 session={session}

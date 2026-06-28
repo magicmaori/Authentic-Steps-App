@@ -232,7 +232,7 @@ export default function DailyRitualScreen() {
           </View>
         )}
 
-        {userData.milestones.length > 0 && (
+        {(userData.milestones?.length ?? 0) > 0 && (
           <View style={[styles.milestoneCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.milestoneHeader}>
               <Ionicons name="ribbon" size={16} color={colors.accent} />
