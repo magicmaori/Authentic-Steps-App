@@ -54,12 +54,19 @@ jest.mock('fflate', () => ({
   strFromU8: (u: Uint8Array) => Buffer.from(u).toString('utf-8'),
 }));
 
+jest.mock('expo-router', () => ({
+  router: {
+    replace: jest.fn(),
+  },
+}));
+
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
 
 import React, { useEffect } from 'react';
 import { act, create } from 'react-test-renderer';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import * as notificationUtils from '@/utils/notifications';
 import { AppProvider, useApp, type RestoreResult } from '../context/AppContext';
 
@@ -520,5 +527,126 @@ describe('AppContext – restoreFromCode notification settings', () => {
     expect(lastWrite.eveningHour).toBe(20);
     expect(lastWrite.eveningMinute).toBe(30);
     expect(lastWrite.chimeEnabled).toBe(false);
+  });
+});
+
+// ─── OnboardingGate behaviour tests ──────────────────────────────────────────
+//
+// OnboardingGate (defined in app/_layout.tsx) redirects to /onboarding when
+// userData.hasOnboarded is false.  We mirror its logic inline so we can test
+// through AppProvider without exporting a private component.
+
+function TestOnboardingGate({ children }: { children: React.ReactNode }) {
+  const { isLoaded, userData } = useApp();
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!userData.hasOnboarded) {
+      router.replace('/onboarding' as any);
+    }
+  }, [isLoaded, userData.hasOnboarded]);
+  if (!isLoaded) return null;
+  return <>{children}</>;
+}
+
+describe('OnboardingGate – redirect behaviour', () => {
+  const mockReplace = router.replace as jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    clearStore();
+    (notificationUtils.getPermissionState as jest.Mock).mockResolvedValue('undetermined');
+    mockGetScheduledReminderTimes.mockResolvedValue({
+      ritualHour: 9,
+      ritualMinute: 0,
+      eveningHour: 20,
+      eveningMinute: 0,
+    });
+  });
+
+  it('redirects to /onboarding when hasOnboarded is false', async () => {
+    asyncStore[STORAGE_KEY_USER] = makeStoredUser({
+      hasOnboarded: false,
+      ritualHour: 9,
+      ritualMinute: 0,
+      eveningHour: 20,
+      eveningMinute: 0,
+    });
+
+    await act(async () => {
+      create(
+        <AppProvider>
+          <TestOnboardingGate>
+            <></>
+          </TestOnboardingGate>
+        </AppProvider>,
+      );
+      await flushPromises();
+    });
+
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledWith('/onboarding');
+  });
+
+  it('does NOT redirect when hasOnboarded is true', async () => {
+    asyncStore[STORAGE_KEY_USER] = makeStoredUser({
+      hasOnboarded: true,
+      ritualHour: 9,
+      ritualMinute: 0,
+      eveningHour: 20,
+      eveningMinute: 0,
+    });
+
+    await act(async () => {
+      create(
+        <AppProvider>
+          <TestOnboardingGate>
+            <></>
+          </TestOnboardingGate>
+        </AppProvider>,
+      );
+      await flushPromises();
+    });
+
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('redirects when AsyncStorage contains a partial user object (no hasOnboarded, no rituals)', async () => {
+    asyncStore[STORAGE_KEY_USER] = JSON.stringify({
+      anonymousName: 'PartialUser',
+      currentStreak: 0,
+      totalRituals: 0,
+    });
+
+    await act(async () => {
+      create(
+        <AppProvider>
+          <TestOnboardingGate>
+            <></>
+          </TestOnboardingGate>
+        </AppProvider>,
+      );
+      await flushPromises();
+    });
+
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledWith('/onboarding');
+  });
+
+  it('redirects when AsyncStorage contains corrupt (non-JSON) data', async () => {
+    asyncStore[STORAGE_KEY_USER] = 'NOT_VALID_JSON{{{';
+
+    await act(async () => {
+      create(
+        <AppProvider>
+          <TestOnboardingGate>
+            <></>
+          </TestOnboardingGate>
+        </AppProvider>,
+      );
+      await flushPromises();
+    });
+
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledWith('/onboarding');
   });
 });
