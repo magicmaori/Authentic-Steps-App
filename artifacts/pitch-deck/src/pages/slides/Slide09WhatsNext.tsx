@@ -1,3 +1,5 @@
+const base = import.meta.env.BASE_URL;
+
 export default function Slide09WhatsNext() {
   return (
     <div
@@ -124,6 +126,15 @@ export default function Slide09WhatsNext() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="absolute bottom-0 right-0" style={{ padding: "3vh 4vw" }}>
+        <img
+          src={`${base}logo.png`}
+          crossOrigin="anonymous"
+          alt="Authentic Steps logo"
+          style={{ height: "4vh", width: "auto", filter: "brightness(0) invert(1)", opacity: 0.4 }}
+        />
       </div>
     </div>
   );

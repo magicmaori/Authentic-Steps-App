@@ -1,3 +1,5 @@
+const base = import.meta.env.BASE_URL;
+
 export default function Slide08WhyItMatters() {
   return (
     <div className="relative w-screen h-screen overflow-hidden" style={{ background: "#fff7f0" }}>
@@ -74,6 +76,15 @@ export default function Slide08WhyItMatters() {
         >
           Not a product. Not a platform. A genuine act of care — built so no young person has to face a hard moment with nothing to reach for.
         </p>
+      </div>
+
+      <div className="absolute bottom-0 right-0" style={{ padding: "3vh 4vw" }}>
+        <img
+          src={`${base}logo.png`}
+          crossOrigin="anonymous"
+          alt="Authentic Steps logo"
+          style={{ height: "4vh", width: "auto", opacity: 0.35 }}
+        />
       </div>
     </div>
   );

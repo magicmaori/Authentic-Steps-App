@@ -1,3 +1,5 @@
+const base = import.meta.env.BASE_URL;
+
 export default function Slide02Problem() {
   return (
     <div className="relative w-screen h-screen overflow-hidden" style={{ background: "#fff7f0" }}>
@@ -128,6 +130,15 @@ export default function Slide02Problem() {
             young people experience a mental health condition
           </div>
         </div>
+      </div>
+
+      <div className="absolute bottom-0 right-0" style={{ padding: "3vh 4vw" }}>
+        <img
+          src={`${base}logo.png`}
+          crossOrigin="anonymous"
+          alt="Authentic Steps logo"
+          style={{ height: "4vh", width: "auto", opacity: 0.35 }}
+        />
       </div>
     </div>
   );
