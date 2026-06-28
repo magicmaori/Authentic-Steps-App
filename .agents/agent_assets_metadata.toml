@@ -23,3 +23,9 @@ id = "OlnVYb-NNLfXLrch3reDr"
 uri = "file://.local/outputs/Authentic-Steps-Founder-Pitch-Deck.pdf"
 type = "pdf"
 title = "Authentic Steps — Founder Pitch Deck (PDF)"
+
+[[outputs]]
+id = "IwA32nA9Ub-8NCSCXMVlF"
+uri = "file://.local/outputs/Authentic-Steps---Founder-Pitch-Deck.pptx"
+type = "slides"
+title = "Authentic Steps — Founder Pitch Deck (PPTX)"
