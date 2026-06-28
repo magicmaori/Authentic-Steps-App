@@ -16,6 +16,8 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
 import { slides } from "@/slideLoader";
+import rawManifest from "@/data/slides-manifest.json";
+import fileExportRecord from "@/data/export-record.json";
 
 const PRESENTER_CHANNEL = "presenter-sync";
 
@@ -62,6 +64,48 @@ function ScaledSlide({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   );
+}
+
+// Full manifest JSON fingerprint — covers every field (id, position, filepath,
+// title, description, speakerNotes). Changes whenever any agent or workspace UI
+// edit touches the manifest, including reorders, renames, and note updates.
+const DECK_FINGERPRINT = JSON.stringify(rawManifest);
+
+// Per-format export tracking — both PDF and PPTX are tracked independently.
+const EXPORT_STORAGE_KEY = "pitch-deck:exports-v2";
+
+interface FormatRecord {
+  fingerprint: string;
+  exportedAt: string;
+}
+
+interface ExportStore {
+  pdf?: FormatRecord;
+  pptx?: FormatRecord;
+}
+
+// Seed from the committed export-record.json so agent-triggered exports
+// (which write that file) are visible even in a fresh browser session.
+function loadExportStore(): ExportStore {
+  const file = fileExportRecord as { pdf: FormatRecord | null; pptx: FormatRecord | null };
+  let stored: ExportStore = {};
+  try {
+    const raw = localStorage.getItem(EXPORT_STORAGE_KEY);
+    if (raw) stored = JSON.parse(raw) as ExportStore;
+  } catch {
+    // ignore malformed value
+  }
+  // For each format, pick the more-recent record between file and localStorage.
+  const merged: ExportStore = {};
+  for (const fmt of ["pdf", "pptx"] as const) {
+    const fileRec = file[fmt];
+    const localRec = stored[fmt];
+    if (!fileRec && !localRec) continue;
+    if (!fileRec) { merged[fmt] = localRec; continue; }
+    if (!localRec) { merged[fmt] = fileRec; continue; }
+    merged[fmt] = new Date(fileRec.exportedAt) >= new Date(localRec.exportedAt) ? fileRec : localRec;
+  }
+  return merged;
 }
 
 function getSlideIndex(pathname: string): number {
@@ -603,9 +647,15 @@ function SlideViewer() {
   const [exporting, setExporting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [popupOpen, setPopupOpen] = useState(false);
+  const [exportStore, setExportStore] = useState<ExportStore>({});
   const popupRef = useRef<Window | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const currentIndexRef = useRef(currentIndex);
+
+  // Load export store on mount (merges committed file + localStorage)
+  useEffect(() => {
+    setExportStore(loadExportStore());
+  }, []);
 
   // Keep ref in sync with state so channel handler always reads latest value
   useEffect(() => {
@@ -706,6 +756,18 @@ function SlideViewer() {
       setTimeout(() => {
         printWindow.print();
         setExporting(false);
+        setExportStore((prev) => {
+          const next: ExportStore = {
+            ...prev,
+            pdf: { fingerprint: DECK_FINGERPRINT, exportedAt: new Date().toISOString() },
+          };
+          try {
+            localStorage.setItem(EXPORT_STORAGE_KEY, JSON.stringify(next));
+          } catch {
+            // ignore storage errors (e.g. private browsing quota)
+          }
+          return next;
+        });
       }, 800);
     };
     printWindow.addEventListener("load", onLoad, { once: true });
@@ -918,66 +980,122 @@ function SlideViewer() {
       )}
 
       <div
-        style={{ position: "absolute", top: "1rem", right: "1rem", display: "flex", gap: "0.5rem", zIndex: 50 }}
+        style={{ position: "absolute", top: "1rem", right: "1rem", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.4rem", zIndex: 50 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          onClick={() => setPresenterMode((m) => !m)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            padding: "0.45rem 1rem",
-            background: presenterMode ? "rgba(3,152,158,0.92)" : "rgba(31,41,55,0.92)",
-            color: "#fff",
-            border: presenterMode ? "none" : "1px solid rgba(75,85,99,0.7)",
-            borderRadius: "6px",
-            fontSize: "0.85rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            letterSpacing: "0.01em",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-            transition: "background 0.2s",
-          }}
-          title="Toggle presenter view"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2"/>
-            <path d="M8 21h8M12 17v4"/>
-          </svg>
-          {presenterMode ? "Exit Presenter" : "Presenter View"}
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleExportPdf();
-          }}
-          disabled={exporting}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            padding: "0.45rem 1rem",
-            background: exporting ? "rgba(3,152,158,0.6)" : "rgba(3,152,158,0.92)",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            fontSize: "0.85rem",
-            fontWeight: 600,
-            cursor: exporting ? "default" : "pointer",
-            letterSpacing: "0.01em",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-            transition: "background 0.2s",
-          }}
-          title="Export all slides as PDF"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          {exporting ? "Preparing…" : "Export PDF"}
-        </button>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            onClick={() => setPresenterMode((m) => !m)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              padding: "0.45rem 1rem",
+              background: presenterMode ? "rgba(3,152,158,0.92)" : "rgba(31,41,55,0.92)",
+              color: "#fff",
+              border: presenterMode ? "none" : "1px solid rgba(75,85,99,0.7)",
+              borderRadius: "6px",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              letterSpacing: "0.01em",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+              transition: "background 0.2s",
+            }}
+            title="Toggle presenter view"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8M12 17v4"/>
+            </svg>
+            {presenterMode ? "Exit Presenter" : "Presenter View"}
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleExportPdf();
+            }}
+            disabled={exporting}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              padding: "0.45rem 1rem",
+              background: exporting ? "rgba(3,152,158,0.6)" : "rgba(3,152,158,0.92)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              cursor: exporting ? "default" : "pointer",
+              letterSpacing: "0.01em",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+              transition: "background 0.2s",
+            }}
+            title="Export all slides as PDF"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            {exporting ? "Preparing…" : "Export PDF"}
+          </button>
+        </div>
+        {(() => {
+          // A format is stale when it has never been exported OR its fingerprint
+          // no longer matches the current manifest.
+          const pdfNever = !exportStore.pdf;
+          const pptxNever = !exportStore.pptx;
+          const pdfStale = pdfNever || exportStore.pdf!.fingerprint !== DECK_FINGERPRINT;
+          const pptxStale = pptxNever || exportStore.pptx!.fingerprint !== DECK_FINGERPRINT;
+          if (!pdfStale && !pptxStale) return null;
+
+          const parts: string[] = [];
+          if (pdfStale) parts.push(pdfNever ? "PDF never exported" : "PDF out of date");
+          if (pptxStale) parts.push(pptxNever ? "PPTX never exported" : "PPTX out of date");
+          const label = parts.join(" · ");
+
+          const lines: string[] = [];
+          if (pdfStale) {
+            lines.push(pdfNever
+              ? "PDF: never exported for this deck"
+              : `PDF: export last initiated ${new Date(exportStore.pdf!.exportedAt).toLocaleString()} — deck changed since then`);
+          }
+          if (pptxStale) {
+            lines.push(pptxNever
+              ? "PPTX: never exported for this deck"
+              : `PPTX: exported ${new Date(exportStore.pptx!.exportedAt).toLocaleString()} — deck changed since then`);
+          }
+          const tooltip = lines.join("\n");
+
+          return (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                padding: "0.22rem 0.6rem",
+                background: "rgba(245,158,11,0.12)",
+                border: "1px solid rgba(245,158,11,0.35)",
+                borderRadius: "5px",
+                color: "#f59e0b",
+                fontSize: "0.72rem",
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+              }}
+              title={tooltip}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              {label}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
