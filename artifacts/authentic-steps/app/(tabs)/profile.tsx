@@ -9,7 +9,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAuth } from '@clerk/expo';
 import { ThemePreference, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 import {
@@ -57,7 +56,6 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { userData, entries, groundingSessions, lastSynced, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs, setChimeEnabled } = useApp();
-  const { isSignedIn } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
   const [, setTick] = useState(0);
   const [notifBlocked, setNotifBlocked] = useState(false);
@@ -384,20 +382,6 @@ export default function ProfileScreen() {
           <View style={styles.profileInfo}>
             <Text style={[styles.username, { color: colors.foreground }]}>{userData.anonymousName}</Text>
             <Text style={[styles.anonNote, { color: colors.mutedForeground }]}>Anonymous name — only you see this</Text>
-            {isSignedIn && (
-              <View style={styles.syncRow}>
-                <Ionicons
-                  name="cloud-done-outline"
-                  size={12}
-                  color={lastSynced ? colors.primary : colors.mutedForeground}
-                />
-                <Text style={[styles.syncText, { color: lastSynced ? colors.primary : colors.mutedForeground }]}>
-                  {lastSynced
-                    ? `Synced ${formatLastUpdated(lastSynced)}`
-                    : 'Syncing…'}
-                </Text>
-              </View>
-            )}
           </View>
         </View>
 

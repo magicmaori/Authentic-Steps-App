@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '@clerk/expo';
 import Constants from 'expo-constants';
 import { deflateSync, decompressSync, strFromU8, strToU8 } from 'fflate';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
@@ -220,53 +219,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
 
-  const { isSignedIn, getToken, isLoaded: authLoaded, userId } = useAuth();
-
-  const pendingSyncRef = useRef<SyncPayload | null>(null);
-  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasFetchedRemote = useRef(false);
-  const lastFetchedUserId = useRef<string | null>(null);
-
   useEffect(() => {
     loadData();
     setupAndroidChannel().catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (!isLoaded || !authLoaded) return;
-
-    if (!isSignedIn) {
-      // Reset so we re-fetch when user signs back in
-      hasFetchedRemote.current = false;
-      lastFetchedUserId.current = null;
-      return;
-    }
-
-    const currentUserId = userId ?? null;
-
-    // Reset if a different user signed in
-    if (lastFetchedUserId.current !== null && lastFetchedUserId.current !== currentUserId) {
-      hasFetchedRemote.current = false;
-    }
-
-    if (hasFetchedRemote.current) return;
-
-    (async () => {
-      try {
-        const token = await getToken();
-        if (!token) return; // Leave flag unset; will retry when deps change
-
-        // Mark as fetched before network call to prevent duplicate concurrent fetches
-        hasFetchedRemote.current = true;
-        lastFetchedUserId.current = currentUserId;
-
-        await fetchAndMergeRemoteData(token);
-      } catch {
-        // Allow retry on next relevant state change
-        hasFetchedRemote.current = false;
-      }
-    })();
-  }, [isLoaded, authLoaded, isSignedIn, userId]);
 
   async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
     let lastError: unknown;
@@ -355,31 +311,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   function scheduleSyncPush(
-    u: UserData,
-    e: Record<string, RitualEntry>,
-    g: GroundingSession[],
-    ce: Record<string, string>,
+    _u: UserData,
+    _e: Record<string, RitualEntry>,
+    _g: GroundingSession[],
+    _ce: Record<string, string>,
   ) {
-    if (!isSignedIn || !API_BASE) return;
-    const updatedAt = new Date().toISOString();
-    pendingSyncRef.current = { userData: u, entries: e, groundingSessions: g, completedExercises: ce, updatedAt };
-    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-    syncTimerRef.current = setTimeout(async () => {
-      const payload = pendingSyncRef.current;
-      if (!payload) return;
-      try {
-        const token = await getToken();
-        if (!token) return;
-        const resp = await fetch(`${API_BASE}/api/sync`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(payload),
-        });
-        if (resp.ok) setLastSynced(new Date());
-      } catch {
-        // Silent — guest or offline
-      }
-    }, 2000);
+    // Sync disabled — app runs in guest-only mode
   }
 
   function logNotifError(label: string, err: unknown) {
@@ -573,7 +510,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       return { ok: false, reason: 'save_failed' };
     }
-  }, [entries, groundingSessions, completedExercises, isSignedIn]);
+  }, [entries, groundingSessions, completedExercises]);
 
   const saveGratitude = useCallback(async (gratitudes: GratitudeEntry[]) => {
     const today = todayString();
@@ -849,21 +786,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setGroundingSessions([]);
     setLastSynced(null);
 
-    // For signed-in users, delete the cloud record so data doesn't restore on next launch.
-    // Fail silently if offline or the request errors — local data is already cleared.
-    if (isSignedIn && API_BASE) {
-      try {
-        const token = await getToken();
-        if (token) {
-          await fetch(`${API_BASE}/api/sync`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        }
-      } catch {
-        // Silent failure — local clear already happened
-      }
-    }
   }
 
   function getStreakCalendar() {

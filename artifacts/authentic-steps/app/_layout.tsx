@@ -7,9 +7,6 @@ import {
 } from "@expo-google-fonts/inter";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
-import { Platform } from "react-native";
-import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -22,11 +19,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashAnimation } from "@/components/SplashAnimation";
 import { AppProvider, useApp } from "@/context/AppContext";
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
-const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
-
 const INTRO_SEEN_KEY = "hasSeenIntro";
-export const GUEST_MODE_KEY = "guestMode";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -34,26 +27,17 @@ const queryClient = new QueryClient();
 
 function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { isLoaded: appLoaded, userData } = useApp();
-  const { isSignedIn, isLoaded: authLoaded } = useAuth();
-  const [guestMode, setGuestMode] = useState<boolean | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(GUEST_MODE_KEY).then((v) => setGuestMode(v === '1'));
-  }, []);
-
-  useEffect(() => {
-    if (!authLoaded || !appLoaded || guestMode === null) return;
-    if (!isSignedIn && !guestMode) {
-      router.replace('/(auth)/sign-in' as any);
-    } else if (!userData.hasOnboarded) {
-      router.replace('/onboarding' as any);
+    if (!appLoaded) return;
+    if (!userData.hasOnboarded) {
+      router.replace("/onboarding" as any);
     }
-  }, [authLoaded, appLoaded, isSignedIn, guestMode, userData.hasOnboarded]);
+  }, [appLoaded, userData.hasOnboarded]);
 
-  if (!authLoaded || !appLoaded || guestMode === null) return null;
+  if (!appLoaded) return null;
   return <>{children}</>;
 }
-
 
 function RootLayoutNav() {
   return (
@@ -105,25 +89,21 @@ export default function RootLayout() {
   if (showIntro === null) return null;
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache} proxyUrl={proxyUrl}>
-      <ClerkLoaded>
-        <SafeAreaProvider>
-          <ErrorBoundary>
-            <QueryClientProvider client={queryClient}>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <KeyboardProvider>
-                  <AppProvider>
-                    <RootLayoutNav />
-                    {showIntro && !splashDone && (
-                      <SplashAnimation onFinished={handleSplashFinished} />
-                    )}
-                  </AppProvider>
-                </KeyboardProvider>
-              </GestureHandlerRootView>
-            </QueryClientProvider>
-          </ErrorBoundary>
-        </SafeAreaProvider>
-      </ClerkLoaded>
-    </ClerkProvider>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <KeyboardProvider>
+              <AppProvider>
+                <RootLayoutNav />
+                {showIntro && !splashDone && (
+                  <SplashAnimation onFinished={handleSplashFinished} />
+                )}
+              </AppProvider>
+            </KeyboardProvider>
+          </GestureHandlerRootView>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }

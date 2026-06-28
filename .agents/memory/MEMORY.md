@@ -1,0 +1,1 @@
+- [Clerk removal](clerk-removal.md) — @clerk/expo can't run in Expo Go (any platform); app is fully guest/AsyncStorage mode, no auth needed.
