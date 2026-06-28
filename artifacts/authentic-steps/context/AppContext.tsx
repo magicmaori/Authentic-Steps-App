@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deflateSync, decompressSync, strFromU8, strToU8 } from 'fflate';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { generateAnonymousName } from '@/constants/affirmations';
 import {
@@ -110,6 +111,7 @@ interface AppContextType {
   setNotificationTime: (key: 'ritual' | 'evening', hour: number, minute: number) => Promise<void>;
   disableAllNotificationPrefs: () => Promise<void>;
   setChimeEnabled: (value: boolean) => Promise<void>;
+  loadError: boolean;
 }
 
 function generateRecoveryCode(anonymousName: string): string {
@@ -204,6 +206,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [completedExercises, setCompletedExercises] = useState<Record<string, string>>({});
   const [groundingSessions, setGroundingSessions] = useState<GroundingSession[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -233,20 +236,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function loadData() {
+    // Phase 1: read raw values from storage.
+    // If AsyncStorage itself rejects (device full, permission denied, etc.) we
+    // cannot recover — show a visible error fallback instead of a silent blank screen.
+    let themeRaw: string | null = null;
+    let userRaw: string | null = null;
+    let entriesRaw: string | null = null;
+    let exercisesRaw: string | null = null;
+    let groundingRaw: string | null = null;
     try {
-      // Read theme preference first so it's applied before full user data loads,
-      // preventing a flash of the wrong theme on cold start.
-      const themeRaw = await AsyncStorage.getItem(STORAGE_KEY_THEME);
-      if (themeRaw) {
-        setUserData(prev => ({ ...prev, themePreference: themeRaw as ThemePreference }));
-      }
-
-      const [userRaw, entriesRaw, exercisesRaw, groundingRaw] = await Promise.all([
+      themeRaw = await AsyncStorage.getItem(STORAGE_KEY_THEME);
+      [userRaw, entriesRaw, exercisesRaw, groundingRaw] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY_USER),
         AsyncStorage.getItem(STORAGE_KEY_ENTRIES),
         AsyncStorage.getItem(STORAGE_KEY_EXERCISES),
         AsyncStorage.getItem(STORAGE_KEY_GROUNDING),
       ]);
+    } catch (error: unknown) {
+      if (__DEV__) console.warn('[AppContext] loadData failed — storage unavailable:', error);
+      setLoadError(true);
+      setIsLoaded(true);
+      return;
+    }
+
+    // Phase 2: parse and apply the raw values.
+    // JSON parse errors (corrupt data) fall through silently so defaultUser is
+    // used and the onboarding gate redirects as normal.
+    try {
+      // Read theme preference first so it's applied before full user data loads,
+      // preventing a flash of the wrong theme on cold start.
+      if (themeRaw) {
+        setUserData(prev => ({ ...prev, themePreference: themeRaw as ThemePreference }));
+      }
+
       if (userRaw) {
         const parsed = JSON.parse(userRaw) as Partial<UserData>;
         const name = parsed.anonymousName || generateAnonymousName();
@@ -640,6 +662,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const todayEntry = getTodayEntry();
 
+  if (loadError) {
+    return (
+      <View style={storageErrorStyles.container}>
+        <Text style={storageErrorStyles.title}>Unable to load your data</Text>
+        <Text style={storageErrorStyles.body}>
+          Storage could not be accessed. Please restart the app. If this keeps happening, check that the app has storage permission.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <AppContext.Provider value={{
       userData,
@@ -670,11 +703,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setNotificationTime,
       disableAllNotificationPrefs,
       setChimeEnabled,
+      loadError,
     }}>
       {children}
     </AppContext.Provider>
   );
 }
+
+const storageErrorStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+    color: '#1a1a1a',
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    color: '#555',
+  },
+});
 
 export function useApp() {
   const ctx = useContext(AppContext);

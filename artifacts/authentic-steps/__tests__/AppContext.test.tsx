@@ -530,6 +530,67 @@ describe('AppContext – restoreFromCode notification settings', () => {
   });
 });
 
+// ─── AsyncStorage rejection (storage unavailable) tests ──────────────────────
+
+describe('AppContext – AsyncStorage.getItem rejection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    clearStore();
+    (notificationUtils.getPermissionState as jest.Mock).mockResolvedValue('undetermined');
+    mockGetScheduledReminderTimes.mockResolvedValue({});
+  });
+
+  afterEach(() => {
+    (AsyncStorage.getItem as jest.Mock).mockImplementation(
+      (key: string) => Promise.resolve(asyncStore[key] ?? null),
+    );
+  });
+
+  it('renders a visible fallback UI (not children) when getItem rejects', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockRejectedValue(new Error('storage unavailable'));
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const sentinel = 'SHOULD_NOT_APPEAR';
+
+    let tree: ReturnType<typeof create> | null = null;
+    await act(async () => {
+      tree = create(
+        <AppProvider>
+          <>{sentinel}</>
+        </AppProvider>,
+      );
+      await flushPromises();
+    });
+
+    const json = JSON.stringify(tree!.toJSON());
+    expect(json).toContain('Unable to load your data');
+    expect(json).not.toContain(sentinel);
+
+    warnSpy.mockRestore();
+  });
+
+  it('logs a DEV warning that names [AppContext] when getItem rejects', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockRejectedValue(new Error('permission denied'));
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    await act(async () => {
+      create(
+        <AppProvider>
+          <></>
+        </AppProvider>,
+      );
+      await flushPromises();
+    });
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[AppContext]'),
+      expect.any(Error),
+    );
+
+    warnSpy.mockRestore();
+  });
+});
+
 // ─── OnboardingGate behaviour tests ──────────────────────────────────────────
 //
 // OnboardingGate (defined in app/_layout.tsx) redirects to /onboarding when
