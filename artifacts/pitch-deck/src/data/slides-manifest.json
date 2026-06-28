@@ -72,8 +72,16 @@
     "speakerNotes": "Be concrete — this is the business case.\n\n- Now: we're structuring and connecting everything. The foundation is solid, we're plugging it all in.\n- Next: backend development. Server, user accounts, data — the layer that lets the app scale and opens up monetisation.\n- Then: revenue. School licensing deals. App Store presence. A sustainable income stream that pays for itself.\n- This isn't speculative — each step follows the last, and we're already through the hardest part."
   },
   {
-    "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
+    "id": "e1f2a3b4-c5d6-7890-efab-901234567890",
     "position": 10,
+    "filepath": "src/pages/slides/Slide11InvestmentBreakdown.tsx",
+    "title": "Investment Breakdown",
+    "description": "$5,000/month per school — 12-month auto-renewing contract with three revenue scenarios and community giving-back model",
+    "speakerNotes": "This is the money slide — walk John through each scenario clearly.\n\n- The model is simple: $5,000 per school per month on a 12-month contract that auto-renews. Predictable, recurring revenue.\n- Full scenario: 100 schools gives us $6 million in annual gross. That's the ceiling — and it's very achievable.\n- Conservative: even at a third of that — 33 schools — we're looking at $2 million a year.\n- Floor: at a quarter, 25 schools, we're still generating $1.5 million. Still very profitable.\n- The community model is key: larger schools can sponsor smaller ones. That's not charity — it's a smart distribution play that gets us into more schools faster and positions Authentic Steps as a mission-driven brand, not just a product.\n- Any one of these scenarios represents a strong, sustainable business."
+  },
+  {
+    "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
+    "position": 11,
     "filepath": "src/pages/slides/Slide10ThankYou.tsx",
     "title": "The Next Step",
     "description": "Closing — Johaan as development partner, next steps for John",
