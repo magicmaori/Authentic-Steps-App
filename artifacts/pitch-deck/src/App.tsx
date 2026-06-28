@@ -167,12 +167,19 @@ function AllSlides() {
 
 const NOTES_PANEL_HEIGHT = 220;
 
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
 // This component is used for the deployed view at `/`
 function SlideViewer() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [presenterMode, setPresenterMode] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exporting, setExporting] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   const calcDims = (presMode: boolean) => {
     const ah = presMode ? window.innerHeight - NOTES_PANEL_HEIGHT : window.innerHeight;
@@ -209,6 +216,15 @@ function SlideViewer() {
 
   useEffect(() => {
     setDims(calcDims(presenterMode));
+    if (presenterMode) {
+      setElapsed(0);
+    }
+  }, [presenterMode]);
+
+  useEffect(() => {
+    if (!presenterMode) return;
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
   }, [presenterMode]);
 
   useEffect(() => {
@@ -278,12 +294,45 @@ function SlideViewer() {
             overflowY: "auto",
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexShrink: 0 }}>
             <span style={{ color: "#03989e", fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               Presenter Notes
             </span>
             <span style={{ color: "#4b5563", fontSize: "0.7rem" }}>
               Slide {currentIndex + 1} / {slides.length} — {currentSlide?.title ?? ""}
+            </span>
+            <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span style={{
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                fontSize: "1rem",
+                fontWeight: 700,
+                color: elapsed >= 3600 ? "#ef4444" : elapsed >= 1800 ? "#f59e0b" : "#e5e7eb",
+                letterSpacing: "0.05em",
+                minWidth: "3.5rem",
+                textAlign: "right",
+              }}>
+                {formatElapsed(elapsed)}
+              </span>
+              <button
+                onClick={() => setElapsed(0)}
+                title="Reset timer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "0.2rem 0.5rem",
+                  background: "rgba(55,65,81,0.7)",
+                  color: "#9ca3af",
+                  border: "1px solid rgba(75,85,99,0.5)",
+                  borderRadius: "4px",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                Reset
+              </button>
             </span>
           </div>
           {notes ? (
