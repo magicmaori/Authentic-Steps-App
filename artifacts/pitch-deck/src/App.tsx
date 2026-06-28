@@ -37,6 +37,11 @@ function SlideEditor() {
 
   useEffect(() => {
     if (currentIndex === -1) return;
+    window.parent.postMessage({ type: "slideChanged", index: currentIndex }, "*");
+  }, [currentIndex]);
+
+  useEffect(() => {
+    if (currentIndex === -1) return;
 
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (navigationDisabledRef.current) return;
@@ -160,14 +165,24 @@ function AllSlides() {
   );
 }
 
+const NOTES_PANEL_HEIGHT = 220;
+
 // This component is used for the deployed view at `/`
 function SlideViewer() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [dims, setDims] = useState(() => ({
-    width: Math.min(window.innerWidth, window.innerHeight * (16 / 9)),
-    height: Math.min(window.innerHeight, window.innerWidth * (9 / 16)),
-  }));
+  const [presenterMode, setPresenterMode] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [exporting, setExporting] = useState(false);
+
+  const calcDims = (presMode: boolean) => {
+    const ah = presMode ? window.innerHeight - NOTES_PANEL_HEIGHT : window.innerHeight;
+    return {
+      width: Math.min(window.innerWidth, ah * (16 / 9)),
+      height: Math.min(ah, window.innerWidth * (9 / 16)),
+    };
+  };
+
+  const [dims, setDims] = useState(() => calcDims(false));
 
   const handleExportPdf = () => {
     setExporting(true);
@@ -176,7 +191,7 @@ function SlideViewer() {
     if (!printWindow) {
       setExporting(false);
       return;
-    }
+    };
     const onLoad = () => {
       setTimeout(() => {
         printWindow.print();
@@ -187,20 +202,27 @@ function SlideViewer() {
   };
 
   useEffect(() => {
-    const update = () => {
-      setDims({
-        width: Math.min(window.innerWidth, window.innerHeight * (16 / 9)),
-        height: Math.min(window.innerHeight, window.innerWidth * (9 / 16)),
-      });
-    };
+    const update = () => setDims(calcDims(presenterMode));
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
-  }, []);
+  }, [presenterMode]);
+
+  useEffect(() => {
+    setDims(calcDims(presenterMode));
+  }, [presenterMode]);
 
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== " ") return;
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== " " &&
+          event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
       if (event.key === " ") event.preventDefault();
+
+      if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+        setCurrentIndex((i) => Math.max(0, i - 1));
+      } else {
+        setCurrentIndex((i) => Math.min(slides.length - 1, i + 1));
+      }
+
       iframeRef.current?.contentWindow?.dispatchEvent(
         new KeyboardEvent("keydown", { key: event.key, code: event.code, bubbles: true }),
       );
@@ -209,56 +231,135 @@ function SlideViewer() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === "slideChanged" && typeof event.data.index === "number") {
+        setCurrentIndex(event.data.index);
+      } else if (event.data?.type === "advanceSlide") {
+        setCurrentIndex((i) => Math.min(slides.length - 1, i + 1));
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   const firstPosition = slides.length > 0 ? slides[0].position : 1;
+  const currentSlide = slides[currentIndex];
+  const notes = currentSlide?.speakerNotes ?? "";
 
   return (
     <div
-      className="slide-viewer h-screen w-screen overflow-hidden bg-black flex items-center justify-center"
+      className="slide-viewer h-screen w-screen overflow-hidden bg-black flex flex-col"
       onClick={() => iframeRef.current?.focus()}
     >
-      <iframe
-        ref={iframeRef}
-        src={`${base}/slide${firstPosition}`}
-        style={{ width: dims.width, height: dims.height, border: "none" }}
-        onLoad={() => iframeRef.current?.focus()}
-        title="Slide viewer"
-      />
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleExportPdf();
-        }}
-        disabled={exporting}
-        style={{
-          position: "absolute",
-          top: "1rem",
-          right: "1rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.4rem",
-          padding: "0.45rem 1rem",
-          background: exporting ? "rgba(3,152,158,0.6)" : "rgba(3,152,158,0.92)",
-          color: "#fff",
-          border: "none",
-          borderRadius: "6px",
-          fontSize: "0.85rem",
-          fontWeight: 600,
-          cursor: exporting ? "default" : "pointer",
-          letterSpacing: "0.01em",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-          transition: "background 0.2s",
-          zIndex: 50,
-        }}
-        title="Export all slides as PDF"
+      <div className="flex-1 flex items-center justify-center overflow-hidden">
+        <iframe
+          ref={iframeRef}
+          src={`${base}/slide${firstPosition}`}
+          style={{ width: dims.width, height: dims.height, border: "none" }}
+          onLoad={() => iframeRef.current?.focus()}
+          title="Slide viewer"
+        />
+      </div>
+
+      {presenterMode && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            height: NOTES_PANEL_HEIGHT,
+            flexShrink: 0,
+            background: "#111827",
+            borderTop: "2px solid #1f2937",
+            display: "flex",
+            flexDirection: "column",
+            padding: "0.875rem 1.25rem 1rem",
+            gap: "0.4rem",
+            overflowY: "auto",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", flexShrink: 0 }}>
+            <span style={{ color: "#03989e", fontWeight: 700, fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Presenter Notes
+            </span>
+            <span style={{ color: "#4b5563", fontSize: "0.7rem" }}>
+              Slide {currentIndex + 1} / {slides.length} — {currentSlide?.title ?? ""}
+            </span>
+          </div>
+          {notes ? (
+            <div style={{ color: "#e5e7eb", fontSize: "0.88rem", lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
+              {notes}
+            </div>
+          ) : (
+            <div style={{ color: "#4b5563", fontStyle: "italic", fontSize: "0.85rem" }}>
+              No speaker notes for this slide.
+            </div>
+          )}
+        </div>
+      )}
+
+      <div
+        style={{ position: "absolute", top: "1rem", right: "1rem", display: "flex", gap: "0.5rem", zIndex: 50 }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        {exporting ? "Preparing…" : "Export PDF"}
-      </button>
+        <button
+          onClick={() => setPresenterMode((m) => !m)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            padding: "0.45rem 1rem",
+            background: presenterMode ? "rgba(3,152,158,0.92)" : "rgba(31,41,55,0.92)",
+            color: "#fff",
+            border: presenterMode ? "none" : "1px solid rgba(75,85,99,0.7)",
+            borderRadius: "6px",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            letterSpacing: "0.01em",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+            transition: "background 0.2s",
+          }}
+          title="Toggle presenter view"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <path d="M8 21h8M12 17v4"/>
+          </svg>
+          {presenterMode ? "Exit Presenter" : "Presenter View"}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleExportPdf();
+          }}
+          disabled={exporting}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            padding: "0.45rem 1rem",
+            background: exporting ? "rgba(3,152,158,0.6)" : "rgba(3,152,158,0.92)",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            cursor: exporting ? "default" : "pointer",
+            letterSpacing: "0.01em",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+            transition: "background 0.2s",
+          }}
+          title="Export all slides as PDF"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          {exporting ? "Preparing…" : "Export PDF"}
+        </button>
+      </div>
     </div>
   );
 }
