@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import { deflateSync, decompressSync, strFromU8, strToU8 } from 'fflate';
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { generateAnonymousName } from '@/constants/affirmations';
 import {
@@ -87,7 +86,6 @@ interface AppContextType {
   entries: Record<string, RitualEntry>;
   todayEntry: RitualEntry | null;
   isLoaded: boolean;
-  lastSynced: Date | null;
   saveGratitude: (gratitudes: GratitudeEntry[]) => Promise<void>;
   saveIntention: (intention: string, category: IntentionCategory | '') => Promise<void>;
   saveIAmStatement: (statement: string) => Promise<void>;
@@ -181,18 +179,7 @@ const STORAGE_KEY_USER = '@authentic_steps_user';
 const STORAGE_KEY_ENTRIES = '@authentic_steps_entries';
 const STORAGE_KEY_EXERCISES = '@authentic_steps_exercises';
 const STORAGE_KEY_GROUNDING = '@authentic_steps_grounding';
-const STORAGE_KEY_UPDATED_AT = '@authentic_steps_updated_at';
 const STORAGE_KEY_THEME = '@authentic_steps_theme';
-
-const API_BASE: string = (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ?? '';
-
-interface SyncPayload {
-  userData: UserData;
-  entries: Record<string, RitualEntry>;
-  groundingSessions: GroundingSession[];
-  completedExercises: Record<string, string>;
-  updatedAt: string;
-}
 
 function todayString(): string {
   return new Date().toISOString().split('T')[0];
@@ -217,21 +204,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [completedExercises, setCompletedExercises] = useState<Record<string, string>>({});
   const [groundingSessions, setGroundingSessions] = useState<GroundingSession[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
 
   useEffect(() => {
     loadData();
     setupAndroidChannel().catch(() => {});
   }, []);
-
-  function scheduleSyncPush(
-    _u: UserData,
-    _e: Record<string, RitualEntry>,
-    _g: GroundingSession[],
-    _ce: Record<string, string>,
-  ) {
-    // Sync disabled — app runs in guest-only mode
-  }
 
   function logNotifError(label: string, err: unknown) {
     if (__DEV__) console.warn(`[Notifications] ${label}`, err);
@@ -335,36 +312,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  /** Write user data locally and record the local timestamp used for freshness comparison. */
-  async function saveUser(
-    updated: UserData,
-    _entries?: Record<string, RitualEntry>,
-    _groundingSessions?: GroundingSession[],
-    _completedExercises?: Record<string, string>,
-  ) {
-    const now = new Date().toISOString();
+  async function saveUser(updated: UserData) {
     setUserData(updated);
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated)),
-      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
-    ]);
-    scheduleSyncPush(
-      updated,
-      _entries ?? entries,
-      _groundingSessions ?? groundingSessions,
-      _completedExercises ?? completedExercises,
-    );
+    await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(updated));
   }
 
-  /** Write entries locally and record the local timestamp used for freshness comparison. */
   async function saveEntries(updated: Record<string, RitualEntry>) {
-    const now = new Date().toISOString();
     setEntries(updated);
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(updated)),
-      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
-    ]);
-    scheduleSyncPush(userData, updated, groundingSessions, completedExercises);
+    await AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(updated));
   }
 
   function getTodayEntry(): RitualEntry | null {
@@ -409,17 +364,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     const safeEntries: Record<string, RitualEntry> = restoredEntries ?? {};
     try {
-      const now = new Date().toISOString();
       await Promise.all([
         AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(safeUser)),
         AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(safeEntries)),
-        AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
         AsyncStorage.setItem(STORAGE_KEY_THEME, safeUser.themePreference),
       ]);
       setUserData(safeUser);
       setEntries(safeEntries);
       reconcileNotifications(safeUser).catch(() => {});
-      scheduleSyncPush(safeUser, safeEntries, groundingSessions, completedExercises);
       return { ok: true };
     } catch {
       return { ok: false, reason: 'save_failed' };
@@ -536,13 +488,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const now = new Date().toISOString();
     setEntries(newEntries);
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(newEntries)),
-      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
-    ]);
-    await saveUser(newUser, newEntries, groundingSessions, completedExercises);
+    await AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(newEntries));
+    await saveUser(newUser);
   }, [entries, userData]);
 
   const useFlex = useCallback(async (): Promise<boolean> => {
@@ -591,13 +539,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const today = todayString();
     if (completedExercises[toolId] === today) return;
     const updated = { ...completedExercises, [toolId]: today };
-    const now = new Date().toISOString();
     setCompletedExercises(updated);
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEY_EXERCISES, JSON.stringify(updated)),
-      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
-    ]);
-    scheduleSyncPush(userData, entries, groundingSessions, updated);
+    await AsyncStorage.setItem(STORAGE_KEY_EXERCISES, JSON.stringify(updated));
   }, [completedExercises, userData, entries, groundingSessions]);
 
   const isExerciseDoneToday = useCallback((toolId: string): boolean => {
@@ -613,24 +556,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       senses,
     };
     const updated = [session, ...groundingSessions];
-    const updatedAt = new Date().toISOString();
     setGroundingSessions(updated);
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated)),
-      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, updatedAt),
-    ]);
-    scheduleSyncPush(userData, entries, updated, completedExercises);
+    await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated));
   }, [groundingSessions, userData, entries, completedExercises]);
 
   const deleteGroundingSession = useCallback(async (id: string) => {
     const updated = groundingSessions.filter(s => s.id !== id);
-    const updatedAt = new Date().toISOString();
     setGroundingSessions(updated);
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated)),
-      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, updatedAt),
-    ]);
-    scheduleSyncPush(userData, entries, updated, completedExercises);
+    await AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(updated));
   }, [groundingSessions, userData, entries, completedExercises]);
 
   const setNotificationPref = useCallback(async (
@@ -667,13 +600,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userData]);
 
   async function resetAllData() {
-    // Cancel any queued sync push so it doesn't race with the DELETE below
-    if (syncTimerRef.current) {
-      clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = null;
-    }
-    pendingSyncRef.current = null;
-
     await cancelAllReminders().catch(() => {});
     const name = generateAnonymousName();
     const freshUser: UserData = {
@@ -683,23 +609,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       hasOnboarded: true,
       themePreference: userData.themePreference,
     };
-    const now = new Date().toISOString();
     await AsyncStorage.multiRemove([
       STORAGE_KEY_USER,
       STORAGE_KEY_ENTRIES,
       STORAGE_KEY_EXERCISES,
       STORAGE_KEY_GROUNDING,
     ]);
-    await Promise.all([
-      AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(freshUser)),
-      AsyncStorage.setItem(STORAGE_KEY_UPDATED_AT, now),
-    ]);
+    await AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(freshUser));
     setUserData(freshUser);
     setEntries({});
     setCompletedExercises({});
     setGroundingSessions([]);
-    setLastSynced(null);
-
   }
 
   function getStreakCalendar() {
@@ -726,7 +646,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       entries,
       todayEntry,
       isLoaded,
-      lastSynced,
       saveGratitude,
       saveIntention,
       saveIAmStatement,
