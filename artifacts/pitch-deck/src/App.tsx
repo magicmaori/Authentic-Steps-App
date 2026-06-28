@@ -17,11 +17,19 @@ import { useLocation } from "wouter";
 
 import { slides } from "@/slideLoader";
 
+const PRESENTER_CHANNEL = "presenter-sync";
+
 function getSlideIndex(pathname: string): number {
   const match = pathname.match(/^\/slide(\d+)$/);
   if (!match) return -1;
   const position = parseInt(match[1], 10);
   return slides.findIndex((s) => s.position === position);
+}
+
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
 }
 
 function SlideEditor() {
@@ -167,10 +175,265 @@ function AllSlides() {
 
 const NOTES_PANEL_HEIGHT = 220;
 
-function formatElapsed(seconds: number): string {
-  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const s = (seconds % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
+// Presenter popup window — opened via window.open() at /presenter
+function PresenterPopup() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const thumbnailIframeRef = useRef<HTMLIFrameElement>(null);
+  const startTimeRef = useRef(Date.now());
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  // BroadcastChannel: listen for slide changes from main window
+  useEffect(() => {
+    const channel = new BroadcastChannel(PRESENTER_CHANNEL);
+    channelRef.current = channel;
+
+    channel.onmessage = (e: MessageEvent) => {
+      if (e.data?.type === "slideChanged" && typeof e.data.index === "number") {
+        setCurrentIndex(e.data.index);
+      }
+    };
+
+    // Ask main window to send current state immediately
+    channel.postMessage({ type: "requestState" });
+
+    return () => channel.close();
+  }, []);
+
+  // Sync thumbnail iframe when slide changes
+  useEffect(() => {
+    const slide = slides[currentIndex];
+    if (!slide || !thumbnailIframeRef.current) return;
+    thumbnailIframeRef.current.contentWindow?.postMessage(
+      { type: "navigateToSlide", position: slide.position },
+      "*",
+    );
+  }, [currentIndex]);
+
+  // Elapsed timer
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const sendNav = (direction: "prev" | "next") => {
+    channelRef.current?.postMessage({ type: "navigate", direction });
+  };
+
+  const currentSlide = slides[currentIndex];
+  const notes = currentSlide?.speakerNotes ?? "";
+  const firstPosition = slides.length > 0 ? slides[0].position : 1;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        width: "100vw",
+        background: "#0d1117",
+        color: "#e5e7eb",
+        fontFamily: "system-ui, sans-serif",
+        overflow: "hidden",
+      }}
+    >
+      {/* Header bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0.5rem 1.25rem",
+          background: "#111827",
+          borderBottom: "1px solid #1f2937",
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ color: "#03989e", fontWeight: 700, fontSize: "0.75rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          Presenter View
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+          <span style={{ fontSize: "0.8rem", color: "#9ca3af" }}>
+            Slide <strong style={{ color: "#e5e7eb" }}>{currentIndex + 1}</strong> / {slides.length}
+          </span>
+          <span
+            style={{
+              fontVariantNumeric: "tabular-nums",
+              fontSize: "1.1rem",
+              fontWeight: 700,
+              color: elapsed >= 3600 ? "#f87171" : "#03989e",
+              letterSpacing: "0.06em",
+            }}
+          >
+            {formatElapsed(elapsed)}
+          </span>
+        </div>
+      </div>
+
+      {/* Main content area */}
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          overflow: "hidden",
+          gap: "0",
+        }}
+      >
+        {/* Left: slide thumbnail */}
+        <div
+          style={{
+            width: "340px",
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#111827",
+            borderRight: "1px solid #1f2937",
+            padding: "1rem",
+            gap: "0.75rem",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              aspectRatio: "16/9",
+              background: "#000",
+              borderRadius: "6px",
+              overflow: "hidden",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
+              position: "relative",
+            }}
+          >
+            <iframe
+              ref={thumbnailIframeRef}
+              src={`${base}/slide${firstPosition}`}
+              style={{
+                width: "1920px",
+                height: "1080px",
+                border: "none",
+                transform: "scale(0.1615)",
+                transformOrigin: "top left",
+                pointerEvents: "none",
+              }}
+              title="Slide thumbnail"
+            />
+          </div>
+
+          <div
+            style={{
+              fontSize: "0.75rem",
+              color: "#6b7280",
+              textAlign: "center",
+              fontStyle: "italic",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {currentSlide?.title ?? ""}
+          </div>
+
+          {/* Nav buttons */}
+          <div style={{ display: "flex", gap: "0.5rem", width: "100%" }}>
+            <button
+              onClick={() => sendNav("prev")}
+              disabled={currentIndex === 0}
+              style={{
+                flex: 1,
+                padding: "0.4rem 0",
+                background: currentIndex === 0 ? "rgba(31,41,55,0.4)" : "rgba(31,41,55,0.9)",
+                color: currentIndex === 0 ? "#4b5563" : "#e5e7eb",
+                border: "1px solid rgba(75,85,99,0.5)",
+                borderRadius: "5px",
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                cursor: currentIndex === 0 ? "default" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.3rem",
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+              Prev
+            </button>
+            <button
+              onClick={() => sendNav("next")}
+              disabled={currentIndex === slides.length - 1}
+              style={{
+                flex: 1,
+                padding: "0.4rem 0",
+                background: currentIndex === slides.length - 1 ? "rgba(31,41,55,0.4)" : "rgba(3,152,158,0.85)",
+                color: currentIndex === slides.length - 1 ? "#4b5563" : "#fff",
+                border: "none",
+                borderRadius: "5px",
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                cursor: currentIndex === slides.length - 1 ? "default" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.3rem",
+              }}
+            >
+              Next
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Right: speaker notes */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            padding: "1.25rem 1.5rem",
+            overflowY: "auto",
+            gap: "0.5rem",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              color: "#03989e",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              flexShrink: 0,
+            }}
+          >
+            Speaker Notes
+          </div>
+          {notes ? (
+            <div
+              style={{
+                color: "#e5e7eb",
+                fontSize: "1rem",
+                lineHeight: 1.75,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {notes}
+            </div>
+          ) : (
+            <div style={{ color: "#4b5563", fontStyle: "italic", fontSize: "0.9rem" }}>
+              No speaker notes for this slide.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // This component is used for the deployed view at `/`
@@ -180,6 +443,66 @@ function SlideViewer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [popupOpen, setPopupOpen] = useState(false);
+  const popupRef = useRef<Window | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const currentIndexRef = useRef(currentIndex);
+
+  // Keep ref in sync with state so channel handler always reads latest value
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  // BroadcastChannel: sync with presenter popup
+  useEffect(() => {
+    const channel = new BroadcastChannel(PRESENTER_CHANNEL);
+    channelRef.current = channel;
+
+    channel.onmessage = (e: MessageEvent) => {
+      if (e.data?.type === "requestState") {
+        channel.postMessage({ type: "slideChanged", index: currentIndexRef.current });
+      } else if (e.data?.type === "navigate") {
+        if (e.data.direction === "prev") {
+          setCurrentIndex((i) => {
+            const next = Math.max(0, i - 1);
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: "navigateToSlide", position: slides[next].position },
+              "*",
+            );
+            return next;
+          });
+        } else {
+          setCurrentIndex((i) => {
+            const next = Math.min(slides.length - 1, i + 1);
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: "navigateToSlide", position: slides[next].position },
+              "*",
+            );
+            return next;
+          });
+        }
+      }
+    };
+
+    return () => channel.close();
+  }, []);
+
+  // Broadcast slide changes to popup
+  useEffect(() => {
+    channelRef.current?.postMessage({ type: "slideChanged", index: currentIndex });
+  }, [currentIndex]);
+
+  // Poll for popup closed so we can update state
+  useEffect(() => {
+    if (!popupOpen) return;
+    const id = setInterval(() => {
+      if (popupRef.current?.closed) {
+        popupRef.current = null;
+        setPopupOpen(false);
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [popupOpen]);
 
   const calcDims = (presMode: boolean) => {
     const ah = presMode ? window.innerHeight - NOTES_PANEL_HEIGHT : window.innerHeight;
@@ -189,7 +512,28 @@ function SlideViewer() {
     };
   };
 
+  // When popup is open, slide always gets full-screen dims
   const [dims, setDims] = useState(() => calcDims(false));
+
+  useEffect(() => {
+    const update = () => setDims(calcDims(presenterMode && !popupOpen));
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [presenterMode, popupOpen]);
+
+  useEffect(() => {
+    setDims(calcDims(presenterMode && !popupOpen));
+    if (presenterMode) {
+      setElapsed(0);
+    }
+  }, [presenterMode, popupOpen]);
+
+  // Inline timer — runs while presenter mode is active and popup is not open
+  useEffect(() => {
+    if (!presenterMode || popupOpen) return;
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [presenterMode, popupOpen]);
 
   const handleExportPdf = () => {
     setExporting(true);
@@ -208,24 +552,18 @@ function SlideViewer() {
     printWindow.addEventListener("load", onLoad, { once: true });
   };
 
-  useEffect(() => {
-    const update = () => setDims(calcDims(presenterMode));
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [presenterMode]);
-
-  useEffect(() => {
-    setDims(calcDims(presenterMode));
-    if (presenterMode) {
-      setElapsed(0);
+  const handlePopOut = () => {
+    const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+    const popup = window.open(
+      `${base}/presenter`,
+      "presenter-popup",
+      "width=780,height=520,resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no",
+    );
+    if (popup) {
+      popupRef.current = popup;
+      setPopupOpen(true);
     }
-  }, [presenterMode]);
-
-  useEffect(() => {
-    if (!presenterMode) return;
-    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [presenterMode]);
+  };
 
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -264,6 +602,9 @@ function SlideViewer() {
   const currentSlide = slides[currentIndex];
   const notes = currentSlide?.speakerNotes ?? "";
 
+  // Notes panel shown only in presenter mode and when popup is NOT open
+  const showNotesPanel = presenterMode && !popupOpen;
+
   return (
     <div
       className="slide-viewer h-screen w-screen overflow-hidden bg-black flex flex-col"
@@ -279,7 +620,7 @@ function SlideViewer() {
         />
       </div>
 
-      {presenterMode && (
+      {showNotesPanel && (
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
@@ -315,13 +656,9 @@ function SlideViewer() {
               </span>
               <button
                 onClick={() => setElapsed(0)}
-                title="Reset timer"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "0.2rem 0.5rem",
-                  background: "rgba(55,65,81,0.7)",
+                  padding: "0.15rem 0.45rem",
+                  background: "rgba(31,41,55,0.8)",
                   color: "#9ca3af",
                   border: "1px solid rgba(75,85,99,0.5)",
                   borderRadius: "4px",
@@ -332,6 +669,33 @@ function SlideViewer() {
                 }}
               >
                 Reset
+              </button>
+              <button
+                onClick={handlePopOut}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.3rem",
+                  padding: "0.25rem 0.65rem",
+                  background: "rgba(3,152,158,0.15)",
+                  color: "#03989e",
+                  border: "1px solid rgba(3,152,158,0.4)",
+                  borderRadius: "5px",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  letterSpacing: "0.02em",
+                  transition: "background 0.15s",
+                }}
+                title="Open notes in a separate window"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 3 21 3 21 9"/>
+                  <polyline points="9 21 3 21 3 15"/>
+                  <line x1="21" y1="3" x2="14" y2="10"/>
+                  <line x1="3" y1="21" x2="10" y2="14"/>
+                </svg>
+                Pop out
               </button>
             </span>
           </div>
@@ -344,6 +708,53 @@ function SlideViewer() {
               No speaker notes for this slide.
             </div>
           )}
+        </div>
+      )}
+
+      {/* Popup-open indicator when notes panel is hidden */}
+      {presenterMode && popupOpen && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            bottom: "1rem",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.35rem 0.9rem",
+            background: "rgba(3,152,158,0.18)",
+            border: "1px solid rgba(3,152,158,0.4)",
+            borderRadius: "20px",
+            color: "#03989e",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            zIndex: 40,
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          Presenter window open
+          <button
+            onClick={() => { popupRef.current?.close(); popupRef.current = null; setPopupOpen(false); }}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#9ca3af",
+              cursor: "pointer",
+              fontSize: "0.8rem",
+              padding: "0 0.1rem",
+              lineHeight: 1,
+            }}
+            title="Close presenter window"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -422,6 +833,7 @@ export default function App() {
     if (
       location !== "/" &&
       location !== "/allslides" &&
+      location !== "/presenter" &&
       getSlideIndex(location) === -1
     ) {
       if (slides.length > 0) {
@@ -450,5 +862,6 @@ export default function App() {
 
   if (location === "/") return <SlideViewer />;
   if (location === "/allslides") return <AllSlides />;
+  if (location === "/presenter") return <PresenterPopup />;
   return <SlideEditor />;
 }
