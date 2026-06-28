@@ -14,6 +14,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { runPptxExport } from "./exportPptx";
 
 import { slides } from "@/slideLoader";
 import rawManifest from "@/data/slides-manifest.json";
@@ -714,6 +715,8 @@ function SlideViewer() {
   const [elapsed, setElapsed] = useState(0);
   const [popupOpen, setPopupOpen] = useState(false);
   const [exportStore, setExportStore] = useState<ExportStore>({});
+  const [exportingPptx, setExportingPptx] = useState(false);
+  const offscreenRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<Window | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const currentIndexRef = useRef(currentIndex);
@@ -828,6 +831,50 @@ function SlideViewer() {
     navigate("/allslides");
   };
 
+  const handleExportPptx = () => {
+    if (exportingPptx) return;
+    setExportingPptx(true);
+  };
+
+  // Once the offscreen AllSlides container is mounted, run the capture
+  useEffect(() => {
+    if (!exportingPptx) return;
+    let cancelled = false;
+
+    const run = async () => {
+      // Give React and the browser time to render fonts, images, gradients
+      await new Promise<void>((r) => setTimeout(r, 900));
+      if (cancelled || !offscreenRef.current) return;
+
+      try {
+        await runPptxExport(offscreenRef.current);
+        if (cancelled) return;
+        setExportStore((prev) => {
+          const next: ExportStore = {
+            ...prev,
+            pptx: { fingerprint: DECK_FINGERPRINT, exportedAt: new Date().toISOString() },
+          };
+          try {
+            localStorage.setItem(EXPORT_STORAGE_KEY, JSON.stringify(next));
+          } catch {
+            // ignore storage errors
+          }
+          return next;
+        });
+      } catch (err) {
+        if (!cancelled) {
+          console.error("PPTX export failed:", err);
+          alert("PPTX export failed — please try again.");
+        }
+      } finally {
+        if (!cancelled) setExportingPptx(false);
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
+  }, [exportingPptx]);
+
   const handlePopOut = () => {
     const base = import.meta.env.BASE_URL.replace(/\/$/, "");
     const popup = window.open(
@@ -886,6 +933,24 @@ function SlideViewer() {
       className="slide-viewer h-screen w-screen overflow-hidden bg-black flex flex-col"
       onClick={() => iframeRef.current?.focus()}
     >
+      {/* Offscreen container used only during PPTX export — never visible to the user */}
+      {exportingPptx && (
+        <div
+          ref={offscreenRef}
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            left: "-9999px",
+            top: 0,
+            width: 1920,
+            pointerEvents: "none",
+            zIndex: -1,
+          }}
+        >
+          <AllSlides />
+        </div>
+      )}
+
       <div className="flex-1 flex items-center justify-center overflow-hidden">
         <iframe
           ref={iframeRef}
@@ -1094,6 +1159,37 @@ function SlideViewer() {
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
             Export PDF
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleExportPptx();
+            }}
+            disabled={exportingPptx}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              padding: "0.45rem 1rem",
+              background: exportingPptx ? "rgba(25,59,131,0.6)" : "rgba(25,59,131,0.92)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              cursor: exportingPptx ? "default" : "pointer",
+              letterSpacing: "0.01em",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+              transition: "background 0.2s",
+            }}
+            title="Export all slides as PowerPoint / Google Slides"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            {exportingPptx ? "Generating…" : "Export PPTX"}
           </button>
         </div>
         {(() => {
