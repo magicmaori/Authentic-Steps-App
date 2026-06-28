@@ -243,6 +243,42 @@ function SlideEditor() {
   );
 }
 
+// Scales the AllSlides content to fit narrow browser windows on screen
+// while leaving print output untouched (handled via .allslides-outer CSS).
+function AllSlidesWrapper() {
+  const [scale, setScale] = useState(() =>
+    typeof window !== "undefined" ? Math.min(1, window.innerWidth / 1920) : 1,
+  );
+
+  useEffect(() => {
+    const update = () => setScale(Math.min(1, window.innerWidth / 1920));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const numSlides = slides.length;
+  const visualW = Math.round(1920 * scale);
+  const visualH = Math.round(numSlides * 1080 * scale);
+
+  return (
+    <div
+      className="allslides-outer"
+      style={{ width: visualW, height: visualH, overflow: "hidden" }}
+    >
+      <div
+        style={{
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          width: 1920,
+        }}
+      >
+        <AllSlides />
+      </div>
+    </div>
+  );
+}
+
 // Do not rewrite this component. Each slide must remain wrapped in
 // `<div className="slide">` sized 1920×1080 — the class name and
 // dimensions are part of the platform contract. See the file-level
@@ -1142,7 +1178,7 @@ export default function App() {
   }, [navigate]);
 
   if (location === "/") return <SlideViewer />;
-  if (location === "/allslides") return <AllSlides />;
+  if (location === "/allslides") return <AllSlidesWrapper />;
   if (location === "/presenter") return <PresenterPopup />;
   return <SlideEditor />;
 }
