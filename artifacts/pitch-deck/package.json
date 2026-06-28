@@ -10,7 +10,8 @@
     "validate-slides": "pnpm exec tsx scripts/validate-slides.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "pdf": "echo 'To regenerate the PDF, ask the agent: re-export the pitch deck as PDF. The agent runs exportSlides and delivers the file directly in chat.'",
-    "pptx": "echo 'To export the pitch deck as PowerPoint, ask the agent: export pitch deck as PPTX. The agent runs exportSlides and delivers the .pptx file directly in chat.'"
+    "pptx": "echo 'To export the pitch deck as PowerPoint, ask the agent: export pitch deck as PPTX. The agent runs exportSlides and delivers the .pptx file directly in chat.'",
+    "compress-pptx": "python3 scripts/compress-pptx.py"
   },
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "catalog:",
