@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useMemo } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '@/context/AppContext';
@@ -13,14 +13,23 @@ const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 export default function StreaksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, entries, getStreakCalendar } = useApp();
-  const calendar = getStreakCalendar() ?? [];
+  const { userData, entries, getStreakCalendar, isLoaded } = useApp();
 
   const journalCount = useMemo(() => {
-    return Object.values(entries).filter(
+    return Object.values(entries ?? {}).filter(
       (e) => e.isComplete || e.gratitudes.some((g) => g.text.trim()) || e.intention || e.iAmStatement
     ).length;
   }, [entries]);
+
+  if (!isLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingCenter, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  const calendar = getStreakCalendar() ?? [];
 
   const has90Days = journalCount >= 90;
 
@@ -198,6 +207,7 @@ function getWeekKey(): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingCenter: { justifyContent: 'center', alignItems: 'center' },
   scroll: { flex: 1 },
   content: { padding: 16, gap: 14 },
   streakHero: {

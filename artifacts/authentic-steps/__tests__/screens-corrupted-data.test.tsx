@@ -783,3 +783,87 @@ describe('StreaksScreen – corrupted / missing streak calendar data', () => {
     ).resolves.not.toThrow();
   });
 });
+
+// ─── 7. isLoaded: false – loading placeholder is shown instead of crashing ────
+
+describe('Tab screens – isLoaded: false does not throw', () => {
+  let root: ReturnType<typeof create> | undefined;
+
+  afterEach(() => {
+    if (root) {
+      act(() => { root!.unmount(); });
+      root = undefined;
+    }
+    jest.clearAllMocks();
+  });
+
+  it('DailyRitualScreen renders a loading placeholder when isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false }));
+
+    await expect(
+      act(async () => {
+        root = create(<DailyRitualScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('ToolboxScreen renders a loading placeholder when isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false }));
+
+    await expect(
+      act(async () => {
+        root = create(<ToolboxScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('StreaksScreen renders a loading placeholder when isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false }));
+
+    await expect(
+      act(async () => {
+        root = create(<StreaksScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('ProfileScreen renders a loading placeholder when isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false }));
+
+    await expect(
+      act(async () => {
+        root = create(<ProfileScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('DailyRitualScreen does not throw when userData is completely empty and isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false, userData: {} as any }));
+
+    await expect(
+      act(async () => {
+        root = create(<DailyRitualScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+
+  it('ToolboxScreen does not throw when userData is completely empty and isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false, userData: {} as any }));
+
+    await expect(
+      act(async () => {
+        root = create(<ToolboxScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+});

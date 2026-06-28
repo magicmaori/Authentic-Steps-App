@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppLogo } from '@/components/AppLogo';
@@ -66,7 +66,15 @@ function formatDate(): string {
 export default function DailyRitualScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, isStepDone, todayEntry } = useApp();
+  const { userData, isStepDone, todayEntry, isLoaded } = useApp();
+
+  if (!isLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingCenter, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const completedCount = STEPS.filter(s => isStepDone(s.id)).length;
   const allDone = completedCount === 3;
@@ -255,6 +263,7 @@ export default function DailyRitualScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingCenter: { justifyContent: 'center', alignItems: 'center' },
   scroll: { flex: 1 },
   content: { padding: 20, gap: 16 },
   heroBanner: {

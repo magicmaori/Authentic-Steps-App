@@ -55,7 +55,7 @@ function formatLastUpdated(date: Date): string {
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs, setChimeEnabled } = useApp();
+  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs, setChimeEnabled, isLoaded } = useApp();
   const [isDeleting, setIsDeleting] = useState(false);
   const [, setTick] = useState(0);
   const [notifBlocked, setNotifBlocked] = useState(false);
@@ -346,6 +346,14 @@ export default function ProfileScreen() {
     setCodeRefreshed(true);
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     refreshTimerRef.current = setTimeout(() => setCodeRefreshed(false), 2500);
+  }
+
+  if (!isLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingCenter, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   const initials = (userData.anonymousName ?? '').substring(0, 2).toUpperCase();
@@ -732,6 +740,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingCenter: { justifyContent: 'center', alignItems: 'center' },
   scroll: { flex: 1 },
   content: { padding: 20, gap: 16 },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },

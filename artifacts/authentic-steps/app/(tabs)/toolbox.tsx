@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import BreathingTimer from '@/components/BreathingTimer';
@@ -203,7 +203,15 @@ function GoToSection() {
 export default function ToolboxScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { isExerciseDoneToday, markExerciseDone } = useApp();
+  const { isExerciseDoneToday, markExerciseDone, isLoaded } = useApp();
+
+  if (!isLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingCenter, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const breathingIds = ['breathing-box', 'breathing-478'];
   const movementIds = ['movement-star-jumps', 'movement-walk', 'movement-muscle', 'movement-cold-water'];
@@ -361,6 +369,7 @@ export default function ToolboxScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingCenter: { justifyContent: 'center', alignItems: 'center' },
   scroll: { flex: 1 },
   content: { padding: 20, gap: 16 },
   screenTitle: { fontSize: 26, fontFamily: 'Inter_700Bold' },
