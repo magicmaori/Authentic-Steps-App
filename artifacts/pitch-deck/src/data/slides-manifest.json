@@ -5,6 +5,7 @@
     "filepath": "src/pages/slides/Slide01Title.tsx",
     "title": "Title",
     "description": "Johaan Kaa presenting to John Rutter — Authentic Steps For Youth",
+    "bgColor": "#193b83",
     "speakerNotes": "Set the scene — this is a one-on-one conversation.\n\n- Introduce yourself: Johaan Kaa, the person who has been building this with you.\n- This deck covers three things: what I've built, what it saved you, and where we go together from here.\n- Keep it conversational — this isn't a formal presentation, it's a partner showing you the full picture."
   },
   {
@@ -13,6 +14,7 @@
     "filepath": "src/pages/slides/Slide02Problem.tsx",
     "title": "The Problem",
     "description": "The mental health crisis facing young people today",
+    "bgColor": "#fff7f0",
     "speakerNotes": "Remind John why we started this in the first place.\n\n- Young people are struggling. The tools available are mostly built for adults, hard to find, or expensive.\n- Schools want to help but don't have something safe and practical to hand to students.\n- This is the problem Authentic Steps was built to solve — and it's still unsolved everywhere else."
   },
   {
@@ -21,6 +23,7 @@
     "filepath": "src/pages/slides/Slide03Answer.tsx",
     "title": "What I Built For You",
     "description": "The app I built — free, private, and youth-first",
+    "bgColor": "#193b83",
     "speakerNotes": "Be direct — this is the product summary.\n\n- Free, always. Private by design. Built specifically for young people.\n- This is the answer to the problem on the previous slide — and I built it.\n- If John needs the one-sentence version for anyone else: 'a free mental health app for young people, built in-house at a fraction of commercial cost.'"
   },
   {
@@ -29,6 +32,7 @@
     "filepath": "src/pages/slides/Slide04WhatWeBuilt.tsx",
     "title": "What We Built",
     "description": "Six feature pillars across the app",
+    "bgColor": "#fff7f0",
     "speakerNotes": "Walk across the six pillars — give each a sentence.\n\n- Resilience Toolbox: breathing and grounding techniques a young person can use in the moment.\n- Journaling: a private diary with mood tracking, stays on the phone.\n- Grounding: structured exercises to come back to the present.\n- Notifications: gentle daily nudges, fully customisable.\n- Privacy and Safety: built-in helpline cards, no data stored off-device.\n- Dark Mode and Accessibility: works the way the user needs it, day or night.\n- Each of these is finished and working. This isn't a mockup."
   },
   {
@@ -37,6 +41,7 @@
     "filepath": "src/pages/slides/Slide05Scale.tsx",
     "title": "What's Been Delivered",
     "description": "97 tasks completed, 50+ features shipped, 6 core pillars",
+    "bgColor": "#193b83",
     "speakerNotes": "Let the numbers make the case.\n\n- 97 tasks: every piece of work had a ticket, a status, a completion. Nothing was vague.\n- 50+ features shipped: real, working, tested — not prototypes.\n- 6 core pillars: the whole experience was designed and built from scratch.\n- This is the output of a full professional product build cycle — done by one person, for you."
   },
   {
@@ -45,6 +50,7 @@
     "filepath": "src/pages/slides/Slide06CostComparison.tsx",
     "title": "What This Saved You",
     "description": "Market rates vs. what Johaan delivered — framed as cost savings for John",
+    "bgColor": "#fff7f0",
     "speakerNotes": "This is the financial reality slide — make it land.\n\n- A professional app developer charges $120–$150 an hour. UX designer: $80–$100. Project manager: another $80–$100.\n- At a modest 500 hours across a full build, that's $50,000 to $175,000 or more.\n- What you got: a full, production-ready mobile app. Dark mode. Accessibility. A complete brand system. 97 tracked tasks.\n- You did not pay market rate for this. That's a significant saving — and it's sitting in your hands right now."
   },
   {
@@ -53,6 +59,7 @@
     "filepath": "src/pages/slides/Slide07WhoItServes.tsx",
     "title": "Who This Serves",
     "description": "Young people, schools, and counsellors",
+    "bgColor": "#193b83",
     "speakerNotes": "Paint a picture for each audience.\n\n- Young people ages 11 to 25: the student who had a hard day and doesn't want to talk. The app is there.\n- Schools: something a pastoral care team can say 'download this' without needing to sign off a budget.\n- Counsellors: a bridge between sessions. Something concrete to hand to a young person.\n- Each of these groups represents a real distribution channel for the app."
   },
   {
@@ -61,6 +68,7 @@
     "filepath": "src/pages/slides/Slide08WhyItMatters.tsx",
     "title": "Why It Matters",
     "description": "Mission statement — every young person deserves a tool in their pocket",
+    "bgColor": "#fff7f0",
     "speakerNotes": "This is the mission heart of the deck — let it breathe.\n\n- Every young person deserves a tool in their pocket. Not a referral. Not a waiting list. Something real.\n- John, this is why you started this. What I've built puts that vision into someone's hands.\n- The mission makes this more than a product — it makes it something worth backing."
   },
   {
@@ -69,6 +77,7 @@
     "filepath": "src/pages/slides/Slide09WhatsNext.tsx",
     "title": "The Road Ahead",
     "description": "Now: structure and connect. Next: backend. Then: revenue and growth.",
+    "bgColor": "#193b83",
     "speakerNotes": "Be concrete — this is the business case.\n\n- Now: we're structuring and connecting everything. The foundation is solid, we're plugging it all in.\n- Next: backend development. Server, user accounts, data — the layer that lets the app scale and opens up monetisation.\n- Then: revenue. School licensing deals. App Store presence. A sustainable income stream that pays for itself.\n- This isn't speculative — each step follows the last, and we're already through the hardest part."
   },
   {
@@ -77,6 +86,7 @@
     "filepath": "src/pages/slides/Slide11InvestmentBreakdown.tsx",
     "title": "Investment Breakdown",
     "description": "$5,000/month per school — 12-month auto-renewing contract with three revenue scenarios and community giving-back model",
+    "bgColor": "#193b83",
     "speakerNotes": "This is the money slide — walk John through each scenario clearly.\n\n- The model is simple: $5,000 per school per month on a 12-month contract that auto-renews. Predictable, recurring revenue.\n- Full scenario: 100 schools gives us $6 million in annual gross. That's the ceiling — and it's very achievable.\n- Conservative: even at a third of that — 33 schools — we're looking at $2 million a year.\n- Floor: at a quarter, 25 schools, we're still generating $1.5 million. Still very profitable.\n- The community model is key: larger schools can sponsor smaller ones. That's not charity — it's a smart distribution play that gets us into more schools faster and positions Authentic Steps as a mission-driven brand, not just a product.\n- Any one of these scenarios represents a strong, sustainable business."
   },
   {
@@ -85,6 +95,7 @@
     "filepath": "src/pages/slides/Slide10ThankYou.tsx",
     "title": "The Next Step",
     "description": "Closing — Johaan as development partner, next steps for John",
+    "bgColor": "#193b83",
     "speakerNotes": "Close with clarity — one ask, one next step.\n\n- Thank John for his time and his trust in the project.\n- The ask is simple: let's keep going. We finish the structure, we build the backend together, we launch.\n- There's a real path to this generating profit — not someday, but as a direct result of the next phase.\n- I'm your development partner. Let's make it happen."
   }
 ]

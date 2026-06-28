@@ -24,7 +24,7 @@ const PRESENTER_CHANNEL = "presenter-sync";
 const SLIDE_W = 1280;
 const SLIDE_H = 720;
 
-function ScaledSlide({ children }: { children: React.ReactNode }) {
+function ScaledSlide({ children, bgColor }: { children: React.ReactNode; bgColor?: string }) {
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
@@ -46,8 +46,9 @@ function ScaledSlide({ children }: { children: React.ReactNode }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#000",
+        background: bgColor ?? "#000",
         overflow: "hidden",
+        transition: "background 0.3s ease",
       }}
     >
       <div
@@ -233,7 +234,7 @@ function SlideEditor() {
           key={slide.id}
           style={{ display: index === currentIndex ? "block" : "none" }}
         >
-          <ScaledSlide>
+          <ScaledSlide bgColor={slide.bgColor}>
             <slide.Component />
           </ScaledSlide>
         </div>
