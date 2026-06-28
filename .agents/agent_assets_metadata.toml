@@ -1,8 +1,13 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "NZQcvY_SD2QMXXAY07dQ-"
 uri = "file://artifacts/authentic-steps/assets/images/icon.png"
 type = "image"
 title = "generated_image"
+
+[[outputs]]
+id = "ezUhRuVjcnAfkdbm_VbJt"
+uri = "file://.local/outputs/Authentic-Steps-Founder-Pitch.pptx"
+type = "slides"
+title = "Authentic Steps Founder Pitch (PPTX)"
