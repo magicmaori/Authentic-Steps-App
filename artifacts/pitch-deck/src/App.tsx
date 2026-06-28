@@ -795,25 +795,37 @@ function SlideViewer() {
     if (!printWindow) {
       setExporting(false);
       return;
+    }
+
+    const markDone = (safetyTimer: ReturnType<typeof setTimeout>) => {
+      clearTimeout(safetyTimer);
+      setExporting(false);
+      setExportStore((prev) => {
+        const next: ExportStore = {
+          ...prev,
+          pdf: { fingerprint: DECK_FINGERPRINT, exportedAt: new Date().toISOString() },
+        };
+        try {
+          localStorage.setItem(EXPORT_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // ignore storage errors
+        }
+        return next;
+      });
     };
+
+    // Safety fallback: clear spinner after 15 s even if load event never fires
+    const safetyTimer = setTimeout(() => {
+      setExporting(false);
+    }, 15_000);
+
     const onLoad = () => {
       setTimeout(() => {
-        printWindow.print();
-        setExporting(false);
-        setExportStore((prev) => {
-          const next: ExportStore = {
-            ...prev,
-            pdf: { fingerprint: DECK_FINGERPRINT, exportedAt: new Date().toISOString() },
-          };
-          try {
-            localStorage.setItem(EXPORT_STORAGE_KEY, JSON.stringify(next));
-          } catch {
-            // ignore storage errors (e.g. private browsing quota)
-          }
-          return next;
-        });
+        try { printWindow.print(); } catch { /* blocked in some iframe contexts */ }
+        markDone(safetyTimer);
       }, 800);
     };
+
     printWindow.addEventListener("load", onLoad, { once: true });
   };
 

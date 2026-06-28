@@ -41,3 +41,9 @@ id = "_v2uncJxP7n_oS3ix8mHn"
 uri = "file://.local/outputs/Authentic-Steps-Founder-Pitch-Deck-compressed.pptx"
 type = "slides"
 title = "Authentic Steps — Founder Pitch Deck (PPTX)"
+
+[[outputs]]
+id = "XAZcNLlf9WHT5ktc4be6c"
+uri = "file://.local/outputs/Authentic-Steps-Youth.pptx"
+type = "slides"
+title = "Authentic Steps Youth.pptx"
