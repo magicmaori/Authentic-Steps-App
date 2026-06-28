@@ -3,20 +3,20 @@ const base = import.meta.env.BASE_URL;
 export default function Slide03Answer() {
   return (
     <div
-      className="relative w-screen h-screen overflow-hidden"
+      className="relative w-full h-full overflow-hidden"
       style={{ background: "linear-gradient(135deg, #193b83 0%, #0d2558 100%)" }}
     >
       <div
         className="absolute left-0 top-0 bottom-0"
-        style={{ width: "0.6vw", background: "#03989e" }}
+        style={{ width: "7.68px", background: "#03989e" }}
       />
       <div
         className="absolute"
         style={{
-          left: "6vw",
-          top: "6vh",
-          width: "20vw",
-          height: "20vw",
+          left: "76.8px",
+          top: "43.2px",
+          width: "256px",
+          height: "256px",
           borderRadius: "50%",
           border: "1px solid rgba(109,189,242,0.1)",
         }}
@@ -24,25 +24,25 @@ export default function Slide03Answer() {
       <div
         className="absolute"
         style={{
-          right: "8vw",
-          bottom: "8vh",
-          width: "14vw",
-          height: "14vw",
+          right: "102.4px",
+          bottom: "57.6px",
+          width: "179.2px",
+          height: "179.2px",
           borderRadius: "50%",
           background: "rgba(3,152,158,0.08)",
         }}
       />
 
-      <div className="relative h-full flex flex-col justify-center items-center" style={{ padding: "8vh 10vw" }}>
+      <div className="relative h-full flex flex-col justify-center items-center" style={{ padding: "57.6px 128px" }}>
         <div
           style={{
             fontFamily: "Inter, sans-serif",
             fontWeight: 700,
-            fontSize: "2.2vw",
+            fontSize: "28.16px",
             color: "#03989e",
             letterSpacing: "0.15em",
             textTransform: "uppercase",
-            marginBottom: "4vh",
+            marginBottom: "28.8px",
           }}
         >
           What I Built For You
@@ -52,13 +52,13 @@ export default function Slide03Answer() {
           style={{
             fontFamily: "Inter, sans-serif",
             fontWeight: 900,
-            fontSize: "5.2vw",
+            fontSize: "66.56px",
             color: "#fff7f0",
             lineHeight: 1.15,
             letterSpacing: "-0.02em",
             textAlign: "center",
             textWrap: "balance",
-            margin: "0 0 5vh 0",
+            margin: "0 0 36px 0",
           }}
         >
           A free, private mobile app that gives young people real tools for their mental health — right in their pocket.
@@ -66,17 +66,17 @@ export default function Slide03Answer() {
 
         <div
           style={{
-            height: "0.4vh",
-            width: "8vw",
+            height: "2.88px",
+            width: "102.4px",
             background: "#03989e",
-            marginBottom: "5vh",
+            marginBottom: "36px",
           }}
         />
 
         <div
           style={{
             display: "flex",
-            gap: "4vw",
+            gap: "51.2px",
             alignItems: "center",
           }}
         >
@@ -85,7 +85,7 @@ export default function Slide03Answer() {
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 900,
-                fontSize: "4.5vw",
+                fontSize: "57.6px",
                 color: "#6dbdf2",
                 lineHeight: 1,
               }}
@@ -96,23 +96,23 @@ export default function Slide03Answer() {
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 400,
-                fontSize: "2.6vw",
+                fontSize: "33.28px",
                 color: "rgba(255,247,240,0.6)",
-                marginTop: "0.5vh",
+                marginTop: "3.6px",
               }}
             >
               Always
             </div>
           </div>
           <div
-            style={{ width: "0.2vw", height: "8vh", background: "rgba(255,247,240,0.2)" }}
+            style={{ width: "2.56px", height: "57.6px", background: "rgba(255,247,240,0.2)" }}
           />
           <div style={{ textAlign: "center" }}>
             <div
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 900,
-                fontSize: "4.5vw",
+                fontSize: "57.6px",
                 color: "#6dbdf2",
                 lineHeight: 1,
               }}
@@ -123,23 +123,23 @@ export default function Slide03Answer() {
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 400,
-                fontSize: "2.6vw",
+                fontSize: "33.28px",
                 color: "rgba(255,247,240,0.6)",
-                marginTop: "0.5vh",
+                marginTop: "3.6px",
               }}
             >
               By design
             </div>
           </div>
           <div
-            style={{ width: "0.2vw", height: "8vh", background: "rgba(255,247,240,0.2)" }}
+            style={{ width: "2.56px", height: "57.6px", background: "rgba(255,247,240,0.2)" }}
           />
           <div style={{ textAlign: "center" }}>
             <div
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 900,
-                fontSize: "4.5vw",
+                fontSize: "57.6px",
                 color: "#6dbdf2",
                 lineHeight: 1,
               }}
@@ -150,9 +150,9 @@ export default function Slide03Answer() {
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 400,
-                fontSize: "2.6vw",
+                fontSize: "33.28px",
                 color: "rgba(255,247,240,0.6)",
-                marginTop: "0.5vh",
+                marginTop: "3.6px",
               }}
             >
               Built for them
@@ -160,12 +160,12 @@ export default function Slide03Answer() {
           </div>
         </div>
 
-        <div className="absolute bottom-0 right-0" style={{ padding: "3vh 4vw" }}>
+        <div className="absolute bottom-0 right-0" style={{ padding: "21.6px 51.2px" }}>
           <img
             src={`${base}logo.png`}
             crossOrigin="anonymous"
             alt="Authentic Steps logo"
-            style={{ height: "4vh", width: "auto", filter: "brightness(0) invert(1)", opacity: 0.4 }}
+            style={{ height: "28.8px", width: "auto", filter: "brightness(0) invert(1)", opacity: 0.4 }}
           />
         </div>
       </div>

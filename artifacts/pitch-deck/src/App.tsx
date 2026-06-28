@@ -19,6 +19,51 @@ import { slides } from "@/slideLoader";
 
 const PRESENTER_CHANNEL = "presenter-sync";
 
+const SLIDE_W = 1280;
+const SLIDE_H = 720;
+
+function ScaledSlide({ children }: { children: React.ReactNode }) {
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const update = () => {
+      const sx = window.innerWidth / SLIDE_W;
+      const sy = window.innerHeight / SLIDE_H;
+      setScale(Math.min(sx, sy));
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return (
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#000",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          width: SLIDE_W,
+          height: SLIDE_H,
+          transform: `scale(${scale})`,
+          transformOrigin: "center center",
+          overflow: "hidden",
+          flexShrink: 0,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function getSlideIndex(pathname: string): number {
   const match = pathname.match(/^\/slide(\d+)$/);
   if (!match) return -1;
@@ -144,7 +189,9 @@ function SlideEditor() {
           key={slide.id}
           style={{ display: index === currentIndex ? "block" : "none" }}
         >
-          <slide.Component />
+          <ScaledSlide>
+            <slide.Component />
+          </ScaledSlide>
         </div>
       ))}
     </div>
@@ -164,7 +211,14 @@ function AllSlides() {
           className="slide relative aspect-video overflow-hidden"
           style={{ width: "1920px", height: "1080px" }}
         >
-          <div className="h-full w-full [&_.h-screen]:!h-full [&_.w-screen]:!w-full">
+          <div
+            style={{
+              width: `${SLIDE_W}px`,
+              height: `${SLIDE_H}px`,
+              transform: `scale(${1920 / SLIDE_W})`,
+              transformOrigin: "top left",
+            }}
+          >
             <slide.Component />
           </div>
         </div>

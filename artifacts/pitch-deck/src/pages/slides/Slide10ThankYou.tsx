@@ -3,19 +3,19 @@ const base = import.meta.env.BASE_URL;
 export default function Slide10ThankYou() {
   return (
     <div
-      className="relative w-screen h-screen overflow-hidden"
+      className="relative w-full h-full overflow-hidden"
       style={{ background: "linear-gradient(135deg, #193b83 0%, #0a1e45 100%)" }}
     >
       <div
         className="absolute left-0 top-0 bottom-0"
-        style={{ width: "0.6vw", background: "#03989e" }}
+        style={{ width: "7.68px", background: "#03989e" }}
       />
       <div
         className="absolute"
         style={{
           right: 0,
           top: 0,
-          width: "50vw",
+          width: "640px",
           height: "100%",
           background: "linear-gradient(135deg, transparent 0%, rgba(3,152,158,0.06) 100%)",
         }}
@@ -23,10 +23,10 @@ export default function Slide10ThankYou() {
       <div
         className="absolute"
         style={{
-          right: "5vw",
-          top: "5vh",
-          width: "25vw",
-          height: "25vw",
+          right: "64px",
+          top: "36px",
+          width: "320px",
+          height: "320px",
           borderRadius: "50%",
           border: "1px solid rgba(109,189,242,0.1)",
         }}
@@ -34,10 +34,10 @@ export default function Slide10ThankYou() {
       <div
         className="absolute"
         style={{
-          right: "7vw",
-          top: "7vh",
-          width: "17vw",
-          height: "17vw",
+          right: "89.6px",
+          top: "50.4px",
+          width: "217.6px",
+          height: "217.6px",
           borderRadius: "50%",
           border: "1px solid rgba(109,189,242,0.07)",
         }}
@@ -45,22 +45,22 @@ export default function Slide10ThankYou() {
       <div
         className="absolute"
         style={{
-          left: "4vw",
-          bottom: "4vh",
-          width: "12vw",
-          height: "12vw",
+          left: "51.2px",
+          bottom: "28.8px",
+          width: "153.6px",
+          height: "153.6px",
           borderRadius: "50%",
           background: "rgba(3,152,158,0.07)",
         }}
       />
 
-      <div className="relative h-full flex flex-col justify-between" style={{ padding: "5vh 6vw 4vh 7vw" }}>
+      <div className="relative h-full flex flex-col justify-between" style={{ padding: "36px 76.8px 28.8px 89.6px" }}>
         <div>
           <img
             src={`${base}logo.png`}
             crossOrigin="anonymous"
             alt="Authentic Steps logo"
-            style={{ height: "6vh", width: "auto", filter: "brightness(0) invert(1)" }}
+            style={{ height: "43.2px", width: "auto", filter: "brightness(0) invert(1)" }}
           />
         </div>
 
@@ -69,11 +69,11 @@ export default function Slide10ThankYou() {
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 700,
-              fontSize: "2.2vw",
+              fontSize: "28.16px",
               color: "#03989e",
               letterSpacing: "0.15em",
               textTransform: "uppercase",
-              marginBottom: "2.5vh",
+              marginBottom: "18px",
             }}
           >
             The Next Step, John
@@ -82,11 +82,11 @@ export default function Slide10ThankYou() {
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 900,
-              fontSize: "5.2vw",
+              fontSize: "66.56px",
               color: "#fff7f0",
               lineHeight: 1.0,
               letterSpacing: "-0.03em",
-              margin: "0 0 2vh 0",
+              margin: "0 0 14.4px 0",
               textWrap: "balance",
             }}
           >
@@ -94,21 +94,21 @@ export default function Slide10ThankYou() {
           </h2>
           <div
             style={{
-              height: "0.4vh",
-              width: "8vw",
+              height: "2.88px",
+              width: "102.4px",
               background: "#03989e",
-              marginBottom: "2.5vh",
+              marginBottom: "18px",
             }}
           />
           <p
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 400,
-              fontSize: "2.4vw",
+              fontSize: "30.72px",
               color: "rgba(255,247,240,0.7)",
-              margin: "0 0 2.5vh 0",
+              margin: "0 0 18px 0",
               lineHeight: 1.5,
-              maxWidth: "58vw",
+              maxWidth: "742.4px",
             }}
           >
             The foundation is there. We complete the structure, build the backend together, launch — and build something that pays for itself.
@@ -120,9 +120,9 @@ export default function Slide10ThankYou() {
               color: "#fff7f0",
               fontFamily: "Inter, sans-serif",
               fontWeight: 700,
-              fontSize: "2.4vw",
+              fontSize: "30.72px",
               letterSpacing: "0.02em",
-              padding: "1.5vh 3vw",
+              padding: "10.8px 38.4px",
             }}
           >
             Johaan Kaa — your development partner
@@ -133,7 +133,7 @@ export default function Slide10ThankYou() {
           style={{
             fontFamily: "Inter, sans-serif",
             fontWeight: 400,
-            fontSize: "2.2vw",
+            fontSize: "28.16px",
             color: "rgba(255,247,240,0.4)",
           }}
         >

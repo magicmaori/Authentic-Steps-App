@@ -2,7 +2,7 @@ const base = import.meta.env.BASE_URL;
 
 export default function Slide01Title() {
   return (
-    <div className="relative w-screen h-screen overflow-hidden" style={{ background: "#193b83" }}>
+    <div className="relative w-full h-full overflow-hidden" style={{ background: "#193b83" }}>
       <div
         className="absolute inset-0"
         style={{
@@ -11,14 +11,14 @@ export default function Slide01Title() {
       />
       <div
         className="absolute left-0 top-0 bottom-0"
-        style={{ width: "0.6vw", background: "#03989e" }}
+        style={{ width: "7.68px", background: "#03989e" }}
       />
       <div
         className="absolute"
         style={{
           right: "0",
           top: "0",
-          width: "35vw",
+          width: "448px",
           height: "100%",
           background: "linear-gradient(135deg, transparent 0%, rgba(3,152,158,0.08) 100%)",
         }}
@@ -26,10 +26,10 @@ export default function Slide01Title() {
       <div
         className="absolute"
         style={{
-          right: "4vw",
-          bottom: "4vh",
-          width: "28vw",
-          height: "28vw",
+          right: "51.2px",
+          bottom: "28.8px",
+          width: "358.4px",
+          height: "358.4px",
           borderRadius: "50%",
           border: "1px solid rgba(109,189,242,0.12)",
         }}
@@ -37,22 +37,22 @@ export default function Slide01Title() {
       <div
         className="absolute"
         style={{
-          right: "6vw",
-          bottom: "6vh",
-          width: "20vw",
-          height: "20vw",
+          right: "76.8px",
+          bottom: "43.2px",
+          width: "256px",
+          height: "256px",
           borderRadius: "50%",
           border: "1px solid rgba(109,189,242,0.08)",
         }}
       />
 
-      <div className="relative h-full flex flex-col justify-between" style={{ padding: "7vh 6vw 6vh 7vw" }}>
-        <div className="flex items-center" style={{ gap: "1.2vw" }}>
+      <div className="relative h-full flex flex-col justify-between" style={{ padding: "50.4px 76.8px 43.2px 89.6px" }}>
+        <div className="flex items-center" style={{ gap: "15.36px" }}>
           <img
             src={`${base}logo.png`}
             crossOrigin="anonymous"
             alt="Authentic Steps logo"
-            style={{ height: "5vh", width: "auto", filter: "brightness(0) invert(1)" }}
+            style={{ height: "36px", width: "auto", filter: "brightness(0) invert(1)" }}
           />
         </div>
 
@@ -64,11 +64,11 @@ export default function Slide01Title() {
               color: "#fff7f0",
               fontFamily: "Inter, sans-serif",
               fontWeight: 700,
-              fontSize: "2.2vw",
+              fontSize: "28.16px",
               letterSpacing: "0.15em",
               textTransform: "uppercase",
-              padding: "0.4vh 1.2vw",
-              marginBottom: "3vh",
+              padding: "2.88px 15.36px",
+              marginBottom: "21.6px",
             }}
           >
             Presented by Johaan Kaa
@@ -77,7 +77,7 @@ export default function Slide01Title() {
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 900,
-              fontSize: "7.5vw",
+              fontSize: "96px",
               color: "#fff7f0",
               lineHeight: 1.0,
               letterSpacing: "-0.03em",
@@ -91,11 +91,11 @@ export default function Slide01Title() {
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 700,
-              fontSize: "4.5vw",
+              fontSize: "57.6px",
               color: "#6dbdf2",
               lineHeight: 1.1,
               letterSpacing: "-0.02em",
-              margin: "0.5vh 0 0 0",
+              margin: "3.6px 0 0 0",
               textWrap: "balance",
             }}
           >
@@ -105,9 +105,9 @@ export default function Slide01Title() {
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 400,
-              fontSize: "2.8vw",
+              fontSize: "35.84px",
               color: "rgba(255,247,240,0.7)",
-              margin: "3vh 0 0 0",
+              margin: "21.6px 0 0 0",
               lineHeight: 1.4,
             }}
           >
@@ -119,7 +119,7 @@ export default function Slide01Title() {
           style={{
             fontFamily: "Inter, sans-serif",
             fontWeight: 400,
-            fontSize: "2.2vw",
+            fontSize: "28.16px",
             color: "rgba(255,247,240,0.45)",
             letterSpacing: "0.05em",
           }}
