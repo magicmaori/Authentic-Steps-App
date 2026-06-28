@@ -258,6 +258,9 @@ function AllSlides() {
         >
           <div
             style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
               width: `${SLIDE_W}px`,
               height: `${SLIDE_H}px`,
               transform: `scale(${1920 / SLIDE_W})`,
