@@ -290,7 +290,11 @@ function AllSlides() {
         <div
           key={slide.id}
           className="slide relative aspect-video overflow-hidden"
-          style={{ width: "1920px", height: "1080px" }}
+          style={{
+            width: "1920px",
+            height: "1080px",
+            background: slide.bgColor ?? "#000",
+          }}
         >
           <div
             style={{
