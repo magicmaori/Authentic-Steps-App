@@ -11,3 +11,9 @@ id = "ezUhRuVjcnAfkdbm_VbJt"
 uri = "file://.local/outputs/Authentic-Steps-Founder-Pitch.pptx"
 type = "slides"
 title = "Authentic Steps Founder Pitch (PPTX)"
+
+[[outputs]]
+id = "CVaWXdXIsSahARdK1jxeK"
+uri = "file://.local/outputs/Authentic-Steps-Founder-Pitch.pdf"
+type = "pdf"
+title = "Authentic Steps Founder Pitch (PDF)"
