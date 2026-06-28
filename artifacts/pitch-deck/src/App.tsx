@@ -181,6 +181,7 @@ function PresenterPopup() {
   const [elapsed, setElapsed] = useState(0);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const thumbnailIframeRef = useRef<HTMLIFrameElement>(null);
+  const nextThumbnailIframeRef = useRef<HTMLIFrameElement>(null);
   const startTimeRef = useRef(Date.now());
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -211,6 +212,16 @@ function PresenterPopup() {
     );
   }, [currentIndex]);
 
+  // Sync next-slide thumbnail iframe when slide changes
+  useEffect(() => {
+    const nextSlide = slides[currentIndex + 1];
+    if (!nextSlide || !nextThumbnailIframeRef.current) return;
+    nextThumbnailIframeRef.current.contentWindow?.postMessage(
+      { type: "navigateToSlide", position: nextSlide.position },
+      "*",
+    );
+  }, [currentIndex]);
+
   // Elapsed timer
   useEffect(() => {
     const id = setInterval(() => {
@@ -226,6 +237,9 @@ function PresenterPopup() {
   const currentSlide = slides[currentIndex];
   const notes = currentSlide?.speakerNotes ?? "";
   const firstPosition = slides.length > 0 ? slides[0].position : 1;
+  const isLastSlide = currentIndex === slides.length - 1;
+  const nextSlide = slides[currentIndex + 1];
+  const secondPosition = slides.length > 1 ? slides[1].position : firstPosition;
 
   return (
     <div
@@ -336,6 +350,97 @@ function PresenterPopup() {
             }}
           >
             {currentSlide?.title ?? ""}
+          </div>
+
+          {/* Next slide preview */}
+          <div
+            style={{
+              width: "100%",
+              borderTop: "1px solid #1f2937",
+              paddingTop: "0.6rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.4rem",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.6rem",
+                fontWeight: 700,
+                color: "#6b7280",
+                letterSpacing: "0.09em",
+                textTransform: "uppercase",
+              }}
+            >
+              Up Next
+            </div>
+            {isLastSlide ? (
+              <div
+                style={{
+                  width: "100%",
+                  aspectRatio: "16/9",
+                  background: "#1f2937",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #374151",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "#6b7280",
+                    fontStyle: "italic",
+                    fontWeight: 500,
+                  }}
+                >
+                  Last slide
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: "100%",
+                  aspectRatio: "16/9",
+                  background: "#000",
+                  borderRadius: "4px",
+                  overflow: "hidden",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+                  position: "relative",
+                  border: "1px solid #374151",
+                }}
+              >
+                <iframe
+                  ref={nextThumbnailIframeRef}
+                  src={`${base}/slide${secondPosition}`}
+                  style={{
+                    width: "1920px",
+                    height: "1080px",
+                    border: "none",
+                    transform: "scale(0.1615)",
+                    transformOrigin: "top left",
+                    pointerEvents: "none",
+                  }}
+                  title="Next slide thumbnail"
+                />
+              </div>
+            )}
+            {!isLastSlide && nextSlide?.title && (
+              <div
+                style={{
+                  fontSize: "0.7rem",
+                  color: "#6b7280",
+                  fontStyle: "italic",
+                  maxWidth: "100%",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {nextSlide.title}
+              </div>
+            )}
           </div>
 
           {/* Nav buttons */}
