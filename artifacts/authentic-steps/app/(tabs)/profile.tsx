@@ -152,8 +152,8 @@ export default function ProfileScreen() {
 
   function buildPdfHtml(): string {
     const exportedAt = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-    const entryList = Object.values(entries).sort((a, b) => a.date.localeCompare(b.date));
-    const sortedGrounding = [...groundingSessions].sort((a, b) => a.timestamp - b.timestamp);
+    const entryList = Object.values(entries ?? {}).sort((a, b) => a.date.localeCompare(b.date));
+    const sortedGrounding = [...(groundingSessions ?? [])].sort((a, b) => a.timestamp - b.timestamp);
 
     const hasEntries = entryList.length > 0;
     const hasSessions = sortedGrounding.length > 0;

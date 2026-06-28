@@ -116,8 +116,9 @@ function buildPdfHtml(
     .join('');
 
   // Build grounding sessions PDF section
-  const groundingSection = groundingSessions.length === 0 ? '' : (() => {
-    const sessionCards = groundingSessions.map((s) => {
+  const safeGroundingSessions = groundingSessions ?? [];
+  const groundingSection = safeGroundingSessions.length === 0 ? '' : (() => {
+    const sessionCards = safeGroundingSessions.map((s) => {
       const sensesHtml = s.senses.map((sense) => `
         <div class="gs-sense">
           <div class="gs-sense-label">${sense.sense}</div>
@@ -139,7 +140,7 @@ function buildPdfHtml(
         <div class="gs-section-title">
           <span>🍃</span> 5-4-3-2-1 Grounding Sessions
         </div>
-        <p class="gs-count">${groundingSessions.length} session${groundingSessions.length !== 1 ? 's' : ''} recorded</p>
+        <p class="gs-count">${safeGroundingSessions.length} session${safeGroundingSessions.length !== 1 ? 's' : ''} recorded</p>
         ${sessionCards}
       </div>`;
   })();
