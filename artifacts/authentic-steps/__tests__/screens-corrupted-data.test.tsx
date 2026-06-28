@@ -176,6 +176,8 @@ import DailyRitualScreen from '../app/(tabs)/index';
 import ProfileScreen from '../app/(tabs)/profile';
 import JournalScreen from '../app/journal';
 import SosScreen from '../app/sos';
+import ToolboxScreen from '../app/(tabs)/toolbox';
+import StreaksScreen from '../app/(tabs)/streaks';
 
 // ─── Typed mock reference ─────────────────────────────────────────────────────
 
@@ -577,6 +579,67 @@ describe('JournalScreen – corrupted / missing AsyncStorage data', () => {
   });
 });
 
+// ─── 5. ToolboxScreen – corrupted favouriteTools ──────────────────────────────
+
+describe('ToolboxScreen – corrupted / missing favouriteTools data', () => {
+  let root: ReturnType<typeof create> | undefined;
+
+  afterEach(() => {
+    if (root) {
+      act(() => { root!.unmount(); });
+      root = undefined;
+    }
+    jest.clearAllMocks();
+  });
+
+  it('does not crash when favouriteTools is undefined', async () => {
+    mockUseApp.mockReturnValue(makeCtxWithCorruptUser({ favouriteTools: undefined }));
+
+    await expect(
+      act(async () => {
+        root = create(<ToolboxScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('does not crash when favouriteTools is null', async () => {
+    mockUseApp.mockReturnValue(makeCtxWithCorruptUser({ favouriteTools: null }));
+
+    await expect(
+      act(async () => {
+        root = create(<ToolboxScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+
+  it('does not crash when favouriteTools contains unrecognised tool ids', async () => {
+    mockUseApp.mockReturnValue(
+      makeCtxWithCorruptUser({ favouriteTools: ['unknown-tool-xyz', 'another-bad-id'] }),
+    );
+
+    await expect(
+      act(async () => {
+        root = create(<ToolboxScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+
+  it('does not crash when favouriteTools is an empty array', async () => {
+    mockUseApp.mockReturnValue(makeCtxWithCorruptUser({ favouriteTools: [] }));
+
+    await expect(
+      act(async () => {
+        root = create(<ToolboxScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+});
+
 // ─── 4. SosScreen – always safe (no AppContext dependency) ────────────────────
 
 describe('SosScreen – corrupted / missing data (no AppContext dependency)', () => {
@@ -626,5 +689,97 @@ describe('SosScreen – corrupted / missing data (no AppContext dependency)', ()
       { deep: true },
     );
     expect(kidsNodes.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── 6. StreaksScreen – corrupted streak calendar data ────────────────────────
+
+describe('StreaksScreen – corrupted / missing streak calendar data', () => {
+  let root: ReturnType<typeof create> | undefined;
+
+  afterEach(() => {
+    if (root) {
+      act(() => { root!.unmount(); });
+      root = undefined;
+    }
+    jest.clearAllMocks();
+  });
+
+  it('does not crash when getStreakCalendar returns null', async () => {
+    mockUseApp.mockReturnValue(
+      makeCtx({ getStreakCalendar: jest.fn().mockReturnValue(null) }),
+    );
+
+    await expect(
+      act(async () => {
+        root = create(<StreaksScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('does not crash when getStreakCalendar returns undefined', async () => {
+    mockUseApp.mockReturnValue(
+      makeCtx({ getStreakCalendar: jest.fn().mockReturnValue(undefined) }),
+    );
+
+    await expect(
+      act(async () => {
+        root = create(<StreaksScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+
+  it('does not crash when getStreakCalendar returns an empty array', async () => {
+    mockUseApp.mockReturnValue(
+      makeCtx({ getStreakCalendar: jest.fn().mockReturnValue([]) }),
+    );
+
+    await expect(
+      act(async () => {
+        root = create(<StreaksScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+
+  it('does not crash when milestones is undefined', async () => {
+    mockUseApp.mockReturnValue(makeCtxWithCorruptUser({ milestones: undefined }));
+
+    await expect(
+      act(async () => {
+        root = create(<StreaksScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+
+  it('does not crash when milestones is null', async () => {
+    mockUseApp.mockReturnValue(makeCtxWithCorruptUser({ milestones: null }));
+
+    await expect(
+      act(async () => {
+        root = create(<StreaksScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+
+  it('does not crash when both calendar is null and milestones is undefined', async () => {
+    mockUseApp.mockReturnValue(
+      makeCtxWithCorruptUser(
+        { milestones: undefined },
+        { getStreakCalendar: jest.fn().mockReturnValue(null) },
+      ),
+    );
+
+    await expect(
+      act(async () => {
+        root = create(<StreaksScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
   });
 });

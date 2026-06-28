@@ -14,7 +14,7 @@ export default function StreaksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { userData, entries, getStreakCalendar } = useApp();
-  const calendar = getStreakCalendar();
+  const calendar = getStreakCalendar() ?? [];
 
   const journalCount = useMemo(() => {
     return Object.values(entries).filter(
@@ -125,10 +125,10 @@ export default function StreaksScreen() {
           </View>
         </View>
 
-        {userData.milestones.length > 0 && (
+        {(userData.milestones ?? []).length > 0 && (
           <View style={[styles.milestonesCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Milestones</Text>
-            {userData.milestones.map(m => (
+            {(userData.milestones ?? []).map(m => (
               <View key={m.id} style={[styles.milestoneRow, { borderBottomColor: colors.border }]}>
                 <View style={[styles.mBadge, { backgroundColor: `${colors.accent}18` }]}>
                   <Ionicons name="ribbon" size={18} color={colors.accent} />
@@ -142,7 +142,7 @@ export default function StreaksScreen() {
           </View>
         )}
 
-        {userData.milestones.length === 0 && (
+        {(userData.milestones ?? []).length === 0 && (
           <View style={[styles.emptyMilestone, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Ionicons name="ribbon-outline" size={32} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Milestones coming</Text>
