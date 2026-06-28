@@ -36,6 +36,7 @@ export default function IAmScreen() {
   const [mode, setMode] = useState<'library' | 'custom'>('library');
   const [customText, setCustomText] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const customScrollViewRef = useRef<ScrollView>(null);
   const customCardY = useRef<number>(0);
@@ -63,10 +64,16 @@ export default function IAmScreen() {
   async function handleConfirm() {
     if (!canConfirm || saving) return;
     setSaving(true);
+    setSaveError(null);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await saveIAmStatement(finalStatement);
-    router.push('/ritual/complete');
-    setSaving(false);
+    try {
+      await saveIAmStatement(finalStatement);
+      router.push('/ritual/complete');
+    } catch {
+      setSaveError('Could not save your I Am statement. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -237,6 +244,11 @@ export default function IAmScreen() {
           },
         ]}
       >
+        {saveError && (
+          <Text testID="save-error" style={[styles.saveErrorText, { color: colors.destructive }]}>
+            {saveError}
+          </Text>
+        )}
         {selected && mode === 'library' && (
           <View style={[styles.selectedPreview, { backgroundColor: `${colors.accent}12` }]}>
             <Text style={[styles.selectedText, { color: colors.accent }]} numberOfLines={2}>
@@ -245,8 +257,9 @@ export default function IAmScreen() {
           </View>
         )}
         <Pressable
+          testID="confirm-btn"
           onPress={handleConfirm}
-          disabled={!canConfirm}
+          disabled={!canConfirm || saving}
           style={({ pressed }) => [
             styles.confirmBtn,
             { backgroundColor: canConfirm ? colors.accent : colors.border },
@@ -297,6 +310,7 @@ const styles = StyleSheet.create({
   iAmPrefix: { fontSize: 18, fontFamily: 'Inter_700Bold' },
   customInput: { fontSize: 17, fontFamily: 'Inter_400Regular', minHeight: 80, lineHeight: 26 },
   footer: { padding: 16, paddingTop: 12, borderTopWidth: 1, gap: 10 },
+  saveErrorText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   selectedPreview: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
   selectedText: { fontSize: 13, fontFamily: 'Inter_500Medium', lineHeight: 18 },
   confirmBtn: {

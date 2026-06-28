@@ -39,6 +39,7 @@ export default function GratitudeScreen() {
   const [texts, setTexts] = useState<string[]>(['', '', '']);
   const [cats, setCats] = useState<GratitudeCategory[]>(['people', 'experiences', 'things']);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const cardYPositions = useRef<number[]>([0, 0, 0]);
@@ -65,13 +66,19 @@ export default function GratitudeScreen() {
   async function handleContinue() {
     if (!canContinue || saving) return;
     setSaving(true);
+    setSaveError(null);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const entries = texts
       .map((text, i) => ({ text: text.trim(), category: cats[i] }))
       .filter(e => e.text.length > 0);
-    await saveGratitude(entries);
-    router.push('/ritual/intention');
-    setSaving(false);
+    try {
+      await saveGratitude(entries);
+      router.push('/ritual/intention');
+    } catch {
+      setSaveError('Could not save your gratitude. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function setCategory(index: number, cat: GratitudeCategory) {
@@ -235,18 +242,25 @@ export default function GratitudeScreen() {
           },
         ]}
       >
-        <Text style={[styles.footerHint, { color: colors.mutedForeground }]}>
-          {filledCount}/3 — at least 1 required
-        </Text>
-        <Pressable
-          onPress={handleContinue}
-          disabled={!canContinue}
-          style={({ pressed }) => [
-            styles.continueBtn,
-            { backgroundColor: canContinue ? colors.primary : colors.border },
-            pressed && styles.pressed,
-          ]}
-        >
+        {saveError && (
+          <Text testID="save-error" style={[styles.saveErrorText, { color: colors.destructive }]}>
+            {saveError}
+          </Text>
+        )}
+        <View style={styles.footerRow}>
+          <Text style={[styles.footerHint, { color: colors.mutedForeground }]}>
+            {filledCount}/3 — at least 1 required
+          </Text>
+          <Pressable
+            testID="continue-btn"
+            onPress={handleContinue}
+            disabled={!canContinue || saving}
+            style={({ pressed }) => [
+              styles.continueBtn,
+              { backgroundColor: canContinue ? colors.primary : colors.border },
+              pressed && styles.pressed,
+            ]}
+          >
           <Text style={[styles.continueBtnText, { color: canContinue ? '#fff' : colors.mutedForeground }]}>
             Continue
           </Text>
@@ -255,7 +269,8 @@ export default function GratitudeScreen() {
             size={18}
             color={canContinue ? '#fff' : colors.mutedForeground}
           />
-        </Pressable>
+          </Pressable>
+        </View>
       </View>
 
     </KeyboardAvoidingView>
@@ -350,11 +365,15 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 12,
     borderTopWidth: 1,
+    gap: 8,
+  },
+  footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
   footerHint: { fontSize: 13, fontFamily: 'Inter_400Regular', flex: 1 },
+  saveErrorText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   continueBtn: {
     flexDirection: 'row',
     alignItems: 'center',

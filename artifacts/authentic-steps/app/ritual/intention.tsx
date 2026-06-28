@@ -42,6 +42,7 @@ export default function IntentionScreen() {
   const [text, setText] = useState('');
   const [category, setCategory] = useState<IntentionCategory | ''>('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function handleInputCardLayout(e: LayoutChangeEvent) {
     inputCardY.current = e.nativeEvent.layout.y;
@@ -59,10 +60,16 @@ export default function IntentionScreen() {
   async function handleContinue() {
     if (!canContinue || saving) return;
     setSaving(true);
+    setSaveError(null);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await saveIntention(text.trim(), category);
-    router.push('/ritual/iamstatement');
-    setSaving(false);
+    try {
+      await saveIntention(text.trim(), category);
+      router.push('/ritual/iamstatement');
+    } catch {
+      setSaveError('Could not save your intention. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -200,9 +207,15 @@ export default function IntentionScreen() {
           },
         ]}
       >
+        {saveError && (
+          <Text testID="save-error" style={[styles.saveErrorText, { color: colors.destructive }]}>
+            {saveError}
+          </Text>
+        )}
         <Pressable
+          testID="continue-btn"
           onPress={handleContinue}
-          disabled={!canContinue}
+          disabled={!canContinue || saving}
           style={({ pressed }) => [
             styles.continueBtn,
             { backgroundColor: canContinue ? colors.primary : colors.border },
@@ -301,7 +314,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   catBtnText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
-  footer: { padding: 16, paddingTop: 12, borderTopWidth: 1 },
+  footer: { padding: 16, paddingTop: 12, borderTopWidth: 1, gap: 8 },
+  saveErrorText: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   continueBtn: {
     flexDirection: 'row',
     alignItems: 'center',
