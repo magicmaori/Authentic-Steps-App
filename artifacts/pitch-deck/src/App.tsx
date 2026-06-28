@@ -167,6 +167,24 @@ function SlideViewer() {
     width: Math.min(window.innerWidth, window.innerHeight * (16 / 9)),
     height: Math.min(window.innerHeight, window.innerWidth * (9 / 16)),
   }));
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportPdf = () => {
+    setExporting(true);
+    const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+    const printWindow = window.open(`${base}/allslides`, "_blank");
+    if (!printWindow) {
+      setExporting(false);
+      return;
+    }
+    const onLoad = () => {
+      setTimeout(() => {
+        printWindow.print();
+        setExporting(false);
+      }, 800);
+    };
+    printWindow.addEventListener("load", onLoad, { once: true });
+  };
 
   useEffect(() => {
     const update = () => {
@@ -206,6 +224,41 @@ function SlideViewer() {
         onLoad={() => iframeRef.current?.focus()}
         title="Slide viewer"
       />
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleExportPdf();
+        }}
+        disabled={exporting}
+        style={{
+          position: "absolute",
+          top: "1rem",
+          right: "1rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.4rem",
+          padding: "0.45rem 1rem",
+          background: exporting ? "rgba(3,152,158,0.6)" : "rgba(3,152,158,0.92)",
+          color: "#fff",
+          border: "none",
+          borderRadius: "6px",
+          fontSize: "0.85rem",
+          fontWeight: 600,
+          cursor: exporting ? "default" : "pointer",
+          letterSpacing: "0.01em",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+          transition: "background 0.2s",
+          zIndex: 50,
+        }}
+        title="Export all slides as PDF"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        {exporting ? "Preparing…" : "Export PDF"}
+      </button>
     </div>
   );
 }
