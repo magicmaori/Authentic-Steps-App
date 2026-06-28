@@ -23,7 +23,7 @@
     "filepath": "src/pages/slides/Slide03Answer.tsx",
     "title": "What I Built For You",
     "description": "The app I built — free, private, and youth-first",
-    "bgColor": "#193b83",
+    "bgColor": "linear-gradient(135deg, #193b83 0%, #0d2558 100%)",
     "speakerNotes": "Be direct — this is the product summary.\n\n- Free, always. Private by design. Built specifically for young people.\n- This is the answer to the problem on the previous slide — and I built it.\n- If John needs the one-sentence version for anyone else: 'a free mental health app for young people, built in-house at a fraction of commercial cost.'"
   },
   {
@@ -41,7 +41,7 @@
     "filepath": "src/pages/slides/Slide05Scale.tsx",
     "title": "What's Been Delivered",
     "description": "97 tasks completed, 50+ features shipped, 6 core pillars",
-    "bgColor": "#193b83",
+    "bgColor": "linear-gradient(135deg, #193b83 0%, #0d2558 100%)",
     "speakerNotes": "Let the numbers make the case.\n\n- 97 tasks: every piece of work had a ticket, a status, a completion. Nothing was vague.\n- 50+ features shipped: real, working, tested — not prototypes.\n- 6 core pillars: the whole experience was designed and built from scratch.\n- This is the output of a full professional product build cycle — done by one person, for you."
   },
   {
@@ -59,7 +59,7 @@
     "filepath": "src/pages/slides/Slide07WhoItServes.tsx",
     "title": "Who This Serves",
     "description": "Young people, schools, and counsellors",
-    "bgColor": "#193b83",
+    "bgColor": "linear-gradient(135deg, #193b83 0%, #0d2558 100%)",
     "speakerNotes": "Paint a picture for each audience.\n\n- Young people ages 11 to 25: the student who had a hard day and doesn't want to talk. The app is there.\n- Schools: something a pastoral care team can say 'download this' without needing to sign off a budget.\n- Counsellors: a bridge between sessions. Something concrete to hand to a young person.\n- Each of these groups represents a real distribution channel for the app."
   },
   {
@@ -77,7 +77,7 @@
     "filepath": "src/pages/slides/Slide09WhatsNext.tsx",
     "title": "The Road Ahead",
     "description": "Now: structure and connect. Next: backend. Then: revenue and growth.",
-    "bgColor": "#193b83",
+    "bgColor": "linear-gradient(135deg, #193b83 0%, #0d2558 100%)",
     "speakerNotes": "Be concrete — this is the business case.\n\n- Now: we're structuring and connecting everything. The foundation is solid, we're plugging it all in.\n- Next: backend development. Server, user accounts, data — the layer that lets the app scale and opens up monetisation.\n- Then: revenue. School licensing deals. App Store presence. A sustainable income stream that pays for itself.\n- This isn't speculative — each step follows the last, and we're already through the hardest part."
   },
   {
@@ -86,7 +86,7 @@
     "filepath": "src/pages/slides/Slide11InvestmentBreakdown.tsx",
     "title": "Investment Breakdown",
     "description": "$5,000/month per school — 12-month auto-renewing contract with three revenue scenarios and community giving-back model",
-    "bgColor": "#193b83",
+    "bgColor": "linear-gradient(135deg, #193b83 0%, #0d2558 100%)",
     "speakerNotes": "This is the money slide — walk John through each scenario clearly.\n\n- The model is simple: $5,000 per school per month on a 12-month contract that auto-renews. Predictable, recurring revenue.\n- Full scenario: 100 schools gives us $6 million in annual gross. That's the ceiling — and it's very achievable.\n- Conservative: even at a third of that — 33 schools — we're looking at $2 million a year.\n- Floor: at a quarter, 25 schools, we're still generating $1.5 million. Still very profitable.\n- The community model is key: larger schools can sponsor smaller ones. That's not charity — it's a smart distribution play that gets us into more schools faster and positions Authentic Steps as a mission-driven brand, not just a product.\n- Any one of these scenarios represents a strong, sustainable business."
   },
   {
@@ -95,7 +95,7 @@
     "filepath": "src/pages/slides/Slide10ThankYou.tsx",
     "title": "The Next Step",
     "description": "Closing — Johaan as development partner, next steps for John",
-    "bgColor": "#193b83",
+    "bgColor": "linear-gradient(135deg, #193b83 0%, #0a1e45 100%)",
     "speakerNotes": "Close with clarity — one ask, one next step.\n\n- Thank John for his time and his trust in the project.\n- The ask is simple: let's keep going. We finish the structure, we build the backend together, we launch.\n- There's a real path to this generating profit — not someday, but as a direct result of the next phase.\n- I'm your development partner. Let's make it happen."
   }
 ]
