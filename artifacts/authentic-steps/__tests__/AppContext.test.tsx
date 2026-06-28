@@ -39,15 +39,6 @@ jest.mock('@/utils/notifications', () => ({
   requestPermission: jest.fn().mockResolvedValue(true),
 }));
 
-jest.mock('@clerk/expo', () => ({
-  useAuth: () => ({
-    isSignedIn: false,
-    getToken: jest.fn().mockResolvedValue(null),
-    isLoaded: true,
-    userId: null,
-  }),
-}));
-
 jest.mock('expo-constants', () => ({
   default: { expoConfig: { extra: { apiBaseUrl: '' } } },
 }));
