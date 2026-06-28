@@ -246,6 +246,7 @@ function SlideEditor() {
 // Scales the AllSlides content to fit narrow browser windows on screen
 // while leaving print output untouched (handled via .allslides-outer CSS).
 function AllSlidesWrapper() {
+  const [, navigate] = useLocation();
   const [scale, setScale] = useState(() =>
     typeof window !== "undefined" ? Math.min(1, window.innerWidth / 1920) : 1,
   );
@@ -261,19 +262,40 @@ function AllSlidesWrapper() {
   const visualW = Math.round(1920 * scale);
   const visualH = Math.round(numSlides * 1080 * scale);
 
+  const handleBack = () => {
+    navigate(`/slide${slides[0].position}`);
+  };
+
   return (
-    <div
-      className="allslides-outer"
-      style={{ width: visualW, height: visualH, overflow: "hidden" }}
-    >
+    <div style={{ position: "relative" }}>
+      {/* Print bar — hidden automatically by @media print */}
+      <div className="print-bar">
+        <button className="print-bar-btn print-bar-btn--back" onClick={handleBack}>
+          ← Back to slides
+        </button>
+        <span style={{ flex: 1 }} />
+        <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.7)" }}>
+          Use your browser's <strong>Save as PDF</strong> option in the print dialog
+        </span>
+        <span style={{ flex: 1 }} />
+        <button className="print-bar-btn print-bar-btn--print" onClick={() => window.print()}>
+          🖨️ Print / Save as PDF
+        </button>
+      </div>
+
       <div
-        style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
-          width: 1920,
-        }}
+        className="allslides-outer"
+        style={{ width: visualW, height: visualH, overflow: "hidden" }}
       >
-        <AllSlides />
+        <div
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            width: 1920,
+          }}
+        >
+          <AllSlides />
+        </div>
       </div>
     </div>
   );
@@ -685,10 +707,10 @@ function PresenterPopup() {
 
 // This component is used for the deployed view at `/`
 function SlideViewer() {
+  const [, navigate] = useLocation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [presenterMode, setPresenterMode] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [exporting, setExporting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [popupOpen, setPopupOpen] = useState(false);
   const [exportStore, setExportStore] = useState<ExportStore>({});
@@ -789,44 +811,21 @@ function SlideViewer() {
   }, [presenterMode, popupOpen]);
 
   const handleExportPdf = () => {
-    setExporting(true);
-    const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-    const printWindow = window.open(`${base}/allslides`, "_blank");
-    if (!printWindow) {
-      setExporting(false);
-      return;
-    }
-
-    const markDone = (safetyTimer: ReturnType<typeof setTimeout>) => {
-      clearTimeout(safetyTimer);
-      setExporting(false);
-      setExportStore((prev) => {
-        const next: ExportStore = {
-          ...prev,
-          pdf: { fingerprint: DECK_FINGERPRINT, exportedAt: new Date().toISOString() },
-        };
-        try {
-          localStorage.setItem(EXPORT_STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          // ignore storage errors
-        }
-        return next;
-      });
-    };
-
-    // Safety fallback: clear spinner after 15 s even if load event never fires
-    const safetyTimer = setTimeout(() => {
-      setExporting(false);
-    }, 15_000);
-
-    const onLoad = () => {
-      setTimeout(() => {
-        try { printWindow.print(); } catch { /* blocked in some iframe contexts */ }
-        markDone(safetyTimer);
-      }, 800);
-    };
-
-    printWindow.addEventListener("load", onLoad, { once: true });
+    // Record the export intent in localStorage so the stale indicator updates
+    setExportStore((prev) => {
+      const next: ExportStore = {
+        ...prev,
+        pdf: { fingerprint: DECK_FINGERPRINT, exportedAt: new Date().toISOString() },
+      };
+      try {
+        localStorage.setItem(EXPORT_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+    // Navigate within the same tab — no popup needed, works in all contexts
+    navigate("/allslides");
   };
 
   const handlePopOut = () => {
@@ -1071,19 +1070,18 @@ function SlideViewer() {
               e.stopPropagation();
               handleExportPdf();
             }}
-            disabled={exporting}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "0.4rem",
               padding: "0.45rem 1rem",
-              background: exporting ? "rgba(3,152,158,0.6)" : "rgba(3,152,158,0.92)",
+              background: "rgba(3,152,158,0.92)",
               color: "#fff",
               border: "none",
               borderRadius: "6px",
               fontSize: "0.85rem",
               fontWeight: 600,
-              cursor: exporting ? "default" : "pointer",
+              cursor: "pointer",
               letterSpacing: "0.01em",
               boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
               transition: "background 0.2s",
@@ -1095,7 +1093,7 @@ function SlideViewer() {
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            {exporting ? "Preparing…" : "Export PDF"}
+            Export PDF
           </button>
         </div>
         {(() => {

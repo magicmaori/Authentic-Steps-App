@@ -77,8 +77,57 @@ body {
   -webkit-user-select: none;
 }
 
+/* Print bar — shown on screen, hidden when printing */
+.print-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.2rem;
+  background: #1a2535;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.print-bar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background 0.2s;
+}
+
+.print-bar-btn--back {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.print-bar-btn--back:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.print-bar-btn--print {
+  background: rgba(3, 152, 158, 0.92);
+  color: #fff;
+}
+
+.print-bar-btn--print:hover {
+  background: #03989e;
+}
+
 /* Strip the screen-only scale wrapper so print output stays at 1920×1080 */
 @media print {
+  .print-bar {
+    display: none !important;
+  }
+
   .allslides-outer,
   .allslides-outer > div {
     transform: none !important;
