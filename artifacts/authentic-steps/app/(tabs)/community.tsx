@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
@@ -6,6 +7,8 @@ import { Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColors } from '@/hooks/useColors';
+
+const COMMUNITY_WAITLIST_KEY = 'authentic-steps:community-waitlist';
 
 type Tab = 'gratitude' | 'iamwall' | 'actions';
 
@@ -55,8 +58,17 @@ export default function CommunityScreen() {
   const [gratitude, setGratitude] = useState<FeedPost[]>(GRATITUDE_FEED);
   const [iamPosts, setIamPosts] = useState<FeedPost[]>(IAM_POSTS);
   const [intentions, setIntentions] = useState<FeedPost[]>(INTENTION_POSTS);
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
 
   const breathAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    AsyncStorage.getItem(COMMUNITY_WAITLIST_KEY)
+      .then(v => {
+        if (v === 'true') setWaitlistJoined(true);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     Animated.loop(
@@ -100,6 +112,18 @@ export default function CommunityScreen() {
       }
       return { ...p, ticked: !p.ticked, ticks: p.ticked ? p.ticks - 1 : p.ticks + 1 };
     }));
+  }
+
+  async function handleWaitlistToggle() {
+    await Haptics.selectionAsync();
+    const next = !waitlistJoined;
+    setWaitlistJoined(next);
+    try {
+      await AsyncStorage.setItem(COMMUNITY_WAITLIST_KEY, next ? 'true' : 'false');
+    } catch {
+      // Revert so the UI always reflects what actually persisted.
+      setWaitlistJoined(!next);
+    }
   }
 
   const feed = getFeed();
@@ -239,10 +263,35 @@ export default function CommunityScreen() {
 
         <View style={[styles.phase2, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
           <Ionicons name="rocket-outline" size={20} color={colors.primary} />
-          <Text style={[styles.phase2Title, { color: colors.foreground }]}>Full community coming soon</Text>
+          <Text style={[styles.phase2Title, { color: colors.foreground }]}>More community features are on the way</Text>
           <Text style={[styles.phase2Desc, { color: colors.mutedForeground }]}>
-            Share your own gratitude, I Am statements, and intentions with the Authentic Steps community. Help Seeking spaces and Youth Peer Guides are on the way.
+            Soon you'll be able to share your own gratitude, I Am statements, and intentions, alongside Help Seeking spaces and Youth Peer Guides.
           </Text>
+          <Pressable
+            onPress={handleWaitlistToggle}
+            accessibilityRole="button"
+            accessibilityState={{ selected: waitlistJoined }}
+            style={[
+              styles.waitlistBtn,
+              waitlistJoined
+                ? { backgroundColor: 'transparent', borderColor: colors.primary, borderWidth: 1 }
+                : { backgroundColor: colors.primary, borderWidth: 0 },
+            ]}
+          >
+            <Ionicons
+              name={waitlistJoined ? 'checkmark-circle' : 'sparkles-outline'}
+              size={16}
+              color={waitlistJoined ? colors.primary : '#fff'}
+            />
+            <Text style={[styles.waitlistBtnText, { color: waitlistJoined ? colors.primary : '#fff' }]}>
+              {waitlistJoined ? "You're on the early access list" : 'Join the early access list'}
+            </Text>
+          </Pressable>
+          {waitlistJoined && (
+            <Text style={[styles.waitlistNote, { color: colors.mutedForeground }]}>
+              We'll highlight new community features right here when they're ready.
+            </Text>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -334,6 +383,19 @@ const styles = StyleSheet.create({
   reactBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   reactCount: { fontSize: 13, fontFamily: 'Inter_500Medium' },
   phase2: { borderRadius: 14, padding: 18, borderWidth: 1, alignItems: 'center', gap: 8, marginTop: 8 },
-  phase2Title: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
+  phase2Title: { fontSize: 15, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
   phase2Desc: { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 18 },
+  waitlistBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 6,
+    alignSelf: 'stretch',
+  },
+  waitlistBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
+  waitlistNote: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 16 },
 });

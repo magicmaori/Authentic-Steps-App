@@ -14,6 +14,7 @@ import { useColors } from '@/hooks/useColors';
 import {
   getPermissionState,
   requestPermission as requestNotifPermission,
+  requestPermissionWithRationale,
   scheduleEveningReminder,
   scheduleRitualReminder,
 } from '@/utils/notifications';
@@ -542,7 +543,7 @@ export default function ProfileScreen() {
                     Haptics.selectionAsync();
                     const next = !item.value;
                     if (next) {
-                      const granted = await requestNotifPermission();
+                      const granted = await requestPermissionWithRationale();
                       if (!granted) {
                         await disableAllNotificationPrefs();
                         setNotifBlocked(true);
@@ -566,7 +567,7 @@ export default function ProfileScreen() {
               Haptics.selectionAsync();
               const next = !userData.notifMilestone;
               if (next) {
-                const granted = await requestNotifPermission();
+                const granted = await requestPermissionWithRationale();
                 if (!granted) {
                   await disableAllNotificationPrefs();
                   setNotifBlocked(true);

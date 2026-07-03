@@ -1,1 +1,1 @@
-- [Clerk removal](clerk-removal.md) — @clerk/expo can't run in Expo Go (any platform); app is fully guest/AsyncStorage mode, no auth needed.
+- [Authentic Steps app quirks](authentic-steps.md) — Expo config resolution (app.config.ts shadows app.json) and a pre-existing jest exit-1 flake despite all tests passing.

@@ -17,8 +17,31 @@ const config: ExpoConfig = {
     resizeMode: 'contain',
     backgroundColor: '#03989e',
   },
-  ios: { supportsTablet: false },
-  android: {},
+  ios: {
+    supportsTablet: false,
+    bundleIdentifier: 'org.authenticsteps.youth',
+    privacyManifests: {
+      NSPrivacyAccessedAPITypes: [
+        {
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults',
+          NSPrivacyAccessedAPITypeReasons: ['CA92.1'],
+        },
+        {
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp',
+          NSPrivacyAccessedAPITypeReasons: ['C617.1'],
+        },
+        {
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategorySystemBootTime',
+          NSPrivacyAccessedAPITypeReasons: ['35F9.1'],
+        },
+        {
+          NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryDiskSpace',
+          NSPrivacyAccessedAPITypeReasons: ['E174.1'],
+        },
+      ],
+    },
+  },
+  android: { package: 'org.authenticsteps.youth' },
   web: { favicon: './assets/images/icon.png' },
   plugins: [
     ['expo-router', { origin: 'https://replit.com/' }],

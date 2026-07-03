@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import type { Milestone } from '@/context/AppContext';
 
@@ -29,6 +29,38 @@ export async function getPermissionState(): Promise<PermissionState> {
 export async function requestPermission(): Promise<boolean> {
   const existing = (await Notifications.getPermissionsAsync()) as unknown as { granted: boolean };
   if (existing.granted) return true;
+  const result = (await Notifications.requestPermissionsAsync()) as unknown as { granted: boolean };
+  return result.granted;
+}
+
+// Shows a short, friendly explanation of why we want to send reminders BEFORE
+// triggering the OS permission prompt. This is the recommended pre-permission
+// "priming" pattern: it gives the user context so the system dialog isn't a
+// surprise, and it avoids permanently burning the one-shot OS prompt if they're
+// not ready. Returns true only if permission ends up granted.
+export async function requestPermissionWithRationale(): Promise<boolean> {
+  const existing = (await Notifications.getPermissionsAsync()) as unknown as {
+    granted: boolean;
+    canAskAgain?: boolean;
+  };
+  if (existing.granted) return true;
+
+  // If the OS will no longer show its prompt, there's nothing a rationale can do.
+  if (existing.canAskAgain === false) return false;
+
+  const proceed = await new Promise<boolean>((resolve) => {
+    Alert.alert(
+      'Turn on gentle reminders?',
+      "Authentic Steps can send you a private daily nudge for your ritual and an evening check-in. Reminders are scheduled on your device — we never see them — and you can turn them off anytime.",
+      [
+        { text: 'Not now', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Continue', onPress: () => resolve(true) },
+      ],
+      { cancelable: true, onDismiss: () => resolve(false) }
+    );
+  });
+  if (!proceed) return false;
+
   const result = (await Notifications.requestPermissionsAsync()) as unknown as { granted: boolean };
   return result.granted;
 }
