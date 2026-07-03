@@ -13,7 +13,6 @@ import { ThemePreference, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 import {
   getPermissionState,
-  requestPermission as requestNotifPermission,
   requestPermissionWithRationale,
   scheduleEveningReminder,
   scheduleRitualReminder,
@@ -73,7 +72,7 @@ export default function ProfileScreen() {
     if (!userData.notifRitual && !userData.notifEvening && !userData.notifMilestone) return;
     getPermissionState().then(async (state) => {
       if (state === 'undetermined') {
-        const granted = await requestNotifPermission();
+        const granted = await requestPermissionWithRationale();
         if (granted) {
           await scheduleRitualReminder(userData.notifRitual, userData.ritualHour ?? 9, userData.ritualMinute ?? 0).catch(() => {});
           await scheduleEveningReminder(userData.notifEvening, userData.eveningHour ?? 20, userData.eveningMinute ?? 0).catch(() => {});
