@@ -6,7 +6,7 @@ _Replace the heading above with the project's name, and this line with one sente
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm --filter @workspace/api-server run smoke` — end-to-end smoke test of the agency-admin path (bootstrap → sign in → create sub-account → invite → redeem → renew → revoke) against **real Clerk test sessions**. Self-contained (boots the API in-process, no workflow needed), prints a numbered pass/fail per step, and deletes everything it creates. Requires a Clerk *test* instance (`sk_test`/`pk_test`) — it refuses to run against live keys. Complements `access-flows.test.ts`, which covers the same routes but mocks Clerk.
-- `pnpm run typecheck` — full typecheck across all packages
+- `pnpm run typecheck` — full typecheck across all packages. Registered as the **`typecheck` validation check** (a real CI-style gate): it runs `tsc --build` for the libs then `tsc --noEmit` for every artifact/script, including the mobile app. Type regressions (e.g. a stray `@types/react` mismatch) fail this gate instead of silently reappearing. Its reliability depends on the `@types/react`/`@types/react-dom` hoist in `.npmrc` — do not remove those `public-hoist-pattern` lines.
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
