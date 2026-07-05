@@ -5,3 +5,4 @@
 - [Agency dashboard Clerk web](agency-dashboard-clerk-web.md) — @clerk/react has NO SignedIn/SignedOut (use Show); cookie auth (no tokens); appearance uses `theme`; redeem is a public route; role from active membership.
 - [Invite emails via Resend](invite-emails-resend.md) — invite links emailed via Resend connector (proxy key at runtime); default onboarding@resend.dev only reaches account owner until a domain is verified.
 - [Headless Clerk session minting](clerk-headless-sessions.md) — sign_in_token→dev_browser→ticket sign-in→session token gets a real JWT with no browser; powers the api-server `smoke` test against unmocked Clerk.
+- [Agency dashboard component testing](agency-dashboard-testing.md) — Vitest+RTL (own vitest.config), mock useGetMe for role gating, jsdom Radix stubs; run typecheck:libs first to clear stale lib .d.ts.
