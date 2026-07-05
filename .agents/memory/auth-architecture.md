@@ -11,6 +11,12 @@ time-limited multi-tenant system using **`@clerk/express`** (NOT `@clerk/expo`).
 Hierarchy: agencies → sub-account holders → members. Access requires a valid
 Clerk login AND an active, unexpired membership (a redeemed invite). There is
 NO in-app payment; agencies are bootstrapped via `scripts/src/bootstrap-agency.ts`.
+There is intentionally NO self-serve "become an admin" endpoint — a self-serve
+admin path would break the closed-access guarantee, so the first admin is always
+operator-provisioned. The bootstrap script is idempotent by (agency name, admin):
+re-running the same command is a no-op; a second distinct agency for the same
+admin requires a different name (the `memberships_user_agency_admin_uq` index
+already forbids two admin rows for the same (user, agency)).
 
 ## Invariant: closure is server-authoritative, not client-side
 Any route that serves or mutates **user data** must gate on an active

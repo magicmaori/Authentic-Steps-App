@@ -3,18 +3,24 @@
  *
  * The admin must already exist as a Clerk user (i.e. they signed in once). This
  * script resolves their Clerk user id by email, then creates an agency and an
- * agency_admin membership for them. Run it once per agency — each run creates a
- * new agency.
+ * agency_admin membership for them.
+ *
+ * The script is idempotent by (agency name, admin): if the admin already has an
+ * active agency_admin membership for an agency with the same name, it reports
+ * the existing agency and exits without creating a duplicate. Re-running the
+ * exact same command is therefore a safe no-op. To create a second, distinct
+ * agency for the same admin, run it again with a different agency name.
  *
  * Usage:
  *   pnpm --filter @workspace/scripts run bootstrap-agency "<Agency Name>" <admin-email>
  */
 import { clerkClient } from "@clerk/express";
+import { and, eq, isNull } from "drizzle-orm";
 import { db, agenciesTable, membershipsTable } from "@workspace/db";
 
 async function main(): Promise<void> {
-  const agencyName = process.argv[2];
-  const email = process.argv[3];
+  const agencyName = process.argv[2]?.trim();
+  const email = process.argv[3]?.trim();
 
   if (!agencyName || !email) {
     console.error(
@@ -34,7 +40,34 @@ async function main(): Promise<void> {
   const userId = user.id;
   const resolvedEmail = user.primaryEmailAddress?.emailAddress ?? email;
 
-  const result = await db.transaction(async (tx) => {
+  const outcome = await db.transaction(async (tx) => {
+    // Idempotency: if this admin already runs an agency with the same name,
+    // don't create a duplicate. An agency_admin membership has a null
+    // subAccountId (see the DB check constraint).
+    const existingAdminMemberships = await tx
+      .select()
+      .from(membershipsTable)
+      .innerJoin(agenciesTable, eq(membershipsTable.agencyId, agenciesTable.id))
+      .where(
+        and(
+          eq(membershipsTable.userId, userId),
+          eq(membershipsTable.role, "agency_admin"),
+          eq(membershipsTable.status, "active"),
+          isNull(membershipsTable.subAccountId),
+          eq(agenciesTable.name, agencyName),
+        ),
+      )
+      .limit(1);
+
+    const existing = existingAdminMemberships[0];
+    if (existing) {
+      return {
+        created: false as const,
+        agency: existing.agencies,
+        membership: existing.memberships,
+      };
+    }
+
     const [agency] = await tx
       .insert(agenciesTable)
       .values({ name: agencyName })
@@ -52,12 +85,22 @@ async function main(): Promise<void> {
       })
       .returning();
 
-    return { agency: agency!, membership: membership! };
+    return { created: true as const, agency: agency!, membership: membership! };
   });
 
-  console.log(`Created agency: ${result.agency.id} (${result.agency.name})`);
+  if (!outcome.created) {
+    console.log(
+      `Agency already exists (no-op): ${outcome.agency.id} (${outcome.agency.name})`,
+    );
+    console.log(
+      `Agency admin: ${outcome.membership.userId} (${outcome.membership.email ?? "no email"})`,
+    );
+    process.exit(0);
+  }
+
+  console.log(`Created agency: ${outcome.agency.id} (${outcome.agency.name})`);
   console.log(
-    `Agency admin: ${result.membership.userId} (${result.membership.email ?? "no email"})`,
+    `Agency admin: ${outcome.membership.userId} (${outcome.membership.email ?? "no email"})`,
   );
   process.exit(0);
 }

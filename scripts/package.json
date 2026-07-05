@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@clerk/express": "^2.1.32",
-    "@workspace/db": "workspace:*"
+    "@workspace/db": "workspace:*",
+    "drizzle-orm": "catalog:"
   }
 }
