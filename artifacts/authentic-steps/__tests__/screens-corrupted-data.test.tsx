@@ -166,6 +166,23 @@ jest.mock('@/components/MovementExercise', () => {
   };
 });
 
+// Clerk auth: the app is invite-only / Clerk-gated. ProfileScreen consumes
+// useAuth/useUser (for the Sign out action), which throw outside a ClerkProvider,
+// so provide a signed-in stub here.
+jest.mock('@clerk/expo', () => ({
+  useAuth: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    signOut: jest.fn().mockResolvedValue(undefined),
+    getToken: jest.fn().mockResolvedValue('test-token'),
+  }),
+  useUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: { primaryEmailAddress: { emailAddress: 'test@example.com' } },
+  }),
+}));
+
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
 
 import React from 'react';
@@ -190,8 +207,23 @@ const mockUseApp = useApp as jest.Mock;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function flushPromises(): Promise<void> {
-  return new Promise(resolve => setImmediate(resolve));
+  return Promise.resolve();
 }
+
+// Fake timers keep fire-and-forget effect work (e.g. the CompleteScreen mount
+// animation via Animated.spring/timing) from scheduling real timers that would
+// otherwise outlive a test and fire after teardown ("Cannot log after tests are
+// done"). As the outermost hooks, this beforeEach runs before any describe-scoped
+// setup and this afterEach runs after the describe-scoped unmount hooks, so
+// components are torn down first and then every pending timer is dropped.
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
 
 /**
  * Returns a well-formed AppContext value with any overrides applied.
@@ -245,6 +277,13 @@ function makeCtx(overrides: Record<string, any> = {}): Record<string, any> {
     toggleFavouriteTool: jest.fn().mockResolvedValue(undefined),
     isExerciseDoneToday: jest.fn().mockReturnValue(false),
     markExerciseDone: jest.fn().mockResolvedValue(undefined),
+    saveGratitude: jest.fn().mockResolvedValue(undefined),
+    saveIntention: jest.fn().mockResolvedValue(undefined),
+    saveIAmStatement: jest.fn().mockResolvedValue(undefined),
+    markRitualComplete: jest.fn().mockResolvedValue(undefined),
+    useFlex: jest.fn().mockResolvedValue(true),
+    useStreakFreeze: jest.fn().mockResolvedValue(true),
+    completeOnboarding: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

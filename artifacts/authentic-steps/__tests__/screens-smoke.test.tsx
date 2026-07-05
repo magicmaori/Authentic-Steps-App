@@ -265,7 +265,7 @@ function makeFullAppContext(userOverrides: Record<string, unknown> = {}) {
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 function flushPromises(): Promise<void> {
-  return new Promise(resolve => setImmediate(resolve));
+  return Promise.resolve();
 }
 
 // ─── 1. Home screen (DailyRitualScreen) ──────────────────────────────────────

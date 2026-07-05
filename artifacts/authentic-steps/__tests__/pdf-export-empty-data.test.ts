@@ -84,6 +84,24 @@ jest.mock('@/utils/notifications', () => ({
   scheduleEveningReminder: jest.fn().mockResolvedValue(undefined),
 }));
 
+// profile.tsx imports @clerk/expo at load time, which pulls in @clerk/clerk-js.
+// That module opens a persistent MessagePort on import, which keeps the Jest
+// worker alive after the run finishes (the whole suite hangs and never exits).
+// Stub it so the real Clerk native bundle never loads.
+jest.mock('@clerk/expo', () => ({
+  useAuth: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    signOut: jest.fn().mockResolvedValue(undefined),
+    getToken: jest.fn().mockResolvedValue('test-token'),
+  }),
+  useUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: { primaryEmailAddress: { emailAddress: 'test@example.com' } },
+  }),
+}));
+
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
 
 import { buildPdfHtml } from '../app/journal';
