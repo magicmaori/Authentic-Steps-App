@@ -40,6 +40,24 @@ import and needs no `DATABASE_URL`. That is what lets `access.test.ts` (vitest)
 run standalone. Preserve this: do not add value imports of `@workspace/db` or
 `db` into `access.ts`, or the unit tests will require a live database.
 
+## Gotcha: router-level guards leak across the shared /api mount
+Every feature router (`sync`, `me`, `sub-accounts`, `invites`, `members`) is
+aggregated onto the same `/api` mount in `routes/index.ts` via `router.use(sub)`.
+A **path-less** `router.use(mw)` inside a sub-router runs for **every** request
+that passes through it on the way to a later router — not just that router's own
+routes. `requireAuth`/`loadActor` leaking is harmless (idempotent), but a hard
+guard like `requireEntitlement` is not: `sync` was mounted before `invites`, so
+its `router.use(requireAuth, loadActor, requireEntitlement)` returned 403 on
+`POST /invites/redeem` for brand-new invitees (who have no membership yet),
+making onboarding impossible.
+**Why:** a redeemer by definition has no entitlement until *after* they redeem;
+gating redeem on entitlement is a chicken-and-egg lockout.
+**How to apply:** scope any entitlement/authz guard to its own path
+(`router.use("/sync", ...)`) or attach it per-route — never a path-less
+`router.use(requireEntitlement)` in a router sharing a mount with public-ish
+routes like `/invites/redeem`. End-to-end coverage lives in
+`artifacts/api-server/src/routes/access-flows.test.ts` (real DB, Clerk mocked).
+
 ## Renewal / entitlement rules worth remembering
 - `extendExpiry` extends from **max(now, current expiry)** — early renewals never
   discard remaining time.

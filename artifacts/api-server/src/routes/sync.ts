@@ -11,7 +11,12 @@ import { requireAuth, loadActor, requireEntitlement } from "../middlewares/auth"
 
 const router: IRouter = Router();
 
-router.use(requireAuth, loadActor, requireEntitlement);
+// Scope the entitlement guard to /sync only. All feature routers share the
+// same /api mount, and a path-less router.use() runs for every request that
+// flows through this router on its way to a later one. Without the "/sync"
+// path prefix, requireEntitlement would leak onto invites/redeem and block
+// brand-new invitees (who have no membership yet) from ever redeeming.
+router.use("/sync", requireAuth, loadActor, requireEntitlement);
 
 const SyncPayloadSchema = z.object({
   userData: z.record(z.string(), z.unknown()),
