@@ -178,6 +178,10 @@ import JournalScreen from '../app/journal';
 import SosScreen from '../app/sos';
 import ToolboxScreen from '../app/(tabs)/toolbox';
 import StreaksScreen from '../app/(tabs)/streaks';
+import GratitudeScreen from '../app/ritual/gratitude';
+import IntentionScreen from '../app/ritual/intention';
+import IAmScreen from '../app/ritual/iamstatement';
+import CompleteScreen from '../app/ritual/complete';
 
 // ─── Typed mock reference ─────────────────────────────────────────────────────
 
@@ -862,6 +866,79 @@ describe('Tab screens – isLoaded: false does not throw', () => {
     await expect(
       act(async () => {
         root = create(<ToolboxScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+  });
+});
+
+// ─── 8. Ritual sub-screens – isLoaded: false does not throw ───────────────────
+
+describe('Ritual sub-screens – isLoaded: false does not throw', () => {
+  let root: ReturnType<typeof create> | undefined;
+
+  afterEach(() => {
+    if (root) {
+      act(() => { root!.unmount(); });
+      root = undefined;
+    }
+    jest.clearAllMocks();
+  });
+
+  it('GratitudeScreen renders a loading placeholder when isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false }));
+
+    await expect(
+      act(async () => {
+        root = create(<GratitudeScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('IntentionScreen renders a loading placeholder when isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false }));
+
+    await expect(
+      act(async () => {
+        root = create(<IntentionScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('IAmScreen renders a loading placeholder when isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false }));
+
+    await expect(
+      act(async () => {
+        root = create(<IAmScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('CompleteScreen renders a loading placeholder when isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false }));
+
+    await expect(
+      act(async () => {
+        root = create(<CompleteScreen />);
+        await flushPromises();
+      }),
+    ).resolves.not.toThrow();
+    expect(root).toBeTruthy();
+  });
+
+  it('ritual sub-screens do not throw when userData is empty and isLoaded is false', async () => {
+    mockUseApp.mockReturnValue(makeCtx({ isLoaded: false, userData: {} as any }));
+
+    await expect(
+      act(async () => {
+        root = create(<CompleteScreen />);
         await flushPromises();
       }),
     ).resolves.not.toThrow();

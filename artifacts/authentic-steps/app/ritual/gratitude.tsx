@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   LayoutChangeEvent,
@@ -34,7 +35,7 @@ const CATEGORIES: { id: GratitudeCategory; label: string; icon: string }[] = [
 export default function GratitudeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { saveGratitude } = useApp();
+  const { saveGratitude, isLoaded } = useApp();
 
   const [texts, setTexts] = useState<string[]>(['', '', '']);
   const [cats, setCats] = useState<GratitudeCategory[]>(['people', 'experiences', 'things']);
@@ -91,6 +92,14 @@ export default function GratitudeScreen() {
     const updated = [...texts];
     updated[index] = val;
     setTexts(updated);
+  }
+
+  if (!isLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingCenter, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   return (
@@ -279,6 +288,7 @@ export default function GratitudeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingCenter: { justifyContent: 'center', alignItems: 'center' },
   headerGrad: {
     paddingHorizontal: 20,
     paddingBottom: 24,

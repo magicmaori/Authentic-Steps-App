@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   LayoutChangeEvent,
@@ -29,7 +30,7 @@ const THEMES: AffirmationTheme[] = ['confidence', 'resilience', 'relationships',
 export default function IAmScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { saveIAmStatement } = useApp();
+  const { saveIAmStatement, isLoaded } = useApp();
 
   const [activeTheme, setActiveTheme] = useState<AffirmationTheme>('confidence');
   const [selected, setSelected] = useState('');
@@ -74,6 +75,14 @@ export default function IAmScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!isLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingCenter, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   return (
@@ -278,6 +287,7 @@ export default function IAmScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingCenter: { justifyContent: 'center', alignItems: 'center' },
   headerGrad: { paddingHorizontal: 20, paddingBottom: 24, gap: 6 },
   headerNavRow: {
     flexDirection: 'row',

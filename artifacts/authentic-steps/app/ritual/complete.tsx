@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '@/context/AppContext';
@@ -12,7 +12,7 @@ import { useColors } from '@/hooks/useColors';
 export default function CompleteScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { todayEntry, userData, markRitualComplete } = useApp();
+  const { todayEntry, userData, markRitualComplete, isLoaded } = useApp();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -27,6 +27,14 @@ export default function CompleteScreen() {
 
   function handleDone() {
     router.dismissAll();
+  }
+
+  if (!isLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingCenter, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   const isFirstRitual = userData.totalRituals <= 1;
@@ -94,6 +102,7 @@ export default function CompleteScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingCenter: { justifyContent: 'center', alignItems: 'center' },
   content: {
     flex: 1,
     alignItems: 'center',

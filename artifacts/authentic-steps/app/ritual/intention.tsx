@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   LayoutChangeEvent,
@@ -34,7 +35,7 @@ const CATEGORIES: { id: IntentionCategory; label: string; icon: string }[] = [
 export default function IntentionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { saveIntention } = useApp();
+  const { saveIntention, isLoaded } = useApp();
 
   const scrollViewRef = useRef<ScrollView>(null);
   const inputCardY = useRef<number>(0);
@@ -70,6 +71,14 @@ export default function IntentionScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!isLoaded) {
+    return (
+      <View style={[styles.container, styles.loadingCenter, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   return (
@@ -239,6 +248,7 @@ export default function IntentionScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingCenter: { justifyContent: 'center', alignItems: 'center' },
   headerGrad: { paddingHorizontal: 20, paddingBottom: 24, gap: 6 },
   headerNavRow: {
     flexDirection: 'row',
