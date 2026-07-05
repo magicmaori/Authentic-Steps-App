@@ -22,7 +22,11 @@ import { AccessLoading } from "@/components/AccessLoading";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashAnimation } from "@/components/SplashAnimation";
 import { AppProvider, useApp } from "@/context/AppContext";
-import { EntitlementProvider, useEntitlement } from "@/context/EntitlementContext";
+import {
+  EntitlementProvider,
+  routeForAccessState,
+  useEntitlement,
+} from "@/context/EntitlementContext";
 
 const INTRO_SEEN_KEY = "hasSeenIntro";
 
@@ -42,35 +46,12 @@ function AccessGate({ children }: { children: React.ReactNode }) {
   const nav = useRouter();
 
   useEffect(() => {
-    if (state === "loading") return;
-
-    const inAuth = segments[0] === "(auth)";
-    const sub = segments[1];
-
-    switch (state) {
-      case "signedOut":
-        if (!(inAuth && (sub === "sign-in" || sub === "sign-up"))) {
-          nav.replace("/(auth)/sign-in" as any);
-        }
-        break;
-      case "needsInvite":
-        if (!(inAuth && sub === "redeem")) {
-          nav.replace("/(auth)/redeem" as any);
-        }
-        break;
-      case "expired":
-      case "revoked":
-      case "offlineExpired":
-      case "error":
-        if (!(inAuth && sub === "locked")) {
-          nav.replace({ pathname: "/(auth)/locked", params: { reason: state } } as any);
-        }
-        break;
-      case "active":
-        if (inAuth) {
-          nav.replace("/(tabs)" as any);
-        }
-        break;
+    const route = routeForAccessState(state, segments);
+    if (route.type !== "replace") return;
+    if (route.params) {
+      nav.replace({ pathname: route.pathname, params: route.params } as any);
+    } else {
+      nav.replace(route.pathname as any);
     }
   }, [state, segments, nav]);
 

@@ -62,6 +62,51 @@ function graceFromCache(cached: CachedEntitlement | null): AccessState {
   return mapEntitlement(false, cached.reason);
 }
 
+/**
+ * Pure routing decision for the access gate. Given the current AccessState and
+ * the active expo-router segments, returns whether to stay put or redirect.
+ * Kept side-effect free and exported so the invite-only boundary can be tested
+ * without mounting the whole navigator — AccessGate is the only caller.
+ */
+export type AccessRoute =
+  | { type: 'stay' }
+  | { type: 'replace'; pathname: string; params?: Record<string, string> };
+
+export function routeForAccessState(state: AccessState, segments: string[]): AccessRoute {
+  if (state === 'loading') return { type: 'stay' };
+
+  const inAuth = segments[0] === '(auth)';
+  const sub = segments[1];
+
+  switch (state) {
+    case 'signedOut':
+      if (!(inAuth && (sub === 'sign-in' || sub === 'sign-up'))) {
+        return { type: 'replace', pathname: '/(auth)/sign-in' };
+      }
+      return { type: 'stay' };
+    case 'needsInvite':
+      if (!(inAuth && sub === 'redeem')) {
+        return { type: 'replace', pathname: '/(auth)/redeem' };
+      }
+      return { type: 'stay' };
+    case 'expired':
+    case 'revoked':
+    case 'offlineExpired':
+    case 'error':
+      if (!(inAuth && sub === 'locked')) {
+        return { type: 'replace', pathname: '/(auth)/locked', params: { reason: state } };
+      }
+      return { type: 'stay' };
+    case 'active':
+      if (inAuth) {
+        return { type: 'replace', pathname: '/(tabs)' };
+      }
+      return { type: 'stay' };
+    default:
+      return { type: 'stay' };
+  }
+}
+
 export function EntitlementProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [cacheLoaded, setCacheLoaded] = useState(false);
