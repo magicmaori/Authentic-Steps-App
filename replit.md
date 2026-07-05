@@ -50,7 +50,7 @@ Management happens through the **agency dashboard** web app (`artifacts/agency-d
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Mobile distribution: wants both iOS (TestFlight pilot, then App Store) and Android testers. Note: Replit's built-in Expo Launch publish flow currently only handles iOS/App Store submission — Android is not supported by that flow, so an alternative path (e.g. manual EAS build/internal APK distribution) will need to be figured out separately when that's prioritized.
 
 ## Gotchas
 
