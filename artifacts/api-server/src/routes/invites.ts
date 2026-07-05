@@ -38,6 +38,27 @@ function generateInviteCode(): string {
   return randomBytes(16).toString("base64url");
 }
 
+// The memberships table enforces one membership per (user, sub-account) via a
+// partial unique index. Even with the app-level pre-check below, two invites
+// for the same sub-account redeemed concurrently by the same user can both pass
+// the check and race to insert; the loser trips this constraint. Detect that so
+// we can answer with a clean 409 instead of leaking a 500.
+const MEMBERSHIP_UNIQUE_CONSTRAINT = "memberships_user_sub_account_uq";
+
+function isMembershipUniqueViolation(err: unknown): boolean {
+  // Drizzle wraps the driver error in a DrizzleQueryError; the pg error (with
+  // its SQLSTATE `code` and `constraint`) is on `.cause`. Unwrap both layers.
+  const candidates = [err, (err as { cause?: unknown } | null)?.cause];
+  return candidates.some(
+    (e) =>
+      typeof e === "object" &&
+      e !== null &&
+      (e as { code?: unknown }).code === "23505" &&
+      (e as { constraint?: unknown }).constraint ===
+        MEMBERSHIP_UNIQUE_CONSTRAINT,
+  );
+}
+
 router.get("/invites", async (req: Request, res: Response): Promise<void> => {
   const actor = req.actor!;
   const query = ListInvitesQueryParams.safeParse(req.query);
@@ -186,7 +207,43 @@ router.post(
       req.log.warn({ err }, "Could not fetch Clerk user email for invite redeem");
     }
 
-    const outcome = await db.transaction(async (tx) => {
+    let outcome: Awaited<ReturnType<typeof redeemInTransaction>>;
+    try {
+      outcome = await redeemInTransaction(code, userId, email);
+    } catch (err) {
+      // A concurrent redeem of a second invite for the same sub-account can slip
+      // past the app-level pre-check and trip the DB uniqueness guarantee. Turn
+      // that into the same clean 409 the pre-check would have returned.
+      if (isMembershipUniqueViolation(err)) {
+        res
+          .status(409)
+          .json({ error: "You already have access for this sub-account" });
+        return;
+      }
+      throw err;
+    }
+
+    if (outcome.status === "conflict") {
+      res
+        .status(409)
+        .json({ error: "You already have access for this sub-account" });
+      return;
+    }
+    if (outcome.status === "invalid") {
+      res.status(400).json({ error: "Invalid or expired invite code" });
+      return;
+    }
+
+    res.status(201).json(ListMembersResponseItem.parse(outcome.membership));
+  },
+);
+
+async function redeemInTransaction(
+  code: string,
+  userId: string,
+  email: string | null,
+) {
+  return db.transaction(async (tx) => {
       const [peek] = await tx
         .select()
         .from(invitesTable)
@@ -257,22 +314,8 @@ router.post(
         .returning();
 
       return { status: "ok" as const, membership: membership! };
-    });
-
-    if (outcome.status === "conflict") {
-      res
-        .status(409)
-        .json({ error: "You already have access for this sub-account" });
-      return;
-    }
-    if (outcome.status === "invalid") {
-      res.status(400).json({ error: "Invalid or expired invite code" });
-      return;
-    }
-
-    res.status(201).json(ListMembersResponseItem.parse(outcome.membership));
-  },
-);
+  });
+}
 
 router.post(
   "/invites/:id/resend",

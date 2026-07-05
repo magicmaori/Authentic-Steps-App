@@ -344,6 +344,42 @@ describe("access flows (end-to-end over HTTP)", () => {
     expect(racerMemberships[0]!.userId).toBe(created[0]!.body.userId);
   });
 
+  it("the DB guarantee blocks a second membership for the same sub-account", async () => {
+    // Two independent, valid invites for the same sub-account. Both pass the
+    // redeem handler's app-level "already a member?" pre-check when raced, so
+    // the only thing preventing a duplicate membership is the partial unique
+    // index on (user_id, sub_account_id). One redeem must win with 201, the
+    // other must be cleanly rejected with 409 — never a 500 or a second 201.
+    const first = await call(ADMIN, "POST", "/invites", {
+      subAccountId,
+      role: "member",
+    });
+    const second = await call(ADMIN, "POST", "/invites", {
+      subAccountId,
+      role: "member",
+    });
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+
+    const dupUser = `user_dup_${RUN}`;
+    const [a, b] = await Promise.all([
+      redeemAs(dupUser, first.body.code),
+      redeemAs(dupUser, second.body.code),
+    ]);
+
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([201, 409]);
+
+    // The database is the source of truth: exactly one membership exists for
+    // this user + sub-account, proving the duplicate was impossible.
+    const memberships = await db
+      .select()
+      .from(membershipsTable)
+      .where(eq(membershipsTable.subAccountId, subAccountId));
+    const dupMemberships = memberships.filter((m) => m.userId === dupUser);
+    expect(dupMemberships).toHaveLength(1);
+  });
+
   it("a pending invite can be revoked and then cannot be redeemed", async () => {
     const invite = await call(ADMIN, "POST", "/invites", {
       subAccountId,
