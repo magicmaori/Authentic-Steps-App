@@ -6,3 +6,4 @@
 - [Invite emails via Resend](invite-emails-resend.md) — invite links emailed via Resend connector (proxy key at runtime); default onboarding@resend.dev only reaches account owner until a domain is verified.
 - [Headless Clerk session minting](clerk-headless-sessions.md) — sign_in_token→dev_browser→ticket sign-in→session token gets a real JWT with no browser; powers the api-server `smoke` test against unmocked Clerk.
 - [Agency dashboard component testing](agency-dashboard-testing.md) — Vitest+RTL (own vitest.config), mock useGetMe for role gating, jsdom Radix stubs; run typecheck:libs first to clear stale lib .d.ts.
+- [pnpm transitive security overrides](pnpm-security-overrides.md) — how to patch transitive-dep CVEs in this workspace without major bumps, and when it's fine to leave one unpatched.
