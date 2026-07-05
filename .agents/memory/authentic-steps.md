@@ -20,21 +20,25 @@ Related: the iOS privacy manifest key is `NSPrivacyAccessedAPITypeReasons`
 (matches Apple), NOT `NSPrivacyAccessedAPIReasons` — Expo's ExpoConfig types
 catch the wrong one at typecheck.
 
-## `tsc --noEmit` has pre-existing systemic "not a valid JSX component" errors
-Running `pnpm --filter @workspace/authentic-steps run typecheck` reports many
-errors like `'LinearGradient' cannot be used as a JSX component` /
-`'BlurView' ...` / `GestureHandlerRootView` children — across untouched screens
-(index, streaks, sos, ritual/*, onboarding, etc.).
+## `@types/react` must be root-hoisted or `tsc` breaks with fake JSX errors
+`tsc --noEmit` for this app WILL report dozens of bogus errors like
+`'LinearGradient' cannot be used as a JSX component` / `'BlurView' ...` /
+`GestureHandlerRootView` children UNLESS `@types/react` (and `@types/react-dom`)
+are hoisted to the repo-root `node_modules` via `public-hoist-pattern[]` in
+`.npmrc`.
 
-**Why:** pnpm (no hoist config, `auto-install-peers=false`) does not make
-`@types/react` resolvable to transitive class-component libs that don't declare
-it as a peer (expo-linear-gradient, expo-blur, gesture-handler), so their
-`Component` base resolves without props/state. `pnpm why @types/react` confirms a
-**single** 19.1.17 version — it is NOT a version conflict, and Metro/Babel builds
-ignore it entirely. The real gates for this app are the Metro build + jest.
-**How to apply:** don't chase these — they are baseline noise. When verifying an
-edit, judge by whether you introduced NEW error kinds (logic/prop/type errors in
-files you touched), not by the total error count. jest (295 tests) is the gate.
+**Why:** pnpm's default strict node_modules does not make `@types/react`
+resolvable to transitive class-component libs that don't declare it as a peer
+(expo-linear-gradient, expo-blur, gesture-handler), so their `Component` base
+resolves without props/state. It is NOT a version conflict — `pnpm why
+@types/react` is a single 19.1.17 — and Metro/Babel ignore it entirely. The
+`public-hoist-pattern` places one copy at root where those libs resolve it.
+**How to apply:** keep the two `public-hoist-pattern[]=@types/react*` lines in
+`.npmrc`. If those bogus JSX errors reappear, the hoist was lost — re-add the
+pattern and reinstall (with `CI=true` so pnpm can rewrite node_modules). Hoisting
+a single already-single version does NOT reintroduce the mockup-sandbox "two
+different types" error (that one is about two DIFFERENT versions). `tsc` is now a
+real gate; treat new JSX-component errors as genuine.
 
 ## Screens smoke test is Clerk-gated now
 `__tests__/screens-smoke.test.tsx` mocks `@clerk/expo` (signed-in stub) because
