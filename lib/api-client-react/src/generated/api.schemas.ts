@@ -118,6 +118,10 @@ export interface Invite {
   /** @nullable */
   inviteExpiresAt?: string | null;
   status: InviteStatus;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  emailSentAt?: string | null;
   createdByUserId: string;
   /** @nullable */
   redeemedByUserId?: string | null;
@@ -142,6 +146,8 @@ export interface InviteInput {
   accessDurationDays?: number;
   /** @minimum 1 */
   inviteExpiresInDays?: number;
+  /** Optional invitee email. When provided, the redeem link is emailed to this address automatically on creation. */
+  email?: string;
 }
 
 export interface InviteRedemption {

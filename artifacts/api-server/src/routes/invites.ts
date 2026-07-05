@@ -15,6 +15,7 @@ import {
   ListMembersResponseItem,
   CreateInviteBody,
   RedeemInviteBody,
+  ResendInviteParams,
   RevokeInviteParams,
   RevokeInviteResponse,
 } from "@workspace/api-zod";
@@ -27,6 +28,7 @@ import {
   isHolderOf,
   subAccountIdsAsHolder,
 } from "../lib/access";
+import { sendInviteEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -115,6 +117,8 @@ router.post("/invites", async (req: Request, res: Response): Promise<void> => {
     ? daysFromNow(parsed.data.inviteExpiresInDays)
     : null;
 
+  const email = parsed.data.email ?? null;
+
   const [invite] = await db
     .insert(invitesTable)
     .values({
@@ -125,11 +129,38 @@ router.post("/invites", async (req: Request, res: Response): Promise<void> => {
       accessDurationDays,
       inviteExpiresAt,
       status: "pending",
+      email,
       createdByUserId: actor.userId,
     })
     .returning();
 
-  res.status(201).json(ListInvitesResponseItem.parse(invite!));
+  let result = invite!;
+
+  // If an invitee email was captured, deliver the redeem link automatically.
+  // A delivery failure must not fail invite creation — the invite is still
+  // valid and can be re-sent or copied manually; emailSentAt stays null so the
+  // dashboard shows it was not delivered.
+  if (email) {
+    try {
+      await sendInviteEmail({
+        to: email,
+        code: result.code,
+        role: result.role,
+        programName: sub.name,
+        inviteExpiresAt: result.inviteExpiresAt,
+      });
+      const [updated] = await db
+        .update(invitesTable)
+        .set({ emailSentAt: new Date(), updatedAt: new Date() })
+        .where(eq(invitesTable.id, result.id))
+        .returning();
+      result = updated ?? result;
+    } catch (err) {
+      req.log.warn({ err }, "Failed to send invite email on create");
+    }
+  }
+
+  res.status(201).json(ListInvitesResponseItem.parse(result));
 });
 
 router.post(
@@ -240,6 +271,83 @@ router.post(
     }
 
     res.status(201).json(ListMembersResponseItem.parse(outcome.membership));
+  },
+);
+
+router.post(
+  "/invites/:id/resend",
+  async (req: Request, res: Response): Promise<void> => {
+    const actor = req.actor!;
+    const params = ResendInviteParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    const [invite] = await db
+      .select()
+      .from(invitesTable)
+      .where(eq(invitesTable.id, params.data.id))
+      .limit(1);
+    if (!invite) {
+      res.status(404).json({ error: "Invite not found" });
+      return;
+    }
+
+    const canAdmin = isAgencyAdminOf(actor, invite.agencyId);
+    const canHold = invite.subAccountId
+      ? isHolderOf(actor, invite.subAccountId)
+      : false;
+    if (!canAdmin && !canHold) {
+      res.status(403).json({ error: "Not permitted for this invite" });
+      return;
+    }
+
+    if (invite.status !== "pending") {
+      res.status(400).json({ error: "Only pending invites can be re-sent" });
+      return;
+    }
+    if (!invite.email) {
+      res
+        .status(400)
+        .json({ error: "This invite has no email address to send to" });
+      return;
+    }
+
+    let programName: string | null = null;
+    if (invite.subAccountId) {
+      const [sub] = await db
+        .select()
+        .from(subAccountsTable)
+        .where(eq(subAccountsTable.id, invite.subAccountId))
+        .limit(1);
+      programName = sub?.name ?? null;
+    }
+
+    try {
+      await sendInviteEmail({
+        to: invite.email,
+        code: invite.code,
+        role: invite.role,
+        programName,
+        inviteExpiresAt: invite.inviteExpiresAt,
+      });
+    } catch (err) {
+      req.log.warn({ err }, "Failed to re-send invite email");
+      res.status(400).json({
+        error:
+          err instanceof Error ? err.message : "Failed to send invite email",
+      });
+      return;
+    }
+
+    const [updated] = await db
+      .update(invitesTable)
+      .set({ emailSentAt: new Date(), updatedAt: new Date() })
+      .where(eq(invitesTable.id, invite.id))
+      .returning();
+
+    res.json(ListInvitesResponseItem.parse(updated!));
   },
 );
 

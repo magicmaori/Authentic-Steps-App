@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { useListInvites, useListSubAccounts, useCreateInvite, useRevokeInvite, getListInvitesQueryKey, useGetMe, getListSubAccountsQueryKey } from "@workspace/api-client-react";
+import { useListInvites, useListSubAccounts, useCreateInvite, useRevokeInvite, useResendInvite, getListInvitesQueryKey, useGetMe, getListSubAccountsQueryKey } from "@workspace/api-client-react";
 import { getActiveMembership, getActiveRole } from "@/lib/roles";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { format, isPast } from "date-fns";
-import { UserPlus, Search, Copy, Check, Ban, Link as LinkIcon } from "lucide-react";
+import { UserPlus, Search, Copy, Check, Ban, Link as LinkIcon, Mail, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -23,6 +23,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyCont
 const formSchema = z.object({
   subAccountId: z.string().min(1, "Sub-account is required"),
   role: z.enum(["sub_account_holder", "member"]),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
   accessDurationDays: z.string().optional(),
   inviteExpiresInDays: z.string().optional(),
 });
@@ -45,6 +46,8 @@ export default function Invites() {
   
   const createInvite = useCreateInvite();
   const revokeInvite = useRevokeInvite();
+  const resendInvite = useResendInvite();
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -53,6 +56,7 @@ export default function Invites() {
     defaultValues: {
       subAccountId: defaultSubAccountId || "",
       role: "member",
+      email: "",
       accessDurationDays: "",
       inviteExpiresInDays: "7",
     },
@@ -69,16 +73,24 @@ export default function Invites() {
   }, [isAgencyAdmin, defaultSubAccountId, form]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    const email = values.email?.trim() || undefined;
     const payload = {
       subAccountId: values.subAccountId,
       role: values.role,
+      email,
       accessDurationDays: values.accessDurationDays ? parseInt(values.accessDurationDays) : undefined,
       inviteExpiresInDays: values.inviteExpiresInDays ? parseInt(values.inviteExpiresInDays) : undefined,
     };
 
     createInvite.mutate({ data: payload }, {
-      onSuccess: () => {
-        toast({ title: "Invite generated", description: "A new invite code has been created successfully." });
+      onSuccess: (invite) => {
+        if (email && invite.emailSentAt) {
+          toast({ title: "Invite sent", description: `A redeem link was emailed to ${email}.` });
+        } else if (email) {
+          toast({ variant: "destructive", title: "Invite created, but email failed", description: "The invite was created but the email could not be sent. Use “Resend” to try again." });
+        } else {
+          toast({ title: "Invite generated", description: "A new invite code has been created successfully." });
+        }
         queryClient.invalidateQueries({ queryKey: getListInvitesQueryKey() });
         setCreateDialogOpen(false);
         form.reset();
@@ -86,6 +98,20 @@ export default function Invites() {
       onError: (err) => {
         toast({ variant: "destructive", title: "Failed to create invite", description: err.message });
       }
+    });
+  };
+
+  const handleResend = (id: string) => {
+    setResendingId(id);
+    resendInvite.mutate({ id }, {
+      onSuccess: (invite) => {
+        toast({ title: "Invite re-sent", description: invite.email ? `The redeem link was emailed to ${invite.email}.` : "The redeem link was emailed to the invitee." });
+        queryClient.invalidateQueries({ queryKey: getListInvitesQueryKey() });
+      },
+      onError: (err) => {
+        toast({ variant: "destructive", title: "Failed to send email", description: err.message });
+      },
+      onSettled: () => setResendingId(null),
     });
   };
 
@@ -193,6 +219,23 @@ export default function Invites() {
                             <SelectItem value="member">Member</SelectItem>
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label>Invitee Email <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                        <FormControl>
+                          <Input type="email" placeholder="name@example.com" {...field} />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          If provided, the redeem link is emailed automatically.
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -308,6 +351,7 @@ export default function Invites() {
                     <TableHead>Code</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Sub-Account</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Expires</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -323,6 +367,26 @@ export default function Invites() {
                         <TableCell className="font-mono text-sm font-medium">{invite.code}</TableCell>
                         <TableCell className="capitalize">{invite.role.replace(/_/g, ' ')}</TableCell>
                         <TableCell className="text-muted-foreground">{getSubAccountName(invite.subAccountId)}</TableCell>
+                        <TableCell>
+                          {invite.email ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-sm text-foreground truncate max-w-[180px]" title={invite.email}>{invite.email}</span>
+                              {invite.emailSentAt ? (
+                                <span className="text-xs text-emerald-600 flex items-center gap-1">
+                                  <Check className="h-3 w-3" />
+                                  Sent {format(new Date(invite.emailSentAt), "MMM d")}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-orange-600 flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  Not sent
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {invite.status === "revoked" ? (
                             <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Revoked</Badge>
@@ -349,6 +413,22 @@ export default function Invites() {
                               {copiedId === invite.id ? <Check className="h-4 w-4 mr-2 text-emerald-500" /> : <Copy className="h-4 w-4 mr-2" />}
                               Copy Link
                             </Button>
+                            {isPending && invite.email && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => handleResend(invite.id)}
+                                disabled={resendingId === invite.id}
+                              >
+                                {resendingId === invite.id ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4 mr-2" />
+                                )}
+                                {invite.emailSentAt ? "Resend" : "Send"}
+                              </Button>
+                            )}
                             {isPending && (
                               <Button 
                                 variant="ghost" 

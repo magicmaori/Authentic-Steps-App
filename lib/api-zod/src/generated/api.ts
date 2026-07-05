@@ -91,6 +91,8 @@ export const ListInvitesResponseItem = zod.object({
   "accessDurationDays": zod.number().nullish(),
   "inviteExpiresAt": zod.coerce.date().nullish(),
   "status": zod.enum(['pending', 'redeemed', 'revoked']),
+  "email": zod.string().email().nullish(),
+  "emailSentAt": zod.coerce.date().nullish(),
   "createdByUserId": zod.string(),
   "redeemedByUserId": zod.string().nullish(),
   "redeemedAt": zod.coerce.date().nullish(),
@@ -111,7 +113,8 @@ export const CreateInviteBody = zod.object({
   "subAccountId": zod.string().uuid(),
   "role": zod.enum(['sub_account_holder', 'member']),
   "accessDurationDays": zod.number().min(1).optional(),
-  "inviteExpiresInDays": zod.number().min(1).optional()
+  "inviteExpiresInDays": zod.number().min(1).optional(),
+  "email": zod.string().email().optional().describe('Optional invitee email. When provided, the redeem link is emailed to this address automatically on creation.')
 })
 
 
@@ -123,6 +126,32 @@ export const CreateInviteBody = zod.object({
 
 export const RedeemInviteBody = zod.object({
   "code": zod.string().min(1)
+})
+
+
+/**
+ * @summary Re-send the redeem link email for a pending invite
+ */
+export const ResendInviteParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const ResendInviteResponse = zod.object({
+  "id": zod.string().uuid(),
+  "code": zod.string(),
+  "agencyId": zod.string().uuid(),
+  "subAccountId": zod.string().uuid().nullish(),
+  "role": zod.enum(['agency_admin', 'sub_account_holder', 'member']),
+  "accessDurationDays": zod.number().nullish(),
+  "inviteExpiresAt": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'redeemed', 'revoked']),
+  "email": zod.string().email().nullish(),
+  "emailSentAt": zod.coerce.date().nullish(),
+  "createdByUserId": zod.string(),
+  "redeemedByUserId": zod.string().nullish(),
+  "redeemedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
 })
 
 
@@ -142,6 +171,8 @@ export const RevokeInviteResponse = zod.object({
   "accessDurationDays": zod.number().nullish(),
   "inviteExpiresAt": zod.coerce.date().nullish(),
   "status": zod.enum(['pending', 'redeemed', 'revoked']),
+  "email": zod.string().email().nullish(),
+  "emailSentAt": zod.coerce.date().nullish(),
   "createdByUserId": zod.string(),
   "redeemedByUserId": zod.string().nullish(),
   "redeemedAt": zod.coerce.date().nullish(),

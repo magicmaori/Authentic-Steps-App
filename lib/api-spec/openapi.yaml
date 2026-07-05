@@ -177,6 +177,34 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /invites/{id}/resend:
+    post:
+      operationId: resendInvite
+      tags: [invites]
+      summary: Re-send the redeem link email for a pending invite
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The invite with an updated emailSentAt on success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /invites/{id}/revoke:
     post:
       operationId: revokeInvite
@@ -482,6 +510,12 @@ components:
         status:
           type: string
           enum: [pending, redeemed, revoked]
+        email:
+          type: ["string", "null"]
+          format: email
+        emailSentAt:
+          type: ["string", "null"]
+          format: date-time
         createdByUserId:
           type: string
         redeemedByUserId:
@@ -514,6 +548,12 @@ components:
         inviteExpiresInDays:
           type: integer
           minimum: 1
+        email:
+          type: string
+          format: email
+          description: >-
+            Optional invitee email. When provided, the redeem link is emailed to
+            this address automatically on creation.
 
     InviteRedemption:
       type: object

@@ -3,3 +3,4 @@
 - [React types version line](react-types-version-line.md) — @types/react pinned workspace-wide to ~19.1.x (matches Expo + react@19.1.0); don't bump to 19.2 or typecheck breaks.
 - [Post-merge pnpm rebuild](post-merge-pnpm.md) — post-merge.sh must export CI=true (pnpm hoist/.npmrc changes force a node_modules rebuild that aborts without a TTY); timeout raised to 180s.
 - [Agency dashboard Clerk web](agency-dashboard-clerk-web.md) — @clerk/react has NO SignedIn/SignedOut (use Show); cookie auth (no tokens); appearance uses `theme`; redeem is a public route; role from active membership.
+- [Invite emails via Resend](invite-emails-resend.md) — invite links emailed via Resend connector (proxy key at runtime); default onboarding@resend.dev only reaches account owner until a domain is verified.

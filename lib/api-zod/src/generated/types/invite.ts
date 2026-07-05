@@ -20,6 +20,10 @@ export interface Invite {
   /** @nullable */
   inviteExpiresAt?: Date | null;
   status: InviteStatus;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  emailSentAt?: Date | null;
   createdByUserId: string;
   /** @nullable */
   redeemedByUserId?: string | null;

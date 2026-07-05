@@ -12,6 +12,15 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/scripts run bootstrap-agency "<Agency Name>" <admin-email>` — provision the first agency + its agency admin (the admin must have signed into Clerk at least once). Idempotent by (agency name, admin): re-running the same command is a safe no-op.
 - Required env: `DATABASE_URL` — Postgres connection string; `CLERK_SECRET_KEY` — for bootstrap/user lookup
 
+## Invite emails
+
+Invites can carry an optional invitee email. When set, the API emails the redeem link automatically on creation and exposes a re-send action (`POST /invites/:id/resend`). Delivery uses the **Resend** connector (credentials fetched from the Replit connector proxy at runtime — no manual API key). Relevant optional env:
+
+- `INVITE_EMAIL_FROM` — the From header (default `Authentic Steps <onboarding@resend.dev>`). To send to arbitrary recipients you must verify a sending domain in Resend and set this to an address on it; the default `onboarding@resend.dev` only reaches the Resend account owner.
+- `DASHBOARD_URL` — full base URL of the dashboard used to build redeem links (e.g. `https://your-app.example.com/dashboard`). If unset, it is derived from `REPLIT_DOMAINS`/`REPLIT_DEV_DOMAIN` + `DASHBOARD_BASE_PATH` (default `/dashboard`).
+
+Email delivery is best-effort on create: a send failure never blocks invite creation — the invite is still valid and `emailSentAt` stays null so the dashboard shows "Not sent" with a Send/Resend button.
+
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9

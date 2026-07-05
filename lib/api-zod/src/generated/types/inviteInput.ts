@@ -14,4 +14,6 @@ export interface InviteInput {
   accessDurationDays?: number;
   /** @minimum 1 */
   inviteExpiresInDays?: number;
+  /** Optional invitee email. When provided, the redeem link is emailed to this address automatically on creation. */
+  email?: string;
 }

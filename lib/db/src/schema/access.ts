@@ -111,6 +111,11 @@ export const invitesTable = pgTable("invites", {
   accessDurationDays: integer("access_duration_days").default(365),
   inviteExpiresAt: timestamp("invite_expires_at", { withTimezone: true }),
   status: inviteStatusEnum("status").notNull().default("pending"),
+  // Optional invitee email. When set, the redeem link is emailed on create and
+  // can be re-sent. emailSentAt records the last successful delivery (null =
+  // never sent, e.g. no email captured or a send failure).
+  email: text("email"),
+  emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
   createdByUserId: text("created_by_user_id").notNull(),
   redeemedByUserId: text("redeemed_by_user_id"),
   redeemedAt: timestamp("redeemed_at", { withTimezone: true }),

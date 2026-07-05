@@ -657,6 +657,76 @@ export const useRedeemInvite = <TError = ErrorType<BadRequestResponse | Unauthor
       return useMutation(getRedeemInviteMutationOptions(options));
     }
 
+export const getResendInviteUrl = (id: string,) => {
+
+
+
+
+  return `/api/invites/${id}/resend`
+}
+
+/**
+ * @summary Re-send the redeem link email for a pending invite
+ */
+export const resendInvite = async (id: string, options?: RequestInit): Promise<Invite> => {
+
+  return customFetch<Invite>(getResendInviteUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResendInviteMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendInvite>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendInvite>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['resendInvite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendInvite>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  resendInvite(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendInviteMutationResult = NonNullable<Awaited<ReturnType<typeof resendInvite>>>
+
+    export type ResendInviteMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>
+
+    /**
+ * @summary Re-send the redeem link email for a pending invite
+ */
+export const useResendInvite = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendInvite>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendInvite>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getResendInviteMutationOptions(options));
+    }
+
 export const getRevokeInviteUrl = (id: string,) => {
 
 
