@@ -34,6 +34,12 @@ export default function SignInScreen() {
   const [formError, setFormError] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  const [resetMode, setResetMode] = useState(false);
+  const [resetStep, setResetStep] = useState<'request' | 'reset'>('request');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [resetInfo, setResetInfo] = useState('');
+
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     void WebBrowser.warmUpAsync();
@@ -66,6 +72,65 @@ export default function SignInScreen() {
     }
   };
 
+  const enterResetMode = () => {
+    setResetMode(true);
+    setResetStep('request');
+    setResetCode('');
+    setNewPassword('');
+    setPassword('');
+    setResetInfo('');
+    setFormError('');
+  };
+
+  const exitResetMode = () => {
+    setResetMode(false);
+    setResetStep('request');
+    setResetCode('');
+    setNewPassword('');
+    setResetInfo('');
+    setFormError('');
+  };
+
+  const handleSendResetCode = async () => {
+    setFormError('');
+    setResetInfo('');
+    const { error: createError } = await signIn.create({ identifier: emailAddress.trim() });
+    if (createError) {
+      setFormError(clerkErrMsg(createError));
+      return;
+    }
+    const { error: sendError } = await signIn.resetPasswordEmailCode.sendCode();
+    if (sendError) {
+      setFormError(clerkErrMsg(sendError));
+      return;
+    }
+    setResetStep('reset');
+    setResetInfo(`We sent a 6-digit reset code to ${emailAddress.trim()}.`);
+  };
+
+  const handleResetPassword = async () => {
+    setFormError('');
+    const { error: verifyError } = await signIn.resetPasswordEmailCode.verifyCode({
+      code: resetCode.trim(),
+    });
+    if (verifyError) {
+      setFormError(clerkErrMsg(verifyError));
+      return;
+    }
+    const { error: submitError } = await signIn.resetPasswordEmailCode.submitPassword({
+      password: newPassword,
+    });
+    if (submitError) {
+      setFormError(clerkErrMsg(submitError));
+      return;
+    }
+    if (signIn.status === 'complete') {
+      await signIn.finalize({ navigate: goHome });
+    } else {
+      setFormError('Your password was reset, but sign-in could not be completed. Please try again.');
+    }
+  };
+
   const handleGoogle = useCallback(async () => {
     setFormError('');
     setGoogleLoading(true);
@@ -88,6 +153,126 @@ export default function SignInScreen() {
 
   const submitting = fetchStatus === 'fetching';
   const canSubmit = !!emailAddress && !!password && !submitting;
+
+  if (resetMode) {
+    const canSendCode = !!emailAddress.trim() && !submitting;
+    const canReset = resetCode.trim().length > 0 && newPassword.length >= 8 && !submitting;
+    return (
+      <AuthScaffold>
+        <View style={s.logoWrap}>
+          <AppLogo size="lg" tint="light" />
+        </View>
+        <View style={s.card}>
+          <Text style={s.title}>Reset your password</Text>
+          <Text style={s.subtitle}>
+            {resetStep === 'request'
+              ? "Enter your email and we'll send you a code to reset your password."
+              : 'Enter the code we sent you and choose a new password.'}
+          </Text>
+
+          {resetStep === 'request' ? (
+            <>
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Email</Text>
+                <TextInput
+                  style={s.input}
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  placeholder="you@example.com"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  value={emailAddress}
+                  onChangeText={(t) => {
+                    setEmailAddress(t);
+                    setFormError('');
+                  }}
+                />
+              </View>
+
+              {formError ? <Text style={s.error}>{formError}</Text> : null}
+
+              <Pressable
+                onPress={handleSendResetCode}
+                disabled={!canSendCode}
+                style={({ pressed }) => [
+                  s.primaryButton,
+                  !canSendCode && s.buttonDisabled,
+                  pressed && s.buttonPressed,
+                ]}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#193b83" />
+                ) : (
+                  <Text style={s.primaryButtonText}>Send reset code</Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <>
+              {resetInfo ? <Text style={s.subtitle}>{resetInfo}</Text> : null}
+
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>Reset code</Text>
+                <TextInput
+                  style={s.input}
+                  keyboardType="number-pad"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  value={resetCode}
+                  onChangeText={(t) => {
+                    setResetCode(t);
+                    setFormError('');
+                  }}
+                />
+              </View>
+              <View style={s.fieldGroup}>
+                <Text style={s.label}>New password</Text>
+                <TextInput
+                  style={s.input}
+                  secureTextEntry
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  value={newPassword}
+                  onChangeText={(t) => {
+                    setNewPassword(t);
+                    setFormError('');
+                  }}
+                />
+              </View>
+
+              {formError ? <Text style={s.error}>{formError}</Text> : null}
+
+              <Pressable
+                onPress={handleResetPassword}
+                disabled={!canReset}
+                style={({ pressed }) => [
+                  s.primaryButton,
+                  !canReset && s.buttonDisabled,
+                  pressed && s.buttonPressed,
+                ]}
+              >
+                {submitting ? (
+                  <ActivityIndicator color="#193b83" />
+                ) : (
+                  <Text style={s.primaryButtonText}>Reset password &amp; sign in</Text>
+                )}
+              </Pressable>
+
+              <Pressable onPress={handleSendResetCode} disabled={submitting} style={s.secondaryButton}>
+                <Text style={s.secondaryButtonText}>Resend code</Text>
+              </Pressable>
+            </>
+          )}
+
+          <Pressable onPress={exitResetMode} style={s.secondaryButton}>
+            <Text style={s.secondaryButtonText}>Back to sign in</Text>
+          </Pressable>
+        </View>
+      </AuthScaffold>
+    );
+  }
 
   return (
     <AuthScaffold>
@@ -148,6 +333,10 @@ export default function SignInScreen() {
           ) : (
             <Text style={s.primaryButtonText}>Sign in</Text>
           )}
+        </Pressable>
+
+        <Pressable onPress={enterResetMode} style={s.secondaryButton}>
+          <Text style={s.secondaryButtonText}>Forgot password?</Text>
         </Pressable>
 
         <View style={s.dividerRow}>
