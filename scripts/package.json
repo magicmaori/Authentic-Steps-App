@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "sync-export-record": "tsx ./src/sync-export-record.ts",
     "bootstrap-agency": "tsx ./src/bootstrap-agency.ts",
+    "manage-admin": "tsx ./src/manage-admin.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

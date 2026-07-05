@@ -11,6 +11,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/scripts run bootstrap-agency "<Agency Name>" <admin-email>` — provision the first agency + its agency admin (the admin must have signed into Clerk at least once). Idempotent by (agency name, admin): re-running the same command is a safe no-op.
+- `pnpm --filter @workspace/scripts run manage-admin <list|add|replace> "<Agency Name>|<agency-id>" [admin-email]` — manage admins on an **existing** agency (bootstrap-agency only creates new ones). `list` shows current active admins; `add` grants a co-admin (keeps existing ones); `replace` hands the agency off — makes `<admin-email>` the admin and revokes every other active admin. The target must have signed into Clerk at least once. Safe to re-run (idempotent upsert against the DB's uniqueness rules).
 - Required env: `DATABASE_URL` — Postgres connection string; `CLERK_SECRET_KEY` — for bootstrap/user lookup
 
 ## Invite emails
