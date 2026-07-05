@@ -37,6 +37,7 @@ const ADMIN = `user_admin_${RUN}`;
 const HOLDER = `user_holder_${RUN}`;
 const MEMBER = `user_member_${RUN}`;
 const OUTSIDER = `user_outsider_${RUN}`;
+const EXPIRED_MEMBER = `user_expired_${RUN}`;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -358,5 +359,114 @@ describe("access flows (end-to-end over HTTP)", () => {
 
     const redeem = await call(OUTSIDER, "POST", "/invites/redeem", { code });
     expect(redeem.status).toBe(400);
+  });
+});
+
+// Proves expiry is enforced through the real HTTP layer, not just in the unit
+// tests for computeEntitlement. A member whose one-year window has lapsed must
+// lose access everywhere the entitlement guard runs, and a renew must restore
+// it. Guards against a silent regression where an expired membership keeps
+// working because a route skipped requireEntitlement.
+describe("expiry enforcement (end-to-end over HTTP)", () => {
+  let expiredSubAccountId: string;
+  let expiredMemberId: string;
+
+  const SYNC_PAYLOAD = {
+    userData: { theme: "dark" },
+    entries: {},
+    groundingSessions: [],
+    completedExercises: {},
+    updatedAt: new Date().toISOString(),
+  };
+
+  beforeAll(async () => {
+    // Fresh sub-account + redeemed member so we don't disturb the flow above.
+    const sub = await call(ADMIN, "POST", "/sub-accounts", {
+      name: "Expiry Test Clinic",
+    });
+    expect(sub.status).toBe(201);
+    expiredSubAccountId = sub.body.id;
+
+    const invite = await call(ADMIN, "POST", "/invites", {
+      subAccountId: expiredSubAccountId,
+      role: "member",
+      accessDurationDays: 365,
+    });
+    expect(invite.status).toBe(201);
+
+    const redeemed = await call(EXPIRED_MEMBER, "POST", "/invites/redeem", {
+      code: invite.body.code,
+    });
+    expect(redeemed.status).toBe(201);
+    expect(redeemed.body.status).toBe("active");
+    expiredMemberId = redeemed.body.id;
+
+    // Force the one-year window to have already lapsed. The membership row stays
+    // status "active"; only accessExpiresAt moves into the past, mirroring a
+    // member whose access simply ran out over time.
+    await db
+      .update(membershipsTable)
+      .set({ accessExpiresAt: new Date(Date.now() - DAY_MS) })
+      .where(eq(membershipsTable.id, expiredMemberId));
+  });
+
+  it("reports the lapsed member as inactive with reason 'expired'", async () => {
+    const ent = await call(EXPIRED_MEMBER, "GET", "/me/entitlement");
+    expect(ent.status).toBe(200);
+    expect(ent.body).toMatchObject({
+      active: false,
+      reason: "expired",
+      role: "member",
+    });
+  });
+
+  it("blocks entitlement-gated routes for the lapsed member", async () => {
+    const readSync = await call(EXPIRED_MEMBER, "GET", "/sync");
+    expect(readSync.status).toBe(403);
+    expect(readSync.body).toMatchObject({ reason: "expired" });
+
+    const writeSync = await call(
+      EXPIRED_MEMBER,
+      "PUT",
+      "/sync",
+      SYNC_PAYLOAD,
+    );
+    expect(writeSync.status).toBe(403);
+    expect(writeSync.body).toMatchObject({ reason: "expired" });
+  });
+
+  it("restores access after a renew", async () => {
+    const renewed = await call(
+      ADMIN,
+      "POST",
+      `/members/${expiredMemberId}/renew`,
+      { accessDurationDays: 365 },
+    );
+    expect(renewed.status).toBe(200);
+    expect(new Date(renewed.body.accessExpiresAt).getTime()).toBeGreaterThan(
+      Date.now(),
+    );
+
+    // Entitlement flips back to active...
+    const ent = await call(EXPIRED_MEMBER, "GET", "/me/entitlement");
+    expect(ent.body).toMatchObject({
+      active: true,
+      reason: "active",
+      role: "member",
+    });
+
+    // ...and gated routes let the member through again.
+    const writeSync = await call(
+      EXPIRED_MEMBER,
+      "PUT",
+      "/sync",
+      SYNC_PAYLOAD,
+    );
+    expect(writeSync.status).toBe(200);
+    expect(writeSync.body).toMatchObject({ ok: true });
+
+    const readSync = await call(EXPIRED_MEMBER, "GET", "/sync");
+    expect(readSync.status).toBe(200);
+    expect(readSync.body).toMatchObject({ found: true });
   });
 });
