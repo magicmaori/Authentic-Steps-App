@@ -1,3 +1,4 @@
 - [Auth architecture (closed access)](auth-architecture.md) — backend is Clerk-gated invite-only closed access; user-data routes must use requireEntitlement (not just requireAuth); access.ts stays DB-free via import type.
 - [Authentic Steps app quirks](authentic-steps.md) — Expo config resolution (app.config.ts shadows app.json) and a pre-existing jest exit-1 flake despite all tests passing.
 - [React types version line](react-types-version-line.md) — @types/react pinned workspace-wide to ~19.1.x (matches Expo + react@19.1.0); don't bump to 19.2 or typecheck breaks.
+- [Post-merge pnpm rebuild](post-merge-pnpm.md) — post-merge.sh must export CI=true (pnpm hoist/.npmrc changes force a node_modules rebuild that aborts without a TTY); timeout raised to 180s.
