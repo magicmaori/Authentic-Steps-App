@@ -75,18 +75,17 @@ function Router() {
   );
 }
 
-function App() {
-  const [, setLocation] = useLocation();
+function stripBase(path: string) {
+  if (!basePath) return path;
+  return path.startsWith(basePath) ? path.slice(basePath.length) || "/" : path;
+}
 
-  const stripBase = (path: string) => {
-    if (!basePath) return path;
-    return path.startsWith(basePath) ? path.slice(basePath.length) || "/" : path;
-  };
+function ClerkProviderWithRoutes() {
+  const [, setLocation] = useLocation();
+  const { theme } = useTheme();
 
   const routerPush = (to: string) => setLocation(stripBase(to));
   const routerReplace = (to: string) => setLocation(stripBase(to), { replace: true });
-
-  const { theme } = useTheme();
 
   return (
     <ClerkProvider
@@ -120,13 +119,19 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
         <TooltipProvider>
-          <WouterRouter base={basePath}>
-            <Router />
-          </WouterRouter>
+          <Router />
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
     </ClerkProvider>
+  );
+}
+
+function App() {
+  return (
+    <WouterRouter base={basePath}>
+      <ClerkProviderWithRoutes />
+    </WouterRouter>
   );
 }
 
