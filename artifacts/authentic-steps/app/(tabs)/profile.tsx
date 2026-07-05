@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemePreference, useApp } from '@/context/AppContext';
+import { ThemePreference, useApp, type GroundingSession, type RitualEntry, type UserData } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 import {
   getPermissionState,
@@ -52,105 +52,11 @@ function formatLastUpdated(date: Date): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ` at ${h12}:${m} ${ampm}`;
 }
 
-export default function ProfileScreen() {
-  const colors = useColors();
-  const insets = useSafeAreaInsets();
-  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs, setChimeEnabled, isLoaded } = useApp();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [, setTick] = useState(0);
-  const [notifBlocked, setNotifBlocked] = useState(false);
-  const [timePickerOpen, setTimePickerOpen] = useState<'ritual' | 'evening' | null>(null);
-  const [codeCopied, setCodeCopied] = useState(false);
-  const [codeRefreshed, setCodeRefreshed] = useState(false);
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cachedPayloadRef = useRef<string>('');
-  const toastOpacity = useRef(new Animated.Value(0)).current;
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!userData.notifRitual && !userData.notifEvening && !userData.notifMilestone) return;
-    getPermissionState().then(async (state) => {
-      if (state === 'undetermined') {
-        const granted = await requestPermissionWithRationale();
-        if (granted) {
-          await scheduleRitualReminder(userData.notifRitual, userData.ritualHour ?? 9, userData.ritualMinute ?? 0).catch(() => {});
-          await scheduleEveningReminder(userData.notifEvening, userData.eveningHour ?? 20, userData.eveningMinute ?? 0).catch(() => {});
-        } else {
-          await disableAllNotificationPrefs();
-          setNotifBlocked(true);
-        }
-      } else if (state === 'denied') {
-        await disableAllNotificationPrefs();
-        setNotifBlocked(true);
-      }
-    }).catch(() => {});
-  }, []);
-
-  const refreshPayload = useCallback(() => {
-    const payload = buildRecoveryPayload();
-    cachedPayloadRef.current = payload;
-    setLastRefreshed(new Date());
-    return payload;
-  }, [buildRecoveryPayload]);
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshPayload();
-    }, [refreshPayload])
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      const id = setInterval(() => setTick(t => t + 1), 60_000);
-      return () => clearInterval(id);
-    }, [])
-  );
-
-  function showDeleteToast() {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastOpacity.setValue(0);
-    Animated.timing(toastOpacity, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      toastTimerRef.current = setTimeout(() => {
-        Animated.timing(toastOpacity, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }).start();
-      }, 2500);
-    });
-  }
-
-  function handleDeleteData() {
-    if (isDeleting) return;
-    Alert.alert(
-      'Delete all your data?',
-      'This will permanently erase your journal entries, streaks, milestones, and breathing records. A new anonymous name will be created. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, delete everything',
-          style: 'destructive',
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              await resetAllData();
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              showDeleteToast();
-            } finally {
-              setIsDeleting(false);
-            }
-          },
-        },
-      ]
-    );
-  }
-
-  function buildPdfHtml(): string {
+export function buildProfilePdfHtml(
+  userData: UserData,
+  entries: Record<string, RitualEntry> | undefined,
+  groundingSessions: GroundingSession[] | undefined,
+): string {
     const exportedAt = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     const entryList = Object.values(entries ?? {}).sort((a, b) => a.date.localeCompare(b.date));
     const sortedGrounding = [...(groundingSessions ?? [])].sort((a, b) => a.timestamp - b.timestamp);
@@ -258,9 +164,107 @@ export default function ProfileScreen() {
 </html>`;
   }
 
+export default function ProfileScreen() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs, setChimeEnabled, isLoaded } = useApp();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [, setTick] = useState(0);
+  const [notifBlocked, setNotifBlocked] = useState(false);
+  const [timePickerOpen, setTimePickerOpen] = useState<'ritual' | 'evening' | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [codeRefreshed, setCodeRefreshed] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cachedPayloadRef = useRef<string>('');
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!userData.notifRitual && !userData.notifEvening && !userData.notifMilestone) return;
+    getPermissionState().then(async (state) => {
+      if (state === 'undetermined') {
+        const granted = await requestPermissionWithRationale();
+        if (granted) {
+          await scheduleRitualReminder(userData.notifRitual, userData.ritualHour ?? 9, userData.ritualMinute ?? 0).catch(() => {});
+          await scheduleEveningReminder(userData.notifEvening, userData.eveningHour ?? 20, userData.eveningMinute ?? 0).catch(() => {});
+        } else {
+          await disableAllNotificationPrefs();
+          setNotifBlocked(true);
+        }
+      } else if (state === 'denied') {
+        await disableAllNotificationPrefs();
+        setNotifBlocked(true);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const refreshPayload = useCallback(() => {
+    const payload = buildRecoveryPayload();
+    cachedPayloadRef.current = payload;
+    setLastRefreshed(new Date());
+    return payload;
+  }, [buildRecoveryPayload]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshPayload();
+    }, [refreshPayload])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const id = setInterval(() => setTick(t => t + 1), 60_000);
+      return () => clearInterval(id);
+    }, [])
+  );
+
+  function showDeleteToast() {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastOpacity.setValue(0);
+    Animated.timing(toastOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      toastTimerRef.current = setTimeout(() => {
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+      }, 2500);
+    });
+  }
+
+  function handleDeleteData() {
+    if (isDeleting) return;
+    Alert.alert(
+      'Delete all your data?',
+      'This will permanently erase your journal entries, streaks, milestones, and breathing records. A new anonymous name will be created. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, delete everything',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await resetAllData();
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              showDeleteToast();
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
   async function handleExportPdf() {
     try {
-      const html = buildPdfHtml();
+      const html = buildProfilePdfHtml(userData, entries, groundingSessions);
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {

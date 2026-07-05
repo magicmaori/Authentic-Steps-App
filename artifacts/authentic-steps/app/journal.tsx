@@ -57,7 +57,7 @@ function formatTime(timestamp: number): string {
   });
 }
 
-function buildPdfHtml(
+export function buildPdfHtml(
   sortedDates: string[],
   entries: Record<string, import('@/context/AppContext').RitualEntry>,
   groundingSessions: GroundingSession[],
