@@ -6,10 +6,15 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "sync-export-record": "tsx ./src/sync-export-record.ts",
+    "bootstrap-agency": "tsx ./src/bootstrap-agency.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "tsx": "catalog:"
+  },
+  "dependencies": {
+    "@clerk/express": "^2.1.32",
+    "@workspace/db": "workspace:*"
   }
 }

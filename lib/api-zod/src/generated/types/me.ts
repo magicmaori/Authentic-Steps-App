@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { Membership } from './membership';
 
-export interface HealthStatus {
-  status: string;
+export interface Me {
+  userId: string;
+  memberships: Membership[];
 }

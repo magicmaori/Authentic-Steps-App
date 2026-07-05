@@ -1,1 +1,2 @@
+- [Auth architecture (closed access)](auth-architecture.md) — backend is Clerk-gated invite-only closed access; user-data routes must use requireEntitlement (not just requireAuth); access.ts stays DB-free via import type.
 - [Authentic Steps app quirks](authentic-steps.md) — Expo config resolution (app.config.ts shadows app.json) and a pre-existing jest exit-1 flake despite all tests passing.

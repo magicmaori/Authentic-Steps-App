@@ -1,21 +1,17 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { clerkMiddleware, getAuth } from "@clerk/express";
+import {
+  Router,
+  type IRouter,
+  type Request,
+  type Response,
+} from "express";
 import { eq } from "drizzle-orm";
 import { db, userDataTable } from "@workspace/db";
 import { z } from "zod/v4";
+import { requireAuth, loadActor, requireEntitlement } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
-router.use(clerkMiddleware());
-
-function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const auth = getAuth(req);
-  if (!auth?.userId) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  next();
-}
+router.use(requireAuth, loadActor, requireEntitlement);
 
 const SyncPayloadSchema = z.object({
   userData: z.record(z.string(), z.unknown()),
@@ -25,9 +21,8 @@ const SyncPayloadSchema = z.object({
   updatedAt: z.string(),
 });
 
-router.get("/sync", requireAuth, async (req: Request, res: Response) => {
-  const auth = getAuth(req);
-  const userId = auth!.userId!;
+router.get("/sync", async (req: Request, res: Response): Promise<void> => {
+  const userId = req.userId!;
   try {
     const rows = await db.select().from(userDataTable).where(eq(userDataTable.userId, userId));
     if (rows.length === 0) {
@@ -41,9 +36,8 @@ router.get("/sync", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-router.put("/sync", requireAuth, async (req: Request, res: Response) => {
-  const auth = getAuth(req);
-  const userId = auth!.userId!;
+router.put("/sync", async (req: Request, res: Response): Promise<void> => {
+  const userId = req.userId!;
   const parsed = SyncPayloadSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid payload" });
@@ -64,9 +58,8 @@ router.put("/sync", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/sync", requireAuth, async (req: Request, res: Response) => {
-  const auth = getAuth(req);
-  const userId = auth!.userId!;
+router.delete("/sync", async (req: Request, res: Response): Promise<void> => {
+  const userId = req.userId!;
   try {
     await db.delete(userDataTable).where(eq(userDataTable.userId, userId));
     res.json({ ok: true });
