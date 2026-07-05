@@ -1,3 +1,4 @@
+import { useAuth, useUser } from '@clerk/expo';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as Clipboard from 'expo-clipboard';
@@ -168,6 +169,8 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { userData, entries, groundingSessions, setThemePreference, buildRecoveryPayload, resetAllData, setNotificationPref, setNotificationTime, disableAllNotificationPrefs, setChimeEnabled, isLoaded } = useApp();
+  const { signOut } = useAuth();
+  const { user } = useUser();
   const [isDeleting, setIsDeleting] = useState(false);
   const [, setTick] = useState(0);
   const [notifBlocked, setNotifBlocked] = useState(false);
@@ -235,6 +238,18 @@ export default function ProfileScreen() {
         }).start();
       }, 2500);
     });
+  }
+
+  function handleSignOut() {
+    Haptics.selectionAsync();
+    Alert.alert(
+      'Sign out?',
+      'Your journal and progress stay saved on this device. You can sign back in anytime with your account.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign out', style: 'destructive', onPress: () => { signOut(); } },
+      ]
+    );
   }
 
   function handleDeleteData() {
@@ -727,6 +742,29 @@ export default function ProfileScreen() {
               <Ionicons name={item.icon as any} size={18} color={colors.mutedForeground} />
             </Pressable>
           ))}
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Account</Text>
+          {user?.primaryEmailAddress?.emailAddress ? (
+            <View style={styles.settingRow}>
+              <Text style={[styles.settingLabel, { color: colors.mutedForeground }]}>Signed in as</Text>
+              <Text style={[styles.settingLabel, { color: colors.foreground }]} numberOfLines={1}>
+                {user.primaryEmailAddress.emailAddress}
+              </Text>
+            </View>
+          ) : null}
+          <Pressable
+            onPress={handleSignOut}
+            style={({ pressed }) => [
+              styles.settingRow,
+              !!user?.primaryEmailAddress?.emailAddress && { borderTopWidth: 1, borderTopColor: colors.border },
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <Text style={[styles.settingLabel, { color: colors.destructive }]}>Sign out</Text>
+            <Ionicons name="log-out-outline" size={18} color={colors.destructive} />
+          </Pressable>
         </View>
 
         <View style={[styles.brandNote, { backgroundColor: colors.secondary }]}>

@@ -1,5 +1,7 @@
 /**
- * Smoke tests: key screens render without auth-related crashes after Clerk removal.
+ * Smoke tests: key screens render without auth-related crashes. The app is
+ * Clerk-gated (invite-only); screens that consume Clerk are given a signed-in
+ * stub, while Clerk-free screens (Home, Community) must still render standalone.
  *
  * Covers:
  *  1. Home (DailyRitualScreen) — renders in guest mode with a fresh-install user
@@ -166,6 +168,22 @@ jest.mock('@/components/MovementExercise', () => {
     default: () => React.createElement(View, { testID: 'movement-exercise' }),
   };
 });
+
+// Clerk auth: the app is invite-only / Clerk-gated. ProfileScreen consumes
+// useAuth/useUser (for the Sign out action), so provide a signed-in stub here.
+jest.mock('@clerk/expo', () => ({
+  useAuth: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    signOut: jest.fn().mockResolvedValue(undefined),
+    getToken: jest.fn().mockResolvedValue('test-token'),
+  }),
+  useUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: { primaryEmailAddress: { emailAddress: 'test@example.com' } },
+  }),
+}));
 
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
 

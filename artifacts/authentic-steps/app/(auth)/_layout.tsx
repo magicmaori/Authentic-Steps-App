@@ -1,5 +1,6 @@
-import { Redirect } from 'expo-router';
+import { Stack } from 'expo-router';
+import React from 'react';
 
 export default function AuthLayout() {
-  return <Redirect href="/(tabs)" />;
+  return <Stack screenOptions={{ headerShown: false, gestureEnabled: false }} />;
 }

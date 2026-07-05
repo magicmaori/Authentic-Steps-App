@@ -1,5 +1,264 @@
-import { Redirect } from 'expo-router';
+import { useSSO, useSignUp } from '@clerk/expo';
+import * as AuthSession from 'expo-auth-session';
+import { type Href, Link, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from 'react-native';
 
-export default function SignUp() {
-  return <Redirect href="/(tabs)" />;
+import { AppLogo } from '@/components/AppLogo';
+import { AuthScaffold, authStyles as s } from '@/components/AuthScaffold';
+
+WebBrowser.maybeCompleteAuthSession();
+
+function clerkErrMsg(error: unknown): string {
+  if (!error) return '';
+  if (typeof error === 'string') return error;
+  const e = error as { errors?: { message?: string }[]; message?: string };
+  if (Array.isArray(e.errors) && e.errors[0]?.message) return e.errors[0].message as string;
+  if (e.message) return e.message;
+  return 'Something went wrong. Please try again.';
+}
+
+interface FinalizeArgs {
+  session?: { currentTask?: unknown } | null;
+  decorateUrl: (url: string) => string;
+}
+
+export default function SignUpScreen() {
+  const { signUp, fetchStatus } = useSignUp();
+  const { startSSOFlow } = useSSO();
+  const router = useRouter();
+
+  const [emailAddress, setEmailAddress] = useState('');
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    void WebBrowser.warmUpAsync();
+    return () => {
+      void WebBrowser.coolDownAsync();
+    };
+  }, []);
+
+  const goHome = useCallback(
+    ({ session, decorateUrl }: FinalizeArgs) => {
+      if (session?.currentTask) return;
+      router.replace(decorateUrl('/') as Href);
+    },
+    [router],
+  );
+
+  const handleSignUp = async () => {
+    setFormError('');
+    const { error } = await signUp.password({ emailAddress: emailAddress.trim(), password });
+    if (error) {
+      setFormError(clerkErrMsg(error));
+      return;
+    }
+    try {
+      await signUp.verifications.sendEmailCode();
+      setPendingVerification(true);
+    } catch (err) {
+      setFormError(clerkErrMsg(err));
+    }
+  };
+
+  const handleVerify = async () => {
+    setFormError('');
+    try {
+      await signUp.verifications.verifyEmailCode({ code: code.trim() });
+    } catch (err) {
+      setFormError(clerkErrMsg(err));
+      return;
+    }
+    if (signUp.status === 'complete') {
+      await signUp.finalize({ navigate: goHome });
+    } else {
+      setFormError("That code didn't work. Please check it and try again.");
+    }
+  };
+
+  const handleGoogle = useCallback(async () => {
+    setFormError('');
+    setGoogleLoading(true);
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: 'oauth_google',
+        redirectUrl: AuthSession.makeRedirectUri(),
+      });
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId, navigate: goHome });
+      } else {
+        setFormError('Google sign-up could not be completed. Please try again.');
+      }
+    } catch (err) {
+      setFormError(clerkErrMsg(err));
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [startSSOFlow, goHome]);
+
+  const submitting = fetchStatus === 'fetching';
+
+  if (pendingVerification) {
+    const canVerify = code.trim().length > 0 && !submitting;
+    return (
+      <AuthScaffold>
+        <View style={s.logoWrap}>
+          <AppLogo size="lg" tint="light" />
+        </View>
+        <View style={s.card}>
+          <Text style={s.title}>Verify your email</Text>
+          <Text style={s.subtitle}>
+            We sent a 6-digit code to {emailAddress}. Enter it below to finish creating your account.
+          </Text>
+
+          <View style={s.fieldGroup}>
+            <Text style={s.label}>Verification code</Text>
+            <TextInput
+              style={s.input}
+              keyboardType="number-pad"
+              autoComplete="one-time-code"
+              placeholder="123456"
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              value={code}
+              onChangeText={(t) => {
+                setCode(t);
+                setFormError('');
+              }}
+            />
+          </View>
+
+          {formError ? <Text style={s.error}>{formError}</Text> : null}
+
+          <Pressable
+            onPress={handleVerify}
+            disabled={!canVerify}
+            style={({ pressed }) => [
+              s.primaryButton,
+              !canVerify && s.buttonDisabled,
+              pressed && s.buttonPressed,
+            ]}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#193b83" />
+            ) : (
+              <Text style={s.primaryButtonText}>Verify & continue</Text>
+            )}
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              setPendingVerification(false);
+              setCode('');
+              setFormError('');
+            }}
+            style={s.secondaryButton}
+          >
+            <Text style={s.secondaryButtonText}>Use a different email</Text>
+          </Pressable>
+        </View>
+      </AuthScaffold>
+    );
+  }
+
+  const canSubmit = !!emailAddress && password.length >= 8 && !submitting;
+
+  return (
+    <AuthScaffold>
+      <View style={s.logoWrap}>
+        <AppLogo size="lg" tint="light" />
+      </View>
+      <View style={s.card}>
+        <Text style={s.title}>Create your account</Text>
+        <Text style={s.subtitle}>
+          Sign up to get started. You&apos;ll enter your invite code right after.
+        </Text>
+
+        <View style={s.fieldGroup}>
+          <Text style={s.label}>Email</Text>
+          <TextInput
+            style={s.input}
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            value={emailAddress}
+            onChangeText={(t) => {
+              setEmailAddress(t);
+              setFormError('');
+            }}
+          />
+        </View>
+        <View style={s.fieldGroup}>
+          <Text style={s.label}>Password</Text>
+          <TextInput
+            style={s.input}
+            secureTextEntry
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            value={password}
+            onChangeText={(t) => {
+              setPassword(t);
+              setFormError('');
+            }}
+          />
+        </View>
+
+        {formError ? <Text style={s.error}>{formError}</Text> : null}
+
+        <Pressable
+          onPress={handleSignUp}
+          disabled={!canSubmit}
+          style={({ pressed }) => [
+            s.primaryButton,
+            !canSubmit && s.buttonDisabled,
+            pressed && s.buttonPressed,
+          ]}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#193b83" />
+          ) : (
+            <Text style={s.primaryButtonText}>Sign up</Text>
+          )}
+        </Pressable>
+
+        <View style={s.dividerRow}>
+          <View style={s.dividerLine} />
+          <Text style={s.dividerText}>or</Text>
+          <View style={s.dividerLine} />
+        </View>
+
+        <Pressable
+          onPress={handleGoogle}
+          disabled={googleLoading}
+          style={({ pressed }) => [
+            s.googleButton,
+            googleLoading && s.buttonDisabled,
+            pressed && s.buttonPressed,
+          ]}
+        >
+          {googleLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={s.googleButtonText}>Continue with Google</Text>
+          )}
+        </Pressable>
+      </View>
+
+      <View style={s.linkRow}>
+        <Text style={s.linkText}>Already have an account? </Text>
+        <Link href={'/sign-in' as Href} replace>
+          <Text style={s.linkAction}>Sign in</Text>
+        </Link>
+      </View>
+      <Text style={s.helperNote}>Access requires an invite from your agency or coordinator.</Text>
+    </AuthScaffold>
+  );
 }

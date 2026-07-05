@@ -20,6 +20,29 @@ Related: the iOS privacy manifest key is `NSPrivacyAccessedAPITypeReasons`
 (matches Apple), NOT `NSPrivacyAccessedAPIReasons` — Expo's ExpoConfig types
 catch the wrong one at typecheck.
 
+## `tsc --noEmit` has pre-existing systemic "not a valid JSX component" errors
+Running `pnpm --filter @workspace/authentic-steps run typecheck` reports many
+errors like `'LinearGradient' cannot be used as a JSX component` /
+`'BlurView' ...` / `GestureHandlerRootView` children — across untouched screens
+(index, streaks, sos, ritual/*, onboarding, etc.).
+
+**Why:** pnpm (no hoist config, `auto-install-peers=false`) does not make
+`@types/react` resolvable to transitive class-component libs that don't declare
+it as a peer (expo-linear-gradient, expo-blur, gesture-handler), so their
+`Component` base resolves without props/state. `pnpm why @types/react` confirms a
+**single** 19.1.17 version — it is NOT a version conflict, and Metro/Babel builds
+ignore it entirely. The real gates for this app are the Metro build + jest.
+**How to apply:** don't chase these — they are baseline noise. When verifying an
+edit, judge by whether you introduced NEW error kinds (logic/prop/type errors in
+files you touched), not by the total error count. jest (295 tests) is the gate.
+
+## Screens smoke test is Clerk-gated now
+`__tests__/screens-smoke.test.tsx` mocks `@clerk/expo` (signed-in stub) because
+ProfileScreen consumes `useAuth`/`useUser`. Home + Community stay Clerk-free and
+must still render without that context.
+**Why:** the app was flipped from anonymous/guest to invite-only Clerk gating;
+the old "profile is Clerk-free" assertions were obsolete and removed.
+
 ## jest exits 1 even though all tests pass
 `pnpm --filter @workspace/authentic-steps test` (jest) prints
 "Tests: N passed, N total / N suites passed" but still exits non-zero.
