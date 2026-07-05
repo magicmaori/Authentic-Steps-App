@@ -6,7 +6,14 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 const authState = vi.hoisted(() => ({ userId: null as string | null }));
 
 vi.mock("@clerk/express", () => ({
-  getAuth: () => ({ userId: authState.userId }),
+  // Prefer a per-request header so concurrent requests can each act as a
+  // distinct user; fall back to the shared authState for the serial `call`
+  // helper. The shared variable can't express concurrency because every
+  // in-flight request would observe whatever value was set last.
+  getAuth: (req: any) => {
+    const header = req?.headers?.["x-test-user"];
+    return { userId: header != null ? String(header) : authState.userId };
+  },
   clerkMiddleware: () => (_req: unknown, _res: unknown, next: () => void) =>
     next(),
   clerkClient: {
@@ -53,6 +60,21 @@ async function call(
     method,
     headers: body ? { "content-type": "application/json" } : {},
     body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  return { status: res.status, body: text ? JSON.parse(text) : null };
+}
+
+// Redeem an invite as a specific user via a per-request header, so many of
+// these can be in flight at once without stomping on shared auth state.
+async function redeemAs(actorId: string, code: string): Promise<Res> {
+  const res = await fetch(`${baseUrl}/invites/redeem`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-test-user": actorId,
+    },
+    body: JSON.stringify({ code }),
   });
   const text = await res.text();
   return { status: res.status, body: text ? JSON.parse(text) : null };
@@ -276,6 +298,49 @@ describe("access flows (end-to-end over HTTP)", () => {
     const subs = await call(ADMIN, "GET", "/sub-accounts");
     const sub = subs.body.find((s: any) => s.id === subAccountId);
     expect(sub.memberCount).toBe(0);
+  });
+
+  it("lets only one of many concurrent redeemers claim a single invite", async () => {
+    // A single fresh member invite for the shared sub-account.
+    const invite = await call(ADMIN, "POST", "/invites", {
+      subAccountId,
+      role: "member",
+    });
+    expect(invite.status).toBe(201);
+    const code = invite.body.code;
+
+    // A crowd of distinct users races to redeem the same code simultaneously.
+    const N = 24;
+    const racers = Array.from(
+      { length: N },
+      (_, i) => `user_racer_${RUN}_${i}`,
+    );
+    const results = await Promise.all(racers.map((u) => redeemAs(u, code)));
+
+    // Exactly one caller wins with a 201; every other caller is cleanly
+    // rejected with 400 (invalid/already-claimed) or 409 (duplicate). Any 500
+    // or a second 201 would mean the atomic claim leaked.
+    const created = results.filter((r) => r.status === 201);
+    const rejected = results.filter(
+      (r) => r.status === 400 || r.status === 409,
+    );
+    expect(created).toHaveLength(1);
+    expect(rejected).toHaveLength(N - 1);
+    expect(results.every((r) => r.status === 201 || r.status === 400 || r.status === 409)).toBe(true);
+
+    // The database is the source of truth: exactly one membership exists across
+    // all racers for this sub-account, so the invite was never double-claimed.
+    const memberships = await db
+      .select()
+      .from(membershipsTable)
+      .where(eq(membershipsTable.subAccountId, subAccountId));
+    const racerMemberships = memberships.filter((m) =>
+      racers.includes(m.userId),
+    );
+    expect(racerMemberships).toHaveLength(1);
+
+    // The lone membership belongs to the single 201 winner.
+    expect(racerMemberships[0]!.userId).toBe(created[0]!.body.userId);
   });
 
   it("a pending invite can be revoked and then cannot be redeemed", async () => {
