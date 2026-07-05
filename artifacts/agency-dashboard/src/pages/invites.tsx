@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@/components/ui/empty";
 
 const formSchema = z.object({
   subAccountId: z.string().min(1, "Sub-account is required"),
@@ -113,6 +114,8 @@ export default function Invites() {
     if (search && !i.code.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const hasInviteFilter = Boolean(search) || subAccountFilter !== "all";
 
   const getSubAccountName = (id?: string | null) => {
     if (!id) return "Global";
@@ -277,13 +280,27 @@ export default function Invites() {
                 <div className="h-10 bg-muted/50 rounded animate-pulse"></div>
               </div>
             ) : filteredInvites?.length === 0 ? (
-              <div className="p-12 text-center">
-                <LinkIcon className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-medium">No invites found</h3>
-                <p className="text-muted-foreground mt-1">
-                  Generate an invite link to grant someone access.
-                </p>
-              </div>
+              <Empty className="border-0 py-16">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <LinkIcon />
+                  </EmptyMedia>
+                  <EmptyTitle>{hasInviteFilter ? "No matching invites" : "No invites yet"}</EmptyTitle>
+                  <EmptyDescription>
+                    {hasInviteFilter
+                      ? "Try clearing your search or sub-account filter to see more invites."
+                      : "Invites are shareable links that grant people access to a program. Generate your first invite to get started."}
+                  </EmptyDescription>
+                </EmptyHeader>
+                {!hasInviteFilter && (
+                  <EmptyContent>
+                    <Button onClick={() => setCreateDialogOpen(true)}>
+                      <LinkIcon className="h-4 w-4 mr-2" />
+                      Generate your first invite
+                    </Button>
+                  </EmptyContent>
+                )}
+              </Empty>
             ) : (
               <Table>
                 <TableHeader className="bg-muted/30">

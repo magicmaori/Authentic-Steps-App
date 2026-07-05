@@ -13,8 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format, isPast } from "date-fns";
-import { Users, Search, MoreHorizontal, Clock, Ban, CheckCircle2 } from "lucide-react";
+import { Users, Search, MoreHorizontal, Clock, Ban, CheckCircle2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@/components/ui/empty";
 
 export default function Members() {
   const { data: me } = useGetMe();
@@ -84,6 +86,8 @@ export default function Members() {
     return true;
   });
 
+  const hasMemberFilter = Boolean(search) || subAccountFilter !== "all";
+
   const getSubAccountName = (id?: string | null) => {
     if (!id) return "Global / All";
     return subAccounts?.find(sa => sa.id === id)?.name || id;
@@ -138,13 +142,29 @@ export default function Members() {
                 <div className="h-10 bg-muted/50 rounded animate-pulse"></div>
               </div>
             ) : filteredMembers?.length === 0 ? (
-              <div className="p-12 text-center">
-                <Users className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-medium">No members found</h3>
-                <p className="text-muted-foreground mt-1">
-                  Try adjusting your filters or search query.
-                </p>
-              </div>
+              <Empty className="border-0 py-16">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Users />
+                  </EmptyMedia>
+                  <EmptyTitle>{hasMemberFilter ? "No matching members" : "No members yet"}</EmptyTitle>
+                  <EmptyDescription>
+                    {hasMemberFilter
+                      ? "Try adjusting your filters or search query to find members."
+                      : "Members gain access by redeeming an invite link. Send your first invite to add someone to your program."}
+                  </EmptyDescription>
+                </EmptyHeader>
+                {!hasMemberFilter && (
+                  <EmptyContent>
+                    <Button asChild>
+                      <Link href="/invites">
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Invite your first member
+                      </Link>
+                    </Button>
+                  </EmptyContent>
+                )}
+              </Empty>
             ) : (
               <Table>
                 <TableHeader className="bg-muted/30">

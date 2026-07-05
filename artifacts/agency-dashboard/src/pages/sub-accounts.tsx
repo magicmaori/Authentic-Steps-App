@@ -16,6 +16,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@/components/ui/empty";
 
 const formSchema = z.object({
   name: z.string().min(1, "Sub-account name is required").max(100),
@@ -139,13 +140,27 @@ export default function SubAccounts() {
                 <div className="h-10 bg-muted/50 rounded animate-pulse"></div>
               </div>
             ) : filteredSubAccounts?.length === 0 ? (
-              <div className="p-12 text-center">
-                <Building2 className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                <h3 className="text-lg font-medium">No sub-accounts found</h3>
-                <p className="text-muted-foreground mt-1">
-                  {search ? "Try adjusting your search query." : "Create your first sub-account to get started."}
-                </p>
-              </div>
+              <Empty className="border-0 py-16">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Building2 />
+                  </EmptyMedia>
+                  <EmptyTitle>{search ? "No matching sub-accounts" : "No sub-accounts yet"}</EmptyTitle>
+                  <EmptyDescription>
+                    {search
+                      ? "Try adjusting your search query to find what you're looking for."
+                      : "Sub-accounts represent the program sites and teams within your agency. Create your first one to start inviting members."}
+                  </EmptyDescription>
+                </EmptyHeader>
+                {!search && isAgencyAdmin && (
+                  <EmptyContent>
+                    <Button onClick={() => setOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create your first sub-account
+                    </Button>
+                  </EmptyContent>
+                )}
+              </Empty>
             ) : (
               <Table>
                 <TableHeader className="bg-muted/30">
