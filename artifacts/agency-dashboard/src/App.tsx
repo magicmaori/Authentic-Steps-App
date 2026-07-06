@@ -19,6 +19,7 @@ import SubAccounts from "@/pages/sub-accounts";
 import Members from "@/pages/members";
 import Invites from "@/pages/invites";
 import Redeem from "@/pages/redeem";
+import LegalPage from "@/pages/legal";
 import NotFound from "@/pages/not-found";
 
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
@@ -70,6 +71,8 @@ function Router() {
         component={() => <ProtectedRoute component={Invites} allow={["agency_admin", "sub_account_holder"]} />}
       />
       <Route path="/redeem" component={Redeem} />
+      <Route path="/privacy" component={() => <LegalPage />} />
+      <Route path="/legal/:type" component={LegalPage} />
       <Route component={NotFound} />
     </Switch>
   );
