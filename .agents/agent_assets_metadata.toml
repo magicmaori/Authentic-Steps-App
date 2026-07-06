@@ -107,3 +107,21 @@ id = "dXMP_1LJJUioBYBMUNG38"
 uri = "file://.local/screenshots/final/ios_6.7/10_ritual_complete.png"
 type = "image"
 title = "10. Ritual Complete (iOS 6.7\")"
+
+[[outputs]]
+id = "OKwv-lTiNtbhGsPKzfTLX"
+uri = "file://attached_assets/demo-clips/breathing_authentic_steps.mp4"
+type = "video"
+title = "Box Breathing demo clip"
+
+[[outputs]]
+id = "0fd-XD7PUl78XSESXJfDu"
+uri = "file://attached_assets/demo-clips/journaling_authentic_steps.mp4"
+type = "video"
+title = "Gratitude journaling demo clip"
+
+[[outputs]]
+id = "cwTd1DKtWUcnapMME0Dan"
+uri = "file://attached_assets/demo-clips/grounding_authentic_steps.mp4"
+type = "video"
+title = "5-4-3-2-1 Grounding demo clip"
