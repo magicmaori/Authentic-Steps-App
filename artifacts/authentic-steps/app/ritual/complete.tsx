@@ -7,18 +7,20 @@ import { ActivityIndicator, Animated, Platform, Pressable, StyleSheet, Text, Vie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '@/context/AppContext';
+import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { useColors } from '@/hooks/useColors';
 
 export default function CompleteScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { todayEntry, userData, markRitualComplete, isLoaded } = useApp();
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(SCREENSHOT_MODE ? 1 : 0)).current;
+  const fadeAnim = useRef(new Animated.Value(SCREENSHOT_MODE ? 1 : 0)).current;
 
   useEffect(() => {
     markRitualComplete();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (SCREENSHOT_MODE) return;
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 6 }),
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),

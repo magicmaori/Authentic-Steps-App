@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SOSButton } from '@/components/SOSButton';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { IntentionCategory, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -40,8 +41,8 @@ export default function IntentionScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const inputCardY = useRef<number>(0);
 
-  const [text, setText] = useState('');
-  const [category, setCategory] = useState<IntentionCategory | ''>('');
+  const [text, setText] = useState(SCREENSHOT_MODE ? 'Go for a 20-minute walk after school, even if I do not feel like it' : '');
+  const [category, setCategory] = useState<IntentionCategory | ''>(SCREENSHOT_MODE ? 'movement' : '');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -127,10 +128,12 @@ export default function IntentionScreen() {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View>
-            <VideoPlaceholder
-              label="About this practice — Intention"
-              sublabel="A short intro to setting a daily intention"
-            />
+            {!SCREENSHOT_MODE && (
+              <VideoPlaceholder
+                label="About this practice — Intention"
+                sublabel="A short intro to setting a daily intention"
+              />
+            )}
             <View style={[styles.circleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={[styles.cardTitle, { color: colors.foreground }]}>Circle of Influence</Text>
               <View style={styles.circleContainer}>

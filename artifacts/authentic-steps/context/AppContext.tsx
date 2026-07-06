@@ -5,6 +5,13 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { generateAnonymousName } from '@/constants/affirmations';
 import {
+  buildScreenshotEntries,
+  buildScreenshotExercises,
+  buildScreenshotGrounding,
+  buildScreenshotUser,
+  SCREENSHOT_MODE,
+} from '@/constants/screenshotSeed';
+import {
   cancelAllReminders,
   fireMilestoneNotification,
   getPermissionState,
@@ -209,9 +216,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    loadData();
+    if (SCREENSHOT_MODE) {
+      seedScreenshotData().then(loadData);
+    } else {
+      loadData();
+    }
     setupAndroidChannel().catch(() => {});
   }, []);
+
+  // Screenshot-only: overwrite storage with deterministic demo data on every
+  // cold start so submission screenshots are reproducible. Never runs unless
+  // EXPO_PUBLIC_SCREENSHOT_MODE=1 is explicitly set (never in production).
+  async function seedScreenshotData() {
+    try {
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEY_USER, JSON.stringify(buildScreenshotUser())),
+        AsyncStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(buildScreenshotEntries())),
+        AsyncStorage.setItem(STORAGE_KEY_EXERCISES, JSON.stringify(buildScreenshotExercises())),
+        AsyncStorage.setItem(STORAGE_KEY_GROUNDING, JSON.stringify(buildScreenshotGrounding())),
+        AsyncStorage.setItem(STORAGE_KEY_THEME, 'light'),
+      ]);
+    } catch {
+      // best-effort; loadData() will fall back to defaults if this fails
+    }
+  }
 
   function logNotifError(label: string, err: unknown) {
     if (__DEV__) console.warn(`[Notifications] ${label}`, err);

@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getGetEntitlementQueryKey, setAuthTokenGetter, useGetEntitlement } from '@workspace/api-client-react';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
+
 export type AccessState =
   | 'loading'
   | 'signedOut'
@@ -181,6 +183,10 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   }, [isLoaded, isSignedIn]);
 
   const { state, isOffline } = useMemo<{ state: AccessState; isOffline: boolean }>(() => {
+    // Screenshot-only bypass: skip Clerk sign-in and the real entitlement
+    // check entirely so store screenshots can be captured without a live
+    // session. Gated on EXPO_PUBLIC_SCREENSHOT_MODE, never set in production.
+    if (SCREENSHOT_MODE) return { state: 'active', isOffline: false };
     if (!isLoaded || !cacheLoaded) return { state: 'loading', isOffline: false };
     if (!isSignedIn) return { state: 'signedOut', isOffline: false };
 

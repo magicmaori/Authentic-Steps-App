@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SOSButton } from '@/components/SOSButton';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { GratitudeCategory } from '@/context/AppContext';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
@@ -37,7 +38,11 @@ export default function GratitudeScreen() {
   const insets = useSafeAreaInsets();
   const { saveGratitude, isLoaded } = useApp();
 
-  const [texts, setTexts] = useState<string[]>(['', '', '']);
+  const [texts, setTexts] = useState<string[]>(
+    SCREENSHOT_MODE
+      ? ['My little sister making me laugh until I cried', 'The coach who stayed late to help me with free throws', 'A quiet morning with my dog before school']
+      : ['', '', '']
+  );
   const [cats, setCats] = useState<GratitudeCategory[]>(['people', 'experiences', 'things']);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -148,10 +153,12 @@ export default function GratitudeScreen() {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View>
-            <VideoPlaceholder
-              label="About this practice — Gratitude"
-              sublabel="A short intro to gratitude practice"
-            />
+            {!SCREENSHOT_MODE && (
+              <VideoPlaceholder
+                label="About this practice — Gratitude"
+                sublabel="A short intro to gratitude practice"
+              />
+            )}
             {[0, 1, 2].map(i => (
               <View
                 key={i}

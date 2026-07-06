@@ -8,6 +8,7 @@ import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useC
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { useColors } from '@/hooks/useColors';
 
 interface Service {
@@ -135,10 +136,12 @@ export default function SOSScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <VideoPlaceholder
-          label="A message for you"
-          sublabel="A personal message from the Authentic STEPS team"
-        />
+        {!SCREENSHOT_MODE && (
+          <VideoPlaceholder
+            label="A message for you"
+            sublabel="A personal message from the Authentic STEPS team"
+          />
+        )}
 
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Immediate Support Services</Text>
 

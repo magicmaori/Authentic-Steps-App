@@ -7,6 +7,7 @@ import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { useColors } from '@/hooks/useColors';
 
 const KIDS_HELPLINE_WEBCHAT_URL = 'https://kidshelpline.com.au/get-help/webchat';
@@ -158,10 +159,12 @@ export default function SupportScreen() {
           You do not have to figure this out alone.
         </Text>
 
-        <VideoPlaceholder
-          label="A message for you"
-          sublabel="A personal message from the Authentic STEPS team"
-        />
+        {!SCREENSHOT_MODE && (
+          <VideoPlaceholder
+            label="A message for you"
+            sublabel="A personal message from the Authentic STEPS team"
+          />
+        )}
 
         {triageStep === 'idle' && (
           <Pressable

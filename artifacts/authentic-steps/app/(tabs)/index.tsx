@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLogo } from '@/components/AppLogo';
 import { SOSButton } from '@/components/SOSButton';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -123,10 +124,12 @@ export default function DailyRitualScreen() {
           </View>
         </LinearGradient>
 
-        <VideoPlaceholder
-          label="Welcome from Authentic STEPS"
-          sublabel="Tap to watch — intro video coming soon"
-        />
+        {!SCREENSHOT_MODE && (
+          <VideoPlaceholder
+            label="Welcome from Authentic STEPS"
+            sublabel="Tap to watch — intro video coming soon"
+          />
+        )}
 
         {todayEntry?.iAmStatement ? (
           <LinearGradient

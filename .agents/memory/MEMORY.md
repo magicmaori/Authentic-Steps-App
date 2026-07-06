@@ -7,3 +7,4 @@
 - [Headless Clerk session minting](clerk-headless-sessions.md) — sign_in_token→dev_browser→ticket sign-in→session token gets a real JWT with no browser; powers the api-server `smoke` test against unmocked Clerk.
 - [Agency dashboard component testing](agency-dashboard-testing.md) — Vitest+RTL (own vitest.config), mock useGetMe for role gating, jsdom Radix stubs; run typecheck:libs first to clear stale lib .d.ts.
 - [pnpm transitive security overrides](pnpm-security-overrides.md) — how to patch transitive-dep CVEs in this workspace without major bumps, and when it's fine to leave one unpatched.
+- [Screenshot mode for Authentic Steps](screenshot-mode-authentic-steps.md) — SCREENSHOT_MODE env drives demo data + entitlement bypass for store screenshots; always delete stray `.env` after capturing or auth stays bypassed.

@@ -47,3 +47,63 @@ id = "XAZcNLlf9WHT5ktc4be6c"
 uri = "file://.local/outputs/Authentic-Steps-Youth.pptx"
 type = "slides"
 title = "Authentic Steps Youth.pptx"
+
+[[outputs]]
+id = "OuuSC8HncLe8o1XZGt1vQ"
+uri = "file://.local/screenshots/final/ios_6.7/01_home_daily.png"
+type = "image"
+title = "1. Home / Daily (iOS 6.7\")"
+
+[[outputs]]
+id = "c1eel-RymD52zNJampTn0"
+uri = "file://.local/screenshots/final/ios_6.7/02_ritual_gratitude.png"
+type = "image"
+title = "2. Gratitude Ritual (iOS 6.7\")"
+
+[[outputs]]
+id = "VkoHonRoA77vnoh1AVKjk"
+uri = "file://.local/screenshots/final/ios_6.7/03_ritual_iamstatement.png"
+type = "image"
+title = "3. I Am Ritual (iOS 6.7\")"
+
+[[outputs]]
+id = "0PfWhiUXa6K_BuPWr4MX4"
+uri = "file://.local/screenshots/final/ios_6.7/04_streaks.png"
+type = "image"
+title = "4. Streaks (iOS 6.7\")"
+
+[[outputs]]
+id = "wMWJVpLZ3X_zKT3JULVsZ"
+uri = "file://.local/screenshots/final/ios_6.7/05_toolbox.png"
+type = "image"
+title = "5. Toolbox (iOS 6.7\")"
+
+[[outputs]]
+id = "RkBsZGShh7vT-1WElZ0Je"
+uri = "file://.local/screenshots/final/ios_6.7/06_community.png"
+type = "image"
+title = "6. Community (iOS 6.7\")"
+
+[[outputs]]
+id = "ranYZycTjLLjFOF-X6QK8"
+uri = "file://.local/screenshots/final/ios_6.7/07_support_helplines.png"
+type = "image"
+title = "7. Support / Helplines (iOS 6.7\")"
+
+[[outputs]]
+id = "eRl7P-wV4pruzqfxpu1er"
+uri = "file://.local/screenshots/final/ios_6.7/08_ritual_intention.png"
+type = "image"
+title = "8. Intention Ritual (iOS 6.7\")"
+
+[[outputs]]
+id = "FRqFbo9tzZgKn0iMzBHsa"
+uri = "file://.local/screenshots/final/ios_6.7/09_onboarding.png"
+type = "image"
+title = "9. Onboarding (iOS 6.7\")"
+
+[[outputs]]
+id = "dXMP_1LJJUioBYBMUNG38"
+uri = "file://.local/screenshots/final/ios_6.7/10_ritual_complete.png"
+type = "image"
+title = "10. Ritual Complete (iOS 6.7\")"

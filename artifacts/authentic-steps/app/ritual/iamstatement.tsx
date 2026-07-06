@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SOSButton } from '@/components/SOSButton';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { AffirmationTheme, THEME_LABELS, affirmations } from '@/constants/affirmations';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
@@ -32,8 +33,8 @@ export default function IAmScreen() {
   const insets = useSafeAreaInsets();
   const { saveIAmStatement, isLoaded } = useApp();
 
-  const [activeTheme, setActiveTheme] = useState<AffirmationTheme>('confidence');
-  const [selected, setSelected] = useState('');
+  const [activeTheme, setActiveTheme] = useState<AffirmationTheme>('resilience');
+  const [selected, setSelected] = useState(SCREENSHOT_MODE ? 'I am growing through what I am going through' : '');
   const [mode, setMode] = useState<'library' | 'custom'>('library');
   const [customText, setCustomText] = useState('');
   const [saving, setSaving] = useState(false);
@@ -110,10 +111,12 @@ export default function IAmScreen() {
         <Text style={styles.prompt}>Choose or write your I Am statement for today.</Text>
       </LinearGradient>
 
-      <VideoPlaceholder
-        label="About this practice — I Am"
-        sublabel="A short intro to I Am affirmation practice"
-      />
+      {!SCREENSHOT_MODE && (
+        <VideoPlaceholder
+          label="About this practice — I Am"
+          sublabel="A short intro to I Am affirmation practice"
+        />
+      )}
 
       <View style={[styles.modeRow, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <Pressable
