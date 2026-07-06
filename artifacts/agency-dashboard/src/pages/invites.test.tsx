@@ -71,6 +71,75 @@ async function openGenerateDialog(user: ReturnType<typeof userEvent.setup>) {
   return await screen.findByRole("dialog");
 }
 
+describe("Invites copy link is role-aware", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function spyOnClipboard(user: ReturnType<typeof userEvent.setup>) {
+    // userEvent.setup() installs its own navigator.clipboard stub, so the spy
+    // must be attached after setup() runs, not in a shared beforeEach.
+    void user;
+    return vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+  }
+
+  it("copies a bare root link (mobile app) for a member invite", async () => {
+    setupHooks(adminMemberships());
+    mockedUseListInvites.mockReturnValue({
+      data: [
+        {
+          id: "invite-member-1",
+          code: "MEMBERCODE1",
+          role: "member",
+          subAccountId: "sub-1",
+          status: "pending",
+          email: null,
+          emailSentAt: null,
+          inviteExpiresAt: null,
+        },
+      ],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useListInvites>);
+    const user = userEvent.setup();
+    const writeText = spyOnClipboard(user);
+    renderInvites();
+
+    await user.click(await screen.findByRole("button", { name: /copy link/i }));
+
+    expect(writeText).toHaveBeenCalledWith(
+      `${window.location.origin}/?code=MEMBERCODE1`,
+    );
+  });
+
+  it("copies the dashboard /redeem link for a sub-account holder invite", async () => {
+    setupHooks(adminMemberships());
+    mockedUseListInvites.mockReturnValue({
+      data: [
+        {
+          id: "invite-holder-1",
+          code: "HOLDERCODE1",
+          role: "sub_account_holder",
+          subAccountId: "sub-1",
+          status: "pending",
+          email: null,
+          emailSentAt: null,
+          inviteExpiresAt: null,
+        },
+      ],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useListInvites>);
+    const user = userEvent.setup();
+    const writeText = spyOnClipboard(user);
+    renderInvites();
+
+    await user.click(await screen.findByRole("button", { name: /copy link/i }));
+
+    const [[copiedUrl]] = writeText.mock.calls;
+    expect(copiedUrl).toContain("/redeem?code=HOLDERCODE1");
+    expect(copiedUrl).not.toMatch(/\/\?code=/);
+  });
+});
+
 describe("Invites generate dialog role scoping", () => {
   beforeEach(() => {
     vi.clearAllMocks();

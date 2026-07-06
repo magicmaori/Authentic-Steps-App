@@ -127,9 +127,19 @@ export default function Invites() {
     });
   };
 
-  const copyLink = (code: string, id: string) => {
-    const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-    const url = `${window.location.origin}${basePath}/redeem?code=${code}`;
+  const copyLink = (code: string, id: string, role: string) => {
+    // Member invites belong in the mobile app (their actual product surface),
+    // which is served at the root of this same domain. Admin/holder invites
+    // keep pointing at this dashboard's own /redeem page, mirroring the
+    // role-aware link the backend emails out (see buildInviteUrl in
+    // api-server/src/lib/email.ts).
+    let url: string;
+    if (role === "member") {
+      url = `${window.location.origin}/?code=${code}`;
+    } else {
+      const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+      url = `${window.location.origin}${basePath}/redeem?code=${code}`;
+    }
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     toast({ title: "Link copied", description: "Redeem link copied to clipboard." });
@@ -408,7 +418,7 @@ export default function Invites() {
                               size="sm"
                               className="h-8"
                               disabled={!isPending}
-                              onClick={() => copyLink(invite.code, invite.id)}
+                              onClick={() => copyLink(invite.code, invite.id, invite.role)}
                             >
                               {copiedId === invite.id ? <Check className="h-4 w-4 mr-2 text-emerald-500" /> : <Copy className="h-4 w-4 mr-2" />}
                               Copy Link

@@ -103,6 +103,29 @@ export function buildRedeemUrl(code: string): string {
   return `${base}/redeem?code=${encodeURIComponent(code)}`;
 }
 
+/**
+ * Build the mobile app entry-point URL for an invite code. The Authentic
+ * Steps mobile app's landing/Expo server is mounted at the root of the same
+ * domain (unlike the dashboard, which lives under /dashboard), so this only
+ * needs the root origin plus the invite code as a query param. The landing
+ * page (and, once opened, the app's redeem screen) reads that param.
+ */
+export function buildMobileAppUrl(code: string): string {
+  const explicit = process.env.MOBILE_APP_URL?.replace(/\/$/, "");
+  const base = explicit ?? originFromEnv();
+  return `${base}/?code=${encodeURIComponent(code)}`;
+}
+
+/**
+ * Role-aware invite link: members are routed straight into the mobile app
+ * (where the product actually lives for them), while agency admins and
+ * sub-account holders keep going to the web dashboard, which is their
+ * management surface.
+ */
+export function buildInviteUrl(role: string, code: string): string {
+  return role === "member" ? buildMobileAppUrl(code) : buildRedeemUrl(code);
+}
+
 function originFromEnv(): string {
   const domains = process.env.REPLIT_DOMAINS?.split(",")
     .map((d) => d.trim())
@@ -146,7 +169,8 @@ export interface SendInviteEmailArgs {
 export async function sendInviteEmail(args: SendInviteEmailArgs): Promise<void> {
   const apiKey = await getResendApiKey();
   const from = process.env.INVITE_EMAIL_FROM ?? DEFAULT_FROM;
-  const redeemUrl = buildRedeemUrl(args.code);
+  const isMember = args.role === "member";
+  const redeemUrl = buildInviteUrl(args.role, args.code);
   const roleLabel = ROLE_LABELS[args.role] ?? args.role.replace(/_/g, " ");
   const program = args.programName ? ` for ${args.programName}` : "";
   const expiryLine = args.inviteExpiresAt
@@ -155,6 +179,10 @@ export async function sendInviteEmail(args: SendInviteEmailArgs): Promise<void> 
         { year: "numeric", month: "long", day: "numeric" },
       )}.</p>`
     : "";
+  const ctaLabel = isMember ? "Open the app" : "Accept invite";
+  const introLine = isMember
+    ? "Tap the button below to open the Authentic Steps Youth app and accept your invite."
+    : "Tap the button below to accept your invite and get access.";
 
   const subject = `You've been invited to Authentic Steps`;
   const html = `
@@ -165,11 +193,11 @@ export async function sendInviteEmail(args: SendInviteEmailArgs): Promise<void> 
         <strong>${escapeHtml(roleLabel)}</strong>${escapeHtml(program)}.
       </p>
       <p style="color:#374151;font-size:16px;line-height:1.5;">
-        Tap the button below to accept your invite and get access.
+        ${introLine}
       </p>
       <p style="margin:28px 0;">
         <a href="${redeemUrl}" style="background:#4f46e5;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:16px;font-weight:600;display:inline-block;">
-          Accept invite
+          ${ctaLabel}
         </a>
       </p>
       <p style="color:#6b7280;font-size:14px;line-height:1.5;">
@@ -183,7 +211,9 @@ export async function sendInviteEmail(args: SendInviteEmailArgs): Promise<void> 
   const text = [
     `You've been invited to join Authentic Steps as a ${roleLabel}${program}.`,
     "",
-    "Accept your invite using this link:",
+    isMember
+      ? "Open the app and accept your invite using this link:"
+      : "Accept your invite using this link:",
     redeemUrl,
     args.inviteExpiresAt
       ? `\nThis invite expires on ${args.inviteExpiresAt.toISOString().slice(0, 10)}.`

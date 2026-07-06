@@ -3,7 +3,7 @@ import { useGetMe, useGetEntitlement, useListSubAccounts, useListMembers, useLis
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Building2, Users, UserPlus, ArrowRight, ShieldCheck, Clock, AlertTriangle } from "lucide-react";
+import { Building2, Users, UserPlus, ArrowRight, ShieldCheck, Clock, AlertTriangle, Smartphone } from "lucide-react";
 import { format } from "date-fns";
 
 export default function Overview() {
@@ -38,8 +38,24 @@ export default function Overview() {
         <div className="max-w-3xl mx-auto space-y-8">
           <div>
             <h1 className="text-3xl font-bold font-display tracking-tight">Your Access</h1>
-            <p className="text-muted-foreground mt-2">Welcome to Authentic Steps. Manage your program access here.</p>
+            <p className="text-muted-foreground mt-2">Welcome to Authentic Steps.</p>
           </div>
+
+          <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden">
+            <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+              <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Smartphone className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="font-medium">Authentic Steps lives in the mobile app</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  This dashboard is for agency staff. As a member, please use the Authentic Steps
+                  app on your phone to check in, track your streak, and redeem invite codes — this
+                  page is just a status page.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="border-card-border bg-card shadow-sm overflow-hidden">
             <CardHeader className="border-b border-border/50 bg-muted/20">

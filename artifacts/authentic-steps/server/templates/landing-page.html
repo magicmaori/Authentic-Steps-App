@@ -386,7 +386,10 @@
             </div>
             <p class="step-description">Use your phone's camera or Expo Go</p>
             <div class="qr-code" id="qr-code"></div>
-            <a href="exps://EXPS_URL_PLACEHOLDER" class="open-button"
+            <a
+              href="exps://EXPS_URL_PLACEHOLDER"
+              id="open-expo-btn"
+              class="open-button"
               >Open in Expo Go</a
             >
           </div>
@@ -406,7 +409,18 @@
           /iPhone|iPad|iPod/i.test(ua) ||
           (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-        const deepLink = "exps://EXPS_URL_PLACEHOLDER";
+        // Preserve an invite code (?code=XYZ) across this page so it isn't
+        // lost if Expo Go isn't installed yet: it stays in the URL bar, and
+        // both the QR code and the "Open in Expo Go" button below encode it.
+        // The "/--/" segment is Expo Go's convention for telling an
+        // unpublished/dev project which in-app route to open on launch.
+        const inviteCode = new URLSearchParams(window.location.search).get(
+          "code",
+        );
+        const deepLink = inviteCode
+          ? "exps://EXPS_URL_PLACEHOLDER/--/redeem?code=" +
+            encodeURIComponent(inviteCode)
+          : "exps://EXPS_URL_PLACEHOLDER";
 
         // Adjust store buttons based on platform
         const appStoreBtn = document.getElementById("app-store-btn");
@@ -444,6 +458,8 @@
         });
 
         qrCode.append(document.getElementById("qr-code"));
+
+        document.getElementById("open-expo-btn").href = deepLink;
 
         if (isAndroid || isIOS) {
           loadingEl.style.display = "block";

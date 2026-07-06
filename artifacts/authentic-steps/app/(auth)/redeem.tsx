@@ -1,19 +1,43 @@
 import { useAuth } from '@clerk/expo';
 import { useRedeemInvite } from '@workspace/api-client-react';
-import React, { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import { AppLogo } from '@/components/AppLogo';
 import { AuthScaffold, authStyles as s } from '@/components/AuthScaffold';
 import { isApiError, useEntitlement } from '@/context/EntitlementContext';
+import { clearPendingInviteCode, getPendingInviteCode } from '@/utils/pendingInvite';
 
 export default function RedeemScreen() {
   const { mutateAsync, isPending } = useRedeemInvite();
   const { refresh } = useEntitlement();
   const { signOut } = useAuth();
+  const { code: codeParam } = useLocalSearchParams<{ code?: string }>();
 
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [prefilledFromLink, setPrefilledFromLink] = useState(false);
+
+  // A route param (deep-linked straight here) wins; otherwise fall back to
+  // whatever was captured at app launch, since AccessGate may have detoured
+  // through sign-in first and dropped the original query param along the way.
+  useEffect(() => {
+    const fromRoute = Array.isArray(codeParam) ? codeParam[0] : codeParam;
+    if (fromRoute) {
+      setCode(fromRoute.toUpperCase());
+      setPrefilledFromLink(true);
+      clearPendingInviteCode();
+      return;
+    }
+    getPendingInviteCode().then((pending) => {
+      if (pending) {
+        setCode(pending.toUpperCase());
+        setPrefilledFromLink(true);
+        clearPendingInviteCode();
+      }
+    });
+  }, [codeParam]);
 
   const handleRedeem = async () => {
     setError('');
@@ -59,9 +83,13 @@ export default function RedeemScreen() {
             value={code}
             onChangeText={(t) => {
               setCode(t);
+              setPrefilledFromLink(false);
               setError('');
             }}
           />
+          {prefilledFromLink && !error ? (
+            <Text style={s.helperNote}>Code pre-filled from your invite link.</Text>
+          ) : null}
         </View>
 
         {error ? <Text style={s.error}>{error}</Text> : null}

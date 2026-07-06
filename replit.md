@@ -20,8 +20,11 @@ Invites can carry an optional invitee email. When set, the API emails the redeem
 
 - `INVITE_EMAIL_FROM` — the From header (default `Authentic Steps <onboarding@resend.dev>`). To send to arbitrary recipients you must verify a sending domain in Resend and set this to an address on it; the default `onboarding@resend.dev` only reaches the Resend account owner.
 - `DASHBOARD_URL` — full base URL of the dashboard used to build redeem links (e.g. `https://your-app.example.com/dashboard`). If unset, it is derived from `REPLIT_DOMAINS`/`REPLIT_DEV_DOMAIN` + `DASHBOARD_BASE_PATH` (default `/dashboard`).
+- `MOBILE_APP_URL` — optional override for the mobile app's public entry URL used in member invite links (see below). If unset, it's derived the same way as `DASHBOARD_URL` but pointed at the root of the domain instead of `/dashboard`.
 
 Email delivery is best-effort on create: a send failure never blocks invite creation — the invite is still valid and `emailSentAt` stays null so the dashboard shows "Not sent" with a Send/Resend button.
+
+**Invite links are role-aware.** `member` invites (both the emailed link and the dashboard's "Copy Link" button) point at the mobile app's root URL (`https://<domain>/?code=<code>`) instead of the dashboard, since members' product surface is the Authentic Steps app, not the web dashboard. `agency_admin`/`sub_account_holder` invites still point at `/dashboard/redeem?code=<code>` — see `buildInviteUrl` in `artifacts/api-server/src/lib/email.ts` (backend) and `copyLink` in `artifacts/agency-dashboard/src/pages/invites.tsx` (frontend), which must stay in sync. The mobile app's landing page (served when Expo Go isn't installed) reads `?code=` from the URL and pre-fills it into an `exps://.../--/redeem?code=...` deep link; the app itself (`app/_layout.tsx` + `utils/pendingInvite.ts`) captures that code across the forced sign-in redirect and pre-fills it on the redeem screen. If a member ends up on the web dashboard anyway, the "Your Access" overview page shows a card pointing them to the mobile app instead of dashboard actions.
 
 ## Stack
 

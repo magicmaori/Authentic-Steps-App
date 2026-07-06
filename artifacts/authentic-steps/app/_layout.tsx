@@ -11,6 +11,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setBaseUrl } from "@workspace/api-client-react";
+import * as Linking from "expo-linking";
 import { router, Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useCallback, useEffect, useState } from "react";
@@ -27,6 +28,7 @@ import {
   routeForAccessState,
   useEntitlement,
 } from "@/context/EntitlementContext";
+import { capturePendingInviteFromUrl } from "@/utils/pendingInvite";
 
 const INTRO_SEEN_KEY = "hasSeenIntro";
 
@@ -108,6 +110,18 @@ export default function RootLayout() {
     AsyncStorage.getItem(INTRO_SEEN_KEY).then((value) => {
       setShowIntro(value === null);
     });
+  }, []);
+
+  useEffect(() => {
+    // Capture an invite code from a cold-start deep link (e.g. from the
+    // mobile landing page) as well as from links tapped while the app is
+    // already running. See utils/pendingInvite.ts for why this is stashed
+    // separately instead of relying on route params alone.
+    Linking.getInitialURL().then(capturePendingInviteFromUrl);
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      capturePendingInviteFromUrl(url);
+    });
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
