@@ -109,12 +109,25 @@ The EAS build dashboard at [expo.dev](https://expo.dev) shows build status, logs
 
 ### Build profiles summary (`artifacts/authentic-steps/eas.json`)
 
-| Profile | iOS output | Android output | Distribution |
-|---|---|---|---|
-| `development` | IPA (device) | APK | Internal (dev client) |
-| `preview` | IPA | APK | Internal (TestFlight / sideload) |
-| `preview-aab` | IPA | AAB | Internal (Play internal track) |
-| `production` | IPA | AAB | App Store / Play Store |
+| Profile | iOS output | Android output | Distribution | Auto-increment |
+|---|---|---|---|---|
+| `development` | IPA (device) | APK | Internal (dev client) | No |
+| `preview` | IPA | APK | Internal (TestFlight / sideload) | No |
+| `preview-aab` | IPA | AAB | Internal (Play internal track) | Yes |
+| `production` | IPA | AAB | App Store / Play Store | Yes |
+
+### Versioning strategy
+
+**Build number** — auto-incremented by EAS on every `preview-aab` and `production` build. You never touch it manually; App Store Connect and Google Play will never see a duplicate.
+
+**Marketing version** (`version` in `artifacts/authentic-steps/app.config.ts`) — follows semver (`MAJOR.MINOR.PATCH`). Bump it manually before cutting a release:
+
+```sh
+# Open app.config.ts and update the version field, e.g. '1.0.0' → '1.1.0'
+# then commit before running eas-build-ios / eas-build-android
+```
+
+Rule of thumb: bump `PATCH` for bug-fix releases, `MINOR` for new features, `MAJOR` for breaking changes or major redesigns. The version string is what users see in the App Store / Play Store listing.
 
 ## User preferences
 

@@ -25,6 +25,7 @@
       }
     },
     "preview-aab": {
+      "autoIncrement": true,
       "distribution": "internal",
       "ios": {
         "distribution": "internal"
