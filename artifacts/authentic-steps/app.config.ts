@@ -3,10 +3,15 @@ import { ExpoConfig } from 'expo/config';
 const replitDevDomain = process.env.REPLIT_DEV_DOMAIN ?? '';
 const apiBaseUrl = replitDevDomain ? `https://${replitDevDomain}` : '';
 
+// Single source of truth: version lives in package.json.
+// Bump it with: npm version patch|minor|major
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { version } = require('./package.json') as { version: string };
+
 const config: ExpoConfig = {
   name: 'Authentic Steps For Youth',
   slug: 'authentic-steps',
-  version: '1.0.0',
+  version,
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'authentic-steps',

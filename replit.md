@@ -120,10 +120,13 @@ The EAS build dashboard at [expo.dev](https://expo.dev) shows build status, logs
 
 **Build number** — auto-incremented by EAS on every `preview-aab` and `production` build. You never touch it manually; App Store Connect and Google Play will never see a duplicate.
 
-**Marketing version** (`version` in `artifacts/authentic-steps/app.config.ts`) — follows semver (`MAJOR.MINOR.PATCH`). Bump it manually before cutting a release:
+**Marketing version** — follows semver (`MAJOR.MINOR.PATCH`). The single source of truth is the `version` field in `artifacts/authentic-steps/package.json`; `app.config.ts` reads it at build time via `require('./package.json').version`. Bump it with the standard npm command before cutting a release:
 
 ```sh
-# Open app.config.ts and update the version field, e.g. '1.0.0' → '1.1.0'
+# From artifacts/authentic-steps/ (or use --filter):
+npm version patch   # 1.0.0 → 1.0.1  (bug fixes)
+npm version minor   # 1.0.0 → 1.1.0  (new features)
+npm version major   # 1.0.0 → 2.0.0  (breaking changes / major redesign)
 # then commit before running eas-build-ios / eas-build-android
 ```
 
