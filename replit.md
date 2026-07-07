@@ -51,9 +51,74 @@ Management happens through the **agency dashboard** web app (`artifacts/agency-d
 
 **Going live:** the dashboard uses Replit-managed Clerk, so production (`pk_live`) keys are swapped in automatically on publish — no manual key setup. After publishing, provision the real first agency admin against the **production** database by running the `bootstrap-agency` script with production `DATABASE_URL` / `CLERK_SECRET_KEY` (the admin must have signed into the live app once first).
 
+## Mobile builds (iOS & Android via EAS)
+
+Web publishing stays on Replit's standard deployment flow. iOS and Android app builds use **EAS Build** directly — not Replit's built-in Expo Launch flow, which conflicts with manually-managed Apple credentials and doesn't support Android.
+
+### Prerequisites (must be done once before any build can run)
+
+| Secret / credential | Where to set it | Notes |
+|---|---|---|
+| `EXPO_TOKEN` | Shell env or CI secret | Personal/team token from expo.dev → Account Settings → Access Tokens |
+| Apple App Store Connect API key | Uploaded interactively via `eas credentials` or pre-stored at `~/.eas/credentials.json` | Requires an App Store Connect API key with App Manager role |
+| `eas.json` → `submit.production.ios.ascAppId` | `artifacts/authentic-steps/eas.json` | Replace `REPLACE_WITH_ASC_APP_ID` with the numeric App Store Connect app ID |
+| `eas.json` → `submit.production.ios.appleTeamId` | `artifacts/authentic-steps/eas.json` | Replace `REPLACE_WITH_APPLE_TEAM_ID` with the 10-character Apple Team ID |
+| `google-play-service-account.json` | Place at `artifacts/authentic-steps/google-play-service-account.json` (gitignored) | Google Play service account JSON with "Release Manager" role on the app. Required only for `eas-submit-android`. |
+
+Running a build/submit script without `EXPO_TOKEN` set will fail immediately with an auth error from the EAS CLI — not a silent hang.
+
+### iOS build & release commands
+
+Run from `artifacts/authentic-steps/` or prefix with `pnpm --filter @workspace/authentic-steps run`:
+
+```sh
+# Build production IPA for App Store (uses manually-managed Apple credentials)
+pnpm --filter @workspace/authentic-steps run eas-build-ios
+
+# Build internal distribution IPA for TestFlight invite without store review
+pnpm --filter @workspace/authentic-steps run eas-build-ios-preview
+
+# Submit the latest production build to App Store Connect
+pnpm --filter @workspace/authentic-steps run eas-submit-ios
+```
+
+### Android build & distribution commands
+
+Two viable distribution paths — pick based on what you need:
+
+**Option A — Google Play internal testing track (recommended for beta)**
+Upload an AAB to Play Console's internal testing track. Testers install via the Play Store link. No sideloading, works on any Android device including those with restricted installs.
+
+```sh
+# Build production AAB for Play Console
+pnpm --filter @workspace/authentic-steps run eas-build-android
+
+# Submit the latest AAB to Play Console internal track (requires google-play-service-account.json)
+pnpm --filter @workspace/authentic-steps run eas-submit-android
+```
+
+**Option B — Direct APK sideload (fastest for small tester groups)**
+Build an APK and share it directly (e.g. via email or download link). Testers must enable "Install unknown apps" on their device. No Play Console account or review required, but Android 13+ may warn users during install.
+
+```sh
+# Build a directly-installable APK (preview profile)
+pnpm --filter @workspace/authentic-steps run eas-build-android-apk
+```
+
+The EAS build dashboard at [expo.dev](https://expo.dev) shows build status, logs, and artifact download links for all builds.
+
+### Build profiles summary (`artifacts/authentic-steps/eas.json`)
+
+| Profile | iOS output | Android output | Distribution |
+|---|---|---|---|
+| `development` | IPA (device) | APK | Internal (dev client) |
+| `preview` | IPA | APK | Internal (TestFlight / sideload) |
+| `preview-aab` | IPA | AAB | Internal (Play internal track) |
+| `production` | IPA | AAB | App Store / Play Store |
+
 ## User preferences
 
-- Mobile distribution: wants both iOS (TestFlight pilot, then App Store) and Android testers. Note: Replit's built-in Expo Launch publish flow currently only handles iOS/App Store submission — Android is not supported by that flow, so an alternative path (e.g. manual EAS build/internal APK distribution) will need to be figured out separately when that's prioritized.
+- Mobile distribution: wants both iOS (TestFlight pilot, then App Store) and Android testers. EAS build workflow documented above covers both paths.
 
 ## Gotchas
 
