@@ -44,6 +44,7 @@ onlyBuiltDependencies:
 
 overrides:
   zod: 3.25.76
+  eas-cli>zod: ^4.0.0
   '@babel/core': 7.29.6
   '@esbuild-kit/esm-loader': npm:tsx@^4.21.0
   '@expo/ngrok-bin>@expo/ngrok-bin-darwin-arm64': '-'

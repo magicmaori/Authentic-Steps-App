@@ -18,7 +18,7 @@ const easProjectId = appJson?.expo?.extra?.eas?.projectId;
 
 const config: ExpoConfig = {
   name: 'Authentic Steps For Youth',
-  slug: 'authentic-steps',
+  slug: 'authentic-steps-app',
   version,
   orientation: 'portrait',
   icon: './assets/images/icon.png',
