@@ -59,7 +59,7 @@ Web publishing stays on Replit's standard deployment flow. iOS and Android app b
 
 The project must be linked to an EAS project on expo.dev so the CLI knows where to send builds. This is a one-time step per developer account.
 
-**Status:** ⚠️ Not yet linked — `app.json` does not contain `extra.eas.projectId`. All build and submit scripts will refuse to run until this step is complete.
+**Status:** ✅ Linked — project ID `3bbd004e-d0f9-404d-bc18-c7d378e3eae1` (owner: `authentic-steps-for-youthapp`, slug: `authentic-steps-app`).
 
 **Steps:**
 

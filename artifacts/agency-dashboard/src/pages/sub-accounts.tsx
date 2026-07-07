@@ -34,7 +34,7 @@ export default function SubAccounts() {
   const [search, setSearch] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       name: "",
     },

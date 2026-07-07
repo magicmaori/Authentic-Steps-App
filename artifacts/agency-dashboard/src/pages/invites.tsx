@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useListInvites, useListSubAccounts, useCreateInvite, useRevokeInvite, useResendInvite, getListInvitesQueryKey, useGetMe, getListSubAccountsQueryKey } from "@workspace/api-client-react";
 import { getActiveMembership, getActiveRole } from "@/lib/roles";
@@ -38,6 +38,8 @@ export default function Invites() {
   const [search, setSearch] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
 
   const { data: invites, isLoading: invitesLoading } = useListInvites(
     subAccountFilter !== "all" ? { subAccountId: subAccountFilter } : undefined
@@ -52,7 +54,7 @@ export default function Invites() {
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       subAccountId: defaultSubAccountId || "",
       role: "member",
@@ -143,7 +145,7 @@ export default function Invites() {
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     toast({ title: "Link copied", description: "Redeem link copied to clipboard." });
-    setTimeout(() => setCopiedId(null), 2000);
+    copiedTimerRef.current = setTimeout(() => setCopiedId(null), 2000);
   };
 
   const filteredInvites = invites?.filter(i => {
