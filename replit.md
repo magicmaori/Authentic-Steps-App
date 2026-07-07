@@ -55,17 +55,39 @@ Management happens through the **agency dashboard** web app (`artifacts/agency-d
 
 Web publishing stays on Replit's standard deployment flow. iOS and Android app builds use **EAS Build** directly — not Replit's built-in Expo Launch flow, which conflicts with manually-managed Apple credentials and doesn't support Android.
 
+### One-time EAS project linking (must be done before first build)
+
+The project must be linked to an EAS project on expo.dev so the CLI knows where to send builds. This is a one-time step per developer account.
+
+**Status:** ⚠️ Not yet linked — `app.json` does not contain `extra.eas.projectId`. All build and submit scripts will refuse to run until this step is complete.
+
+**Steps:**
+
+1. Get an Expo access token at [expo.dev → Account Settings → Access Tokens](https://expo.dev/settings/access-tokens) and set it:
+   ```sh
+   export EXPO_TOKEN=your_token_here
+   ```
+2. From the workspace root, run:
+   ```sh
+   pnpm --filter @workspace/authentic-steps run eas-init
+   ```
+   The CLI will create (or link to) an EAS project under your Expo account and write `extra.eas.projectId` into `artifacts/authentic-steps/app.json`.
+3. Commit the updated `app.json`. After this, all build scripts work — `app.config.ts` reads the ID from `app.json` automatically.
+
+Once the project is linked, update the status line above (replace ⚠️ with ✅ and add the project ID).
+
 ### Prerequisites (must be done once before any build can run)
 
 | Secret / credential | Where to set it | Notes |
 |---|---|---|
+| EAS project link | Run `eas-init` (see above) | Writes `extra.eas.projectId` to `app.json` |
 | `EXPO_TOKEN` | Shell env or CI secret | Personal/team token from expo.dev → Account Settings → Access Tokens |
 | Apple App Store Connect API key | Uploaded interactively via `eas credentials` or pre-stored at `~/.eas/credentials.json` | Requires an App Store Connect API key with App Manager role |
-| `eas.json` → `submit.production.ios.ascAppId` | `artifacts/authentic-steps/eas.json` | Replace `REPLACE_WITH_ASC_APP_ID` with the numeric App Store Connect app ID |
-| `eas.json` → `submit.production.ios.appleTeamId` | `artifacts/authentic-steps/eas.json` | Replace `REPLACE_WITH_APPLE_TEAM_ID` with the 10-character Apple Team ID |
+| `eas.json` → `submit.production.ios.ascAppId` | `artifacts/authentic-steps/eas.json` | Replace `REPLACE_WITH_ASC_APP_ID` with the numeric App Store Connect app ID (find it at appstoreconnect.apple.com → Your App → General → App Information → Apple ID) |
+| `eas.json` → `submit.production.ios.appleTeamId` | `artifacts/authentic-steps/eas.json` | Replace `REPLACE_WITH_APPLE_TEAM_ID` with the 10-character Apple Team ID (find it at developer.apple.com → Account → Membership → Team ID) |
 | `google-play-service-account.json` | Place at `artifacts/authentic-steps/google-play-service-account.json` (gitignored) | Google Play service account JSON with "Release Manager" role on the app. Required only for `eas-submit-android`. |
 
-Running a build/submit script without `EXPO_TOKEN` set will fail immediately with an auth error from the EAS CLI — not a silent hang.
+All build and submit scripts run `scripts/check-eas-setup.js` first. They fail immediately with a clear, actionable error if the project isn't linked or if iOS submit placeholders haven't been filled in — no silent hangs.
 
 ### iOS build & release commands
 

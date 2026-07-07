@@ -8,6 +8,14 @@ const apiBaseUrl = replitDevDomain ? `https://${replitDevDomain}` : '';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { version } = require('./package.json') as { version: string };
 
+// EAS project ID is written to app.json by `eas init` and read back here so
+// that app.config.ts (which takes precedence over app.json) still exposes it
+// to the EAS CLI.  If it is missing, `scripts/check-eas-setup.js` will print
+// a clear error before any build or submit command runs.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const appJson = require('./app.json') as { expo?: { extra?: { eas?: { projectId?: string } } } };
+const easProjectId = appJson?.expo?.extra?.eas?.projectId;
+
 const config: ExpoConfig = {
   name: 'Authentic Steps For Youth',
   slug: 'authentic-steps',
@@ -67,6 +75,9 @@ const config: ExpoConfig = {
   },
   extra: {
     apiBaseUrl,
+    eas: {
+      projectId: easProjectId,
+    },
   },
 };
 
