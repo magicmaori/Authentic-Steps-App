@@ -13,13 +13,18 @@ day-to-day status.
 ## Feedback capture
 
 Every phase below relies on one lightweight mechanism: the **"Report a problem"** action in
-the app's Profile tab (Settings → Support & Feedback). It opens a pre-filled email draft to
-`hello@authenticsteps.com.au` with the device platform/OS version and the tester's anonymous
+the mobile app's Profile tab (Settings → Support & Feedback). It opens a pre-filled email draft
+to `hello@authenticsteps.com.au` with the device platform/OS version and the tester's anonymous
 name attached, so reports are traceable without collecting any other personal data. There is
 no backend ticket system by design — for a beta of this size, a shared inbox is durable
 enough and avoids building/maintaining extra infrastructure. Log every incoming report (even
 hallway/Slack/text feedback that didn't come through the app) into `ROLLOUT_STATUS.md` under
 "Open feedback" so it doesn't get lost between updates.
+
+The Agency Dashboard (agency admins and sub-account holders) has the same mechanism: a "Report
+a problem" link in the sidebar (desktop) / header (mobile) that opens a pre-filled email draft
+to the same address with the current page and role attached, so feedback from that audience
+during the beta doesn't have to travel through informal channels either.
 
 ## Phase 1 — Internal beta (trusted testers)
 

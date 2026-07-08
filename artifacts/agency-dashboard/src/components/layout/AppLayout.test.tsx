@@ -80,3 +80,20 @@ describe("AppLayout nav gating", () => {
     expect(labels).not.toContain("Sub-Accounts");
   });
 });
+
+describe("AppLayout report a problem", () => {
+  beforeEach(() => {
+    mockedUseGetMe.mockReset();
+  });
+
+  it("renders a mailto link to hello@authenticsteps.com.au", () => {
+    setMe(holderMemberships());
+    renderLayout();
+
+    const links = screen.getAllByRole("link", { name: /report a problem/i });
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link.getAttribute("href")).toMatch(/^mailto:hello@authenticsteps\.com\.au\?/);
+    }
+  });
+});

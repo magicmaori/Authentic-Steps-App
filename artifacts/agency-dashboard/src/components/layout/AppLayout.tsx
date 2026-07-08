@@ -1,9 +1,30 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { UserProfileButton } from "@/components/UserProfileButton";
-import { LayoutDashboard, Users, UserPlus, Building2 } from "lucide-react";
+import { LayoutDashboard, Users, UserPlus, Building2, MessageCircleQuestion } from "lucide-react";
 import { useGetMe } from "@workspace/api-client-react";
 import { getActiveRole } from "@/lib/roles";
+
+function buildReportProblemUrl(role: string | undefined, path: string): string {
+  const subject = encodeURIComponent("Authentic Steps Dashboard — Feedback / bug report");
+  const deviceInfo = `Page: ${path}\nRole: ${role ?? "n/a"}\nUser agent: ${typeof navigator !== "undefined" ? navigator.userAgent : "n/a"}`;
+  const body = encodeURIComponent(
+    `Describe what happened, and what you expected instead:\n\n\n\n---\nDon't edit below this line — it helps us reproduce the issue\n${deviceInfo}`
+  );
+  return `mailto:hello@authenticsteps.com.au?subject=${subject}&body=${body}`;
+}
+
+function ReportProblemLink({ role, path, className }: { role: string | undefined; path: string; className?: string }) {
+  return (
+    <a
+      href={buildReportProblemUrl(role, path)}
+      className={className ?? "flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"}
+    >
+      <MessageCircleQuestion className="h-4 w-4" />
+      Report a problem
+    </a>
+  );
+}
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -32,7 +53,10 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex items-center gap-2">
           <img src={`${window.location.origin}${basePath}/logo.svg`} alt="Authentic Steps" className="h-8" />
         </div>
-        <UserProfileButton />
+        <div className="flex items-center gap-4">
+          <ReportProblemLink role={role} path={location} className="text-muted-foreground hover:text-foreground transition-colors" />
+          <UserProfileButton />
+        </div>
       </header>
 
       <aside className="hidden md:flex w-64 flex-col border-r border-border bg-card">
@@ -51,7 +75,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             );
           })}
         </nav>
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-3">
+          <ReportProblemLink role={role} path={location} />
           <UserProfileButton />
         </div>
       </aside>

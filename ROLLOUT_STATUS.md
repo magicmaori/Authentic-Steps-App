@@ -1,10 +1,10 @@
 # Rollout Status
 
 Single place to see where the rollout stands. Update this whenever the phase changes,
-testers are added/removed, or feedback comes in (from the in-app "Report a problem" email,
-or from any other channel — Slack, text, hallway conversation). See `ROLLOUT.md` for the
-process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for the final gate
-before public launch.
+testers are added/removed, or feedback comes in (from the mobile app's or Agency Dashboard's
+"Report a problem" email, or from any other channel — Slack, text, hallway conversation). See
+`ROLLOUT.md` for the process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for
+the final gate before public launch.
 
 _Last updated: 2026-07-08_
 
