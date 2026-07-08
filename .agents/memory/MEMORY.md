@@ -10,3 +10,4 @@
 - [Screenshot mode for Authentic Steps](screenshot-mode-authentic-steps.md) — SCREENSHOT_MODE env drives demo data + entitlement bypass for store screenshots; always delete stray `.env` after capturing or auth stays bypassed.
 - [Testing navigator.clipboard with user-event](testing-clipboard-user-event.md) — userEvent.setup() installs its own navigator.clipboard stub; spy on it AFTER setup(), not in a shared beforeEach, or the spy silently never fires.
 - [hookform-resolvers zod version conflict](hookform-resolvers-zod.md) — @hookform/resolvers resolves zod to its own peer dep version (4.4.3) not the workspace catalog (3.25.76); fix with `as any` cast on zodResolver() + zod override in pnpm-workspace.yaml.
+- [EAS cloud builds don't inherit Replit env vars](eas-mobile-env-vars.md) — register EXPO_PUBLIC_* vars via `eas env:create`; sourced live Clerk pk_live key from the published web bundle since it's not a readable secret.
