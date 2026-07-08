@@ -132,6 +132,7 @@ export default function IntentionScreen() {
               <VideoPlaceholder
                 label="About this practice — Intention"
                 sublabel="A short intro to setting a daily intention"
+                source={require('@/assets/videos/intention-intro.mp4')}
               />
             )}
             <View style={[styles.circleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

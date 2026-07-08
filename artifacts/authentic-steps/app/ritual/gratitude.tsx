@@ -157,6 +157,7 @@ export default function GratitudeScreen() {
               <VideoPlaceholder
                 label="About this practice — Gratitude"
                 sublabel="A short intro to gratitude practice"
+                source={require('@/assets/videos/gratitude-intro.mp4')}
               />
             )}
             {[0, 1, 2].map(i => (

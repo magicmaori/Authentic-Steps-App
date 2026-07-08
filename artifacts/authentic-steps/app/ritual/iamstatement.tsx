@@ -115,6 +115,7 @@ export default function IAmScreen() {
         <VideoPlaceholder
           label="About this practice — I Am"
           sublabel="A short intro to I Am affirmation practice"
+          source={require('@/assets/videos/iam-intro.mp4')}
         />
       )}
 

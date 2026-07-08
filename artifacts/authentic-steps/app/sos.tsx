@@ -140,6 +140,7 @@ export default function SOSScreen() {
           <VideoPlaceholder
             label="A message for you"
             sublabel="A personal message from the Authentic STEPS team"
+            source={require('@/assets/videos/message-for-you.mp4')}
           />
         )}
 

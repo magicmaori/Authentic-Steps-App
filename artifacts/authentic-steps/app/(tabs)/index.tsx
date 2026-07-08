@@ -127,7 +127,8 @@ export default function DailyRitualScreen() {
         {!SCREENSHOT_MODE && (
           <VideoPlaceholder
             label="Welcome from Authentic STEPS"
-            sublabel="Tap to watch — intro video coming soon"
+            sublabel="Tap to watch our welcome video"
+            source={require('@/assets/videos/welcome-intro.mp4')}
           />
         )}
 
