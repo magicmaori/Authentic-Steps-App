@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResizeMode, Video } from 'expo-av';
 import * as Network from 'expo-network';
 import React, { useState } from 'react';
@@ -16,15 +17,21 @@ interface VideoPlaceholderProps {
   source: string | null;
 }
 
+const STORAGE_KEY_ALLOW_CELLULAR = '@authentic_steps_allow_cellular_video';
+
 /**
  * Styled video card with a play button. Tapping it opens a full-screen
  * modal player (expo-av) that streams `source` over the network. Fails
  * gracefully (shows an inline message instead of crashing) if the device is
- * offline or playback otherwise fails.
+ * offline or playback otherwise fails. If the device is on cellular data,
+ * shows a heads-up before streaming so users don't unexpectedly burn mobile
+ * data, unless they've previously chosen to always allow it.
  */
 export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderProps) {
   const [visible, setVisible] = useState(false);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'offline'>('loading');
+  const [status, setStatus] = useState<
+    'checking' | 'loading' | 'ready' | 'error' | 'offline' | 'cellular-warning'
+  >('checking');
   const insets = useSafeAreaInsets();
 
   const openPlayer = async () => {
@@ -34,7 +41,11 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
       return;
     }
 
-    setStatus('loading');
+    // Show the modal immediately with a neutral "checking" state so we never
+    // mount (and auto-play) the <Video> element before we've confirmed the
+    // connection is safe to stream on — the network/preference check below
+    // is async and must fully resolve before any playback can start.
+    setStatus('checking');
     setVisible(true);
 
     try {
@@ -43,10 +54,29 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
         setStatus('offline');
         return;
       }
+
+      if (network.type === Network.NetworkStateType.CELLULAR) {
+        const alwaysAllow = await AsyncStorage.getItem(STORAGE_KEY_ALLOW_CELLULAR);
+        if (alwaysAllow !== 'true') {
+          setStatus('cellular-warning');
+          return;
+        }
+      }
     } catch {
       // If the connectivity check itself fails, fall through and let the
       // player try — its own onError will surface a failure if needed.
     }
+
+    setStatus('loading');
+  };
+
+  const playOnCellular = (alwaysAllow: boolean) => {
+    if (alwaysAllow) {
+      AsyncStorage.setItem(STORAGE_KEY_ALLOW_CELLULAR, 'true').catch(() => {
+        // Non-fatal — worst case the user is asked again next time.
+      });
+    }
+    setStatus('loading');
   };
 
   const closePlayer = () => {
@@ -97,6 +127,39 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
               <View style={styles.errorWrap}>
                 <Ionicons name="alert-circle-outline" size={36} color="#fff" />
                 <Text style={styles.errorText}>This video couldn't be played right now.</Text>
+              </View>
+            ) : status === 'cellular-warning' ? (
+              <View style={styles.errorWrap}>
+                <Ionicons name="cellular-outline" size={36} color="#fff" />
+                <Text style={styles.errorText}>
+                  You're on mobile data. This video may use several MB of data — continue?
+                </Text>
+                <View style={styles.cellularActions}>
+                  <Pressable
+                    onPress={() => playOnCellular(false)}
+                    style={({ pressed }) => [styles.cellularButton, pressed && styles.pressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Play video using mobile data"
+                  >
+                    <Text style={styles.cellularButtonText}>Play anyway</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => playOnCellular(true)}
+                    style={({ pressed }) => [
+                      styles.cellularButton,
+                      styles.cellularButtonSecondary,
+                      pressed && styles.pressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Always allow videos to play on mobile data"
+                  >
+                    <Text style={styles.cellularButtonText}>Always allow on mobile data</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : status === 'checking' ? (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#fff" />
               </View>
             ) : (
               <>
@@ -235,6 +298,26 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
     textAlign: 'center',
+  },
+  cellularActions: {
+    gap: 10,
+    marginTop: 4,
+    width: '100%',
+  },
+  cellularButton: {
+    backgroundColor: 'rgba(3,152,158,0.85)',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  cellularButtonSecondary: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  cellularButtonText: {
+    color: '#fff',
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
   },
   closeButton: {
     position: 'absolute',
