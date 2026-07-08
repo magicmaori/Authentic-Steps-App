@@ -14,3 +14,4 @@
 - [api-server route mount order footgun](api-server-router-mount-order.md) — unscoped `router.use(requireAuth)` in me/sub-accounts/invites/members routers 401s any router mounted after them; new public routes must mount before them in index.ts.
 - [Updating static assets in Object Storage](object-storage-static-asset-updates.md) — direct-write pattern for replacing pre-uploaded public files (e.g. app videos) without the presigned-upload flow.
 - [Planned swap to YouTube-hosted videos](youtube-video-swap-plan.md) — user wants to replace self-hosted ritual videos with YouTube links pending internal approval; needs a player change, not just a URL swap.
+- [Mocking expo-file-system in jest-expo tests](expo-file-system-jest-mocking.md) — jest-expo has its own built-in legacy mock; override with an explicit `jest.mock(..., () => require(...))` factory, and never name the mock file `__mocks__/expo-file-system.ts` (self-recursion).

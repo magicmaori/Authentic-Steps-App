@@ -5,6 +5,7 @@ import * as Network from 'expo-network';
 import React, { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { cacheVideoInBackground, getCachedVideoUri } from '../lib/videoCache';
 
 interface VideoPlaceholderProps {
   label: string;
@@ -32,6 +33,7 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
   const [status, setStatus] = useState<
     'checking' | 'loading' | 'ready' | 'error' | 'offline' | 'cellular-warning'
   >('checking');
+  const [playbackUri, setPlaybackUri] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
 
   const openPlayer = async () => {
@@ -47,6 +49,17 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
     // is async and must fully resolve before any playback can start.
     setStatus('checking');
     setVisible(true);
+
+    // Previously-watched videos play instantly from the on-device cache
+    // instead of re-streaming over the network.
+    const cachedUri = getCachedVideoUri(source);
+    setPlaybackUri(cachedUri ?? source);
+
+    if (cachedUri) {
+      // Already cached — no need to check connectivity, it'll play offline.
+      setStatus('loading');
+      return;
+    }
 
     try {
       const network = await Network.getNetworkStateAsync();
@@ -68,6 +81,11 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
     }
 
     setStatus('loading');
+
+    // First-time playback streams normally; cache a copy in the background
+    // (best-effort, never blocks or affects the current playback) so the
+    // next open can skip the network entirely.
+    void cacheVideoInBackground(source);
   };
 
   const playOnCellular = (alwaysAllow: boolean) => {
@@ -77,10 +95,18 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
       });
     }
     setStatus('loading');
+
+    // The cellular-warning path is only reached for uncached videos (cached
+    // videos return earlier, above), so it's safe to kick off background
+    // caching here too.
+    if (source) {
+      void cacheVideoInBackground(source);
+    }
   };
 
   const closePlayer = () => {
     setVisible(false);
+    setPlaybackUri(null);
   };
 
   return (
@@ -123,7 +149,7 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
                   No internet connection. Connect to Wi-Fi or mobile data to watch this video.
                 </Text>
               </View>
-            ) : status === 'error' || !source ? (
+            ) : status === 'error' || !playbackUri ? (
               <View style={styles.errorWrap}>
                 <Ionicons name="alert-circle-outline" size={36} color="#fff" />
                 <Text style={styles.errorText}>This video couldn't be played right now.</Text>
@@ -164,7 +190,7 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
             ) : (
               <>
                 <Video
-                  source={{ uri: source }}
+                  source={{ uri: playbackUri }}
                   style={styles.video}
                   useNativeControls
                   resizeMode={ResizeMode.CONTAIN}
