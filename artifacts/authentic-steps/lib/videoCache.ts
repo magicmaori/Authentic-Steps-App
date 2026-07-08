@@ -12,6 +12,7 @@
  * streaming the original remote URL.
  */
 import { Directory, File, Paths } from "expo-file-system";
+import * as Network from "expo-network";
 
 const CACHE_SUBDIR = "ritual-videos";
 
@@ -90,5 +91,29 @@ export async function cacheVideoInBackground(remoteUrl: string): Promise<void> {
   } catch {
     // Caching is a nice-to-have; playback already streams from `remoteUrl`
     // regardless of whether this succeeds.
+  }
+}
+
+/**
+ * Opportunistically pre-downloads every video in `remoteUrls` so the very
+ * first watch is instant too, not just replays. Intended to be fired (and
+ * forgotten) once on app launch — it never throws, never blocks the caller,
+ * and only proceeds on Wi-Fi to avoid burning cellular data. Videos are
+ * downloaded one at a time (rather than in parallel) to avoid saturating a
+ * weak Wi-Fi connection right at app startup; already-cached videos are
+ * skipped instantly by `cacheVideoInBackground`.
+ */
+export async function precacheVideosOnWifi(remoteUrls: string[]): Promise<void> {
+  try {
+    const network = await Network.getNetworkStateAsync();
+    if (network.type !== Network.NetworkStateType.WIFI) return;
+    if (network.isInternetReachable === false) return;
+
+    for (const url of remoteUrls) {
+      await cacheVideoInBackground(url);
+    }
+  } catch {
+    // Best-effort — if the network check itself fails, just skip
+    // pre-caching this launch. Videos still stream fine on demand.
   }
 }

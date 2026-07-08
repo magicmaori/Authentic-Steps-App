@@ -28,6 +28,8 @@ import {
   routeForAccessState,
   useEntitlement,
 } from "@/context/EntitlementContext";
+import { precacheVideosOnWifi } from "@/lib/videoCache";
+import { getAllVideoUrls } from "@/lib/videoSource";
 import { capturePendingInviteFromUrl } from "@/utils/pendingInvite";
 
 const INTRO_SEEN_KEY = "hasSeenIntro";
@@ -122,6 +124,14 @@ export default function RootLayout() {
       capturePendingInviteFromUrl(url);
     });
     return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    // Fire-and-forget: pre-cache ritual videos in the background so even
+    // the first watch is instant, not just replays. Only runs on Wi-Fi and
+    // never blocks startup or the UI — see lib/videoCache.ts for the
+    // network check and graceful offline/failure handling.
+    void precacheVideosOnWifi(getAllVideoUrls());
   }, []);
 
   useEffect(() => {

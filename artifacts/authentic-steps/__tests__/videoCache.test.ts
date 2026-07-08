@@ -6,13 +6,26 @@
  */
 jest.mock('expo-file-system', () => require('../test-helpers/expoFileSystemMock'));
 
+jest.mock('expo-network', () => {
+  const actual = jest.requireActual('expo-network');
+  return {
+    ...actual,
+    getNetworkStateAsync: jest.fn(),
+  };
+});
+
+import * as Network from 'expo-network';
+
 import { __mockClock, __mockFiles } from '../test-helpers/expoFileSystemMock';
-import { cacheVideoInBackground, getCachedVideoUri } from '../lib/videoCache';
+import { cacheVideoInBackground, getCachedVideoUri, precacheVideosOnWifi } from '../lib/videoCache';
+
+const mockedGetNetworkStateAsync = Network.getNetworkStateAsync as jest.Mock;
 
 describe('videoCache', () => {
   beforeEach(() => {
     __mockFiles.clear();
     __mockClock.now = 1_000;
+    mockedGetNetworkStateAsync.mockReset();
   });
 
   it('reports no cached URI before a video has been downloaded', () => {
@@ -50,5 +63,76 @@ describe('videoCache', () => {
     // so the oldest (first cached) entry should have been evicted.
     expect(getCachedVideoUri(urls[0])).toBeNull();
     expect(getCachedVideoUri(urls[urls.length - 1])).not.toBeNull();
+  });
+
+  describe('precacheVideosOnWifi', () => {
+    const urls = [
+      'https://example.com/videos/welcome-intro.mp4',
+      'https://example.com/videos/message-for-you.mp4',
+    ];
+
+    it('downloads every video when on Wi-Fi', async () => {
+      mockedGetNetworkStateAsync.mockResolvedValue({
+        type: Network.NetworkStateType.WIFI,
+        isConnected: true,
+        isInternetReachable: true,
+      });
+
+      await precacheVideosOnWifi(urls);
+
+      for (const url of urls) {
+        expect(getCachedVideoUri(url)).not.toBeNull();
+      }
+    });
+
+    it('does not download anything on cellular', async () => {
+      mockedGetNetworkStateAsync.mockResolvedValue({
+        type: Network.NetworkStateType.CELLULAR,
+        isConnected: true,
+        isInternetReachable: true,
+      });
+
+      await precacheVideosOnWifi(urls);
+
+      for (const url of urls) {
+        expect(getCachedVideoUri(url)).toBeNull();
+      }
+    });
+
+    it('does not download anything when offline', async () => {
+      mockedGetNetworkStateAsync.mockResolvedValue({
+        type: Network.NetworkStateType.WIFI,
+        isConnected: false,
+        isInternetReachable: false,
+      });
+
+      await precacheVideosOnWifi(urls);
+
+      for (const url of urls) {
+        expect(getCachedVideoUri(url)).toBeNull();
+      }
+    });
+
+    it('resolves without throwing if the network check itself fails', async () => {
+      mockedGetNetworkStateAsync.mockRejectedValue(new Error('boom'));
+
+      await expect(precacheVideosOnWifi(urls)).resolves.toBeUndefined();
+    });
+
+    it('skips videos that are already cached', async () => {
+      await cacheVideoInBackground(urls[0]);
+      const cachedUriBefore = getCachedVideoUri(urls[0]);
+
+      mockedGetNetworkStateAsync.mockResolvedValue({
+        type: Network.NetworkStateType.WIFI,
+        isConnected: true,
+        isInternetReachable: true,
+      });
+
+      await precacheVideosOnWifi(urls);
+
+      expect(getCachedVideoUri(urls[0])).toBe(cachedUriBefore);
+      expect(getCachedVideoUri(urls[1])).not.toBeNull();
+    });
   });
 });

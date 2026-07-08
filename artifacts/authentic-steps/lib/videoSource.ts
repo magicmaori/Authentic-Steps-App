@@ -31,3 +31,15 @@ export function getVideoUrl(name: VideoName): string | null {
   if (!domain) return null;
   return `https://${domain}/api/storage/public-objects/videos/${VIDEO_FILENAMES[name]}`;
 }
+
+/**
+ * Streaming URLs for every known ritual/onboarding video. Used to
+ * opportunistically pre-cache all of them in the background (see
+ * `lib/videoCache.ts#precacheVideosOnWifi`) rather than waiting for each to
+ * be watched once before it plays instantly.
+ */
+export function getAllVideoUrls(): string[] {
+  return (Object.keys(VIDEO_FILENAMES) as VideoName[])
+    .map((name) => getVideoUrl(name))
+    .filter((url): url is string => url !== null);
+}
