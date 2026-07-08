@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SOSButton } from '@/components/SOSButton';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { getVideoUrl } from '@/lib/videoSource';
 import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { AffirmationTheme, THEME_LABELS, affirmations } from '@/constants/affirmations';
 import { useApp } from '@/context/AppContext';
@@ -115,7 +116,7 @@ export default function IAmScreen() {
         <VideoPlaceholder
           label="About this practice — I Am"
           sublabel="A short intro to I Am affirmation practice"
-          source={require('@/assets/videos/iam-intro.mp4')}
+          source={getVideoUrl('iamIntro')}
         />
       )}
 

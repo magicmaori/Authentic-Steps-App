@@ -64,7 +64,7 @@ isValidation = true
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
-integrations = ["linear:1.0.0"]
+integrations = ["linear:1.0.0", "expo_object_storage:1.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"

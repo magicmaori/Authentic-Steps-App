@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SOSButton } from '@/components/SOSButton';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { getVideoUrl } from '@/lib/videoSource';
 import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { GratitudeCategory } from '@/context/AppContext';
 import { useApp } from '@/context/AppContext';
@@ -157,7 +158,7 @@ export default function GratitudeScreen() {
               <VideoPlaceholder
                 label="About this practice — Gratitude"
                 sublabel="A short intro to gratitude practice"
-                source={require('@/assets/videos/gratitude-intro.mp4')}
+                source={getVideoUrl('gratitudeIntro')}
               />
             )}
             {[0, 1, 2].map(i => (

@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppLogo } from '@/components/AppLogo';
 import { SOSButton } from '@/components/SOSButton';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { getVideoUrl } from '@/lib/videoSource';
 import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
@@ -128,7 +129,7 @@ export default function DailyRitualScreen() {
           <VideoPlaceholder
             label="Welcome from Authentic STEPS"
             sublabel="Tap to watch our welcome video"
-            source={require('@/assets/videos/welcome-intro.mp4')}
+            source={getVideoUrl('welcomeIntro')}
           />
         )}
 

@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SOSButton } from '@/components/SOSButton';
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { getVideoUrl } from '@/lib/videoSource';
 import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { IntentionCategory, useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
@@ -132,7 +133,7 @@ export default function IntentionScreen() {
               <VideoPlaceholder
                 label="About this practice — Intention"
                 sublabel="A short intro to setting a daily intention"
-                source={require('@/assets/videos/intention-intro.mp4')}
+                source={getVideoUrl('intentionIntro')}
               />
             )}
             <View style={[styles.circleCard, { backgroundColor: colors.card, borderColor: colors.border }]}>

@@ -7,6 +7,7 @@ import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
+import { getVideoUrl } from '@/lib/videoSource';
 import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { useColors } from '@/hooks/useColors';
 
@@ -163,7 +164,7 @@ export default function SupportScreen() {
           <VideoPlaceholder
             label="A message for you"
             sublabel="A personal message from the Authentic STEPS team"
-            source={require('@/assets/videos/message-for-you.mp4')}
+            source={getVideoUrl('messageForYou')}
           />
         )}
 

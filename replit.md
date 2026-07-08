@@ -39,6 +39,8 @@ Email delivery is best-effort on create: a send failure never blocks invite crea
 
 _Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
 
+- **Mobile app videos** are not bundled into the Expo app. They're uploaded to Object Storage (`public/videos/*.mp4`) and streamed at runtime via `GET /api/storage/public-objects/videos/<file>.mp4` (`artifacts/api-server/src/routes/storage.ts`). The mobile side builds the URL in `artifacts/authentic-steps/lib/videoSource.ts` (`getVideoUrl(name)`) and passes it to `components/VideoPlaceholder.tsx`, which shows a dedicated offline message (via `expo-network`) if there's no connection, distinct from a generic playback-error message. To add a new video: upload the file to the bucket's `public/videos/` prefix, then call `getVideoUrl('<name>')` (no extension) at the call site.
+
 ## Architecture decisions
 
 _Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._

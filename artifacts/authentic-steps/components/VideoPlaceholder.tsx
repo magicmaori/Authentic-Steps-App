@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ResizeMode, Video } from 'expo-av';
+import * as Network from 'expo-network';
 import React, { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,23 +8,45 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface VideoPlaceholderProps {
   label: string;
   sublabel?: string;
-  /** Result of require('...mp4') — the video to play when the card is tapped. */
-  source: number;
+  /**
+   * Streaming URL for the video (served from the API's public object
+   * storage endpoint), or null if no URL could be resolved. Videos are
+   * streamed rather than bundled to keep the app's download size small.
+   */
+  source: string | null;
 }
 
 /**
  * Styled video card with a play button. Tapping it opens a full-screen
- * modal player (expo-av) for the given `source`. Fails gracefully (shows
- * an inline error instead of crashing) if playback fails.
+ * modal player (expo-av) that streams `source` over the network. Fails
+ * gracefully (shows an inline message instead of crashing) if the device is
+ * offline or playback otherwise fails.
  */
 export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderProps) {
   const [visible, setVisible] = useState(false);
-  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'offline'>('loading');
   const insets = useSafeAreaInsets();
 
-  const openPlayer = () => {
+  const openPlayer = async () => {
+    if (!source) {
+      setStatus('error');
+      setVisible(true);
+      return;
+    }
+
     setStatus('loading');
     setVisible(true);
+
+    try {
+      const network = await Network.getNetworkStateAsync();
+      if (!network.isConnected || network.isInternetReachable === false) {
+        setStatus('offline');
+        return;
+      }
+    } catch {
+      // If the connectivity check itself fails, fall through and let the
+      // player try — its own onError will surface a failure if needed.
+    }
   };
 
   const closePlayer = () => {
@@ -63,7 +86,14 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.playerWrap}>
-            {status === 'error' ? (
+            {status === 'offline' ? (
+              <View style={styles.errorWrap}>
+                <Ionicons name="cloud-offline-outline" size={36} color="#fff" />
+                <Text style={styles.errorText}>
+                  No internet connection. Connect to Wi-Fi or mobile data to watch this video.
+                </Text>
+              </View>
+            ) : status === 'error' || !source ? (
               <View style={styles.errorWrap}>
                 <Ionicons name="alert-circle-outline" size={36} color="#fff" />
                 <Text style={styles.errorText}>This video couldn't be played right now.</Text>
@@ -71,7 +101,7 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
             ) : (
               <>
                 <Video
-                  source={source}
+                  source={{ uri: source }}
                   style={styles.video}
                   useNativeControls
                   resizeMode={ResizeMode.CONTAIN}
