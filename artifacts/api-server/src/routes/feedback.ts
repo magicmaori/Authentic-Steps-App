@@ -1,14 +1,24 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { SubmitFeedbackBody, type FeedbackResult } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
+import { createRateLimiter } from "../middlewares/rateLimit";
 import { createFeedbackIssue } from "../lib/linear";
 import { sendFeedbackNotificationEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
+const feedbackRateLimit = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  keyFn: (req) => req.userId ?? req.ip ?? "unknown",
+  message:
+    "You've submitted several reports recently. Please wait a bit before sending another.",
+});
+
 router.post(
   "/feedback",
   requireAuth,
+  feedbackRateLimit,
   async (req: Request, res: Response): Promise<void> => {
     const parsed = SubmitFeedbackBody.safeParse(req.body);
     if (!parsed.success) {
