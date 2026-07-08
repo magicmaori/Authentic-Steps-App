@@ -68,6 +68,16 @@ const config: ExpoConfig = {
         defaultChannel: 'authentic-steps-default',
       },
     ],
+    [
+      'expo-build-properties',
+      {
+        android: {
+          packagingOptions: {
+            pickFirst: ['META-INF/versions/9/OSGI-INF/MANIFEST.MF'],
+          },
+        },
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
