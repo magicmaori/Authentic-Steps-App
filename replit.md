@@ -215,6 +215,23 @@ Rule of thumb: bump `PATCH` for bug-fix releases, `MINOR` for new features, `MAJ
 
 _Populate as you build — sharp edges, "always run X before Y" rules._
 
+## Rollout: beta to launch
+
+The path from internal demo to public store release is documented in three files at the repo
+root:
+
+- `ROLLOUT.md` — the phased plan (internal beta → wider external beta → final QA → public
+  launch), with the concrete TestFlight/Play Console steps for each phase.
+- `ROLLOUT_STATUS.md` — living status doc: current phase, active testers, open feedback.
+  Update this whenever the phase changes or feedback comes in.
+- `PRELAUNCH_CHECKLIST.md` — the final gate before submitting for public release (crash-free
+  pass, core flows, store assets, privacy/permissions copy).
+
+Feedback capture: the mobile app's Profile tab has a "Report a problem" action (Settings →
+Support & Feedback) that opens a pre-filled email to `hello@authenticsteps.com.au` with
+device/platform info attached — no backend ticketing system, by design, since a shared inbox
+is durable enough for a beta of this size.
+
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details

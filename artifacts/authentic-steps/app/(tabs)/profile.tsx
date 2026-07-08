@@ -7,7 +7,7 @@ import * as Print from 'expo-print';
 import { router, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemePreference, useApp, type GroundingSession, type RitualEntry, type UserData } from '@/context/AppContext';
@@ -348,6 +348,32 @@ export default function ProfileScreen() {
         { text: 'PDF (readable)', onPress: handleExportPdf },
       ]
     );
+  }
+
+  async function handleReportProblem() {
+    Haptics.selectionAsync();
+    const deviceInfo = `App version: 1.0\nPlatform: ${Platform.OS} ${Platform.Version}\nAnonymous name: ${userData.anonymousName || 'n/a'}`;
+    const subject = encodeURIComponent('Authentic Steps — Beta feedback / bug report');
+    const body = encodeURIComponent(
+      `Describe what happened, and what you expected instead:\n\n\n\n---\nDon't edit below this line — it helps us reproduce the issue\n${deviceInfo}`
+    );
+    const url = `mailto:hello@authenticsteps.com.au?subject=${subject}&body=${body}`;
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert(
+          'No email app found',
+          'Please email hello@authenticsteps.com.au directly to report a problem or share feedback.'
+        );
+      }
+    } catch {
+      Alert.alert(
+        'Could not open email',
+        'Please email hello@authenticsteps.com.au directly to report a problem or share feedback.'
+      );
+    }
   }
 
   async function handleCopyCode() {
@@ -719,6 +745,22 @@ export default function ProfileScreen() {
               ? <ActivityIndicator size="small" color={colors.destructive} />
               : <Ionicons name="trash-outline" size={18} color={colors.destructive} />
             }
+          </Pressable>
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Support & Feedback</Text>
+          <Pressable
+            onPress={handleReportProblem}
+            style={({ pressed }) => [styles.settingRow, pressed && { opacity: 0.6 }]}
+          >
+            <View style={styles.settingLabelGroup}>
+              <Text style={[styles.settingLabel, { color: colors.foreground }]}>Report a problem</Text>
+              <Text style={[styles.settingSubLabel, { color: colors.mutedForeground }]}>
+                Found a bug or have feedback? Let us know.
+              </Text>
+            </View>
+            <Ionicons name="mail-outline" size={18} color={colors.mutedForeground} />
           </Pressable>
         </View>
 
