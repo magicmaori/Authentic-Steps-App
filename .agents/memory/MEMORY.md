@@ -12,3 +12,5 @@
 - [hookform-resolvers zod version conflict](hookform-resolvers-zod.md) — @hookform/resolvers resolves zod to its own peer dep version (4.4.3) not the workspace catalog (3.25.76); fix with `as any` cast on zodResolver() + zod override in pnpm-workspace.yaml.
 - [EAS cloud builds don't inherit Replit env vars](eas-mobile-env-vars.md) — register EXPO_PUBLIC_* vars via `eas env:create`; sourced live Clerk pk_live key from the published web bundle since it's not a readable secret.
 - [api-server route mount order footgun](api-server-router-mount-order.md) — unscoped `router.use(requireAuth)` in me/sub-accounts/invites/members routers 401s any router mounted after them; new public routes must mount before them in index.ts.
+- [Updating static assets in Object Storage](object-storage-static-asset-updates.md) — direct-write pattern for replacing pre-uploaded public files (e.g. app videos) without the presigned-upload flow.
+- [Planned swap to YouTube-hosted videos](youtube-video-swap-plan.md) — user wants to replace self-hosted ritual videos with YouTube links pending internal approval; needs a player change, not just a URL swap.

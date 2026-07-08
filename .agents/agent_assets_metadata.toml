@@ -125,3 +125,33 @@ id = "cwTd1DKtWUcnapMME0Dan"
 uri = "file://attached_assets/demo-clips/grounding_authentic_steps.mp4"
 type = "video"
 title = "5-4-3-2-1 Grounding demo clip"
+
+[[outputs]]
+id = "cU4texdmS8T4KEcXIp1Vu"
+uri = "file://attached_assets/generated_audio/welcome_intro_music.mp3"
+type = "audio"
+title = "welcome_intro_music"
+
+[[outputs]]
+id = "gDlkt-6CoZXYWCozHR6XZ"
+uri = "file://attached_assets/generated_audio/intention_intro_music.mp3"
+type = "audio"
+title = "intention_intro_music"
+
+[[outputs]]
+id = "Km7XoM-kadCRoAr62bpk0"
+uri = "file://attached_assets/generated_audio/iam_intro_music.mp3"
+type = "audio"
+title = "iam_intro_music"
+
+[[outputs]]
+id = "9zhpX70bCVwD1yx75CmFK"
+uri = "file://attached_assets/generated_audio/message_for_you_bed.mp3"
+type = "audio"
+title = "message_for_you_bed"
+
+[[outputs]]
+id = "-ujm_6K0XQ-r9qAY-Sa_6"
+uri = "file://attached_assets/generated_audio/message_for_you_voiceover.mp3"
+type = "audio"
+title = "message_for_you_voiceover"
