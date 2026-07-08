@@ -17,6 +17,15 @@
       }
     },
     "preview": {
+      "autoIncrement": true,
+      "ios": {
+        "distribution": "store"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview-adhoc": {
       "distribution": "internal",
       "ios": {
         "distribution": "internal"
@@ -46,6 +55,12 @@
     }
   },
   "submit": {
+    "preview": {
+      "ios": {
+        "ascAppId": "6787810652",
+        "appleTeamId": "44Q3FRQH6F"
+      }
+    },
     "production": {
       "ios": {
         "ascAppId": "6787810652",

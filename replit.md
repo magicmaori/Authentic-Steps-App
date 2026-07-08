@@ -97,12 +97,25 @@ Run from `artifacts/authentic-steps/` or prefix with `pnpm --filter @workspace/a
 # Build production IPA for App Store (uses manually-managed Apple credentials)
 pnpm --filter @workspace/authentic-steps run eas-build-ios
 
-# Build internal distribution IPA for TestFlight invite without store review
+# Build TestFlight IPA for beta testing (store-signed, auto-increments build number)
 pnpm --filter @workspace/authentic-steps run eas-build-ios-preview
+
+# Submit the latest preview build to TestFlight
+pnpm --filter @workspace/authentic-steps run eas-submit-ios-preview
 
 # Submit the latest production build to App Store Connect
 pnpm --filter @workspace/authentic-steps run eas-submit-ios
+
+# Build ad-hoc IPA for direct device install (no TestFlight, requires registered UDIDs)
+pnpm --filter @workspace/authentic-steps run eas-build-ios-adhoc
 ```
+
+**TestFlight workflow (recommended for beta testers):**
+
+1. Run `eas-build-ios-preview` — builds a store-signed IPA on Expo's servers (~15–20 min). Watch progress at [expo.dev](https://expo.dev/accounts/authentic-steps-for-youthapp/projects/authentic-steps-app/builds).
+2. Run `eas-submit-ios-preview` — uploads the just-built IPA to App Store Connect.
+3. In [App Store Connect → TestFlight](https://appstoreconnect.apple.com), add testers by email (Internal Testers) or via a public link (External Testers — requires a brief Apple review, ~1 day).
+4. Testers receive an email invite and install via the TestFlight app on their iPhone/iPad.
 
 ### Android build & distribution commands
 
@@ -134,13 +147,16 @@ The EAS build dashboard at [expo.dev](https://expo.dev) shows build status, logs
 | Profile | iOS output | Android output | Distribution | Auto-increment |
 |---|---|---|---|---|
 | `development` | IPA (device) | APK | Internal (dev client) | No |
-| `preview` | IPA | APK | Internal (TestFlight / sideload) | No |
-| `preview-aab` | IPA | AAB | Internal (Play internal track) | Yes |
+| `preview` | IPA (store-signed) | APK | TestFlight / sideload | Yes |
+| `preview-adhoc` | IPA (ad-hoc) | APK | Direct device install (UDIDs required) | No |
+| `preview-aab` | IPA (ad-hoc) | AAB | Internal (Play internal track) | Yes |
 | `production` | IPA | AAB | App Store / Play Store | Yes |
+
+> **TestFlight note:** the `preview` profile produces a store-signed IPA (required for TestFlight). After building, run `eas-submit-ios-preview` to upload it to App Store Connect, then add testers in the TestFlight tab.
 
 ### Versioning strategy
 
-**Build number** — auto-incremented by EAS on every `preview-aab` and `production` build. You never touch it manually; App Store Connect and Google Play will never see a duplicate.
+**Build number** — auto-incremented by EAS on every `preview`, `preview-aab`, and `production` build. You never touch it manually; App Store Connect and Google Play will never see a duplicate.
 
 **Marketing version** — follows semver (`MAJOR.MINOR.PATCH`). The single source of truth is the `version` field in `artifacts/authentic-steps/package.json`; `app.config.ts` reads it at build time via `require('./package.json').version`. Bump it with the standard npm command before cutting a release:
 
