@@ -2,10 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResizeMode, Video } from 'expo-av';
 import * as Network from 'expo-network';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cacheVideoInBackground, getCachedVideoUri } from '../lib/videoCache';
+
+/** How often to re-check connectivity while the offline message is showing,
+ * so playback can resume automatically once the connection returns instead
+ * of requiring the user to close and reopen the player. */
+const RECONNECT_POLL_MS = 3000;
 
 interface VideoPlaceholderProps {
   label: string;
@@ -34,7 +39,32 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
     'checking' | 'loading' | 'ready' | 'error' | 'offline' | 'cellular-warning'
   >('checking');
   const [playbackUri, setPlaybackUri] = useState<string | null>(null);
+  const [playKey, setPlayKey] = useState(0);
   const insets = useSafeAreaInsets();
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearPoll = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
+  const checkConnected = async () => {
+    try {
+      const network = await Network.getNetworkStateAsync();
+      return Boolean(network.isConnected) && network.isInternetReachable !== false;
+    } catch {
+      // If the connectivity check itself fails, assume connected and let
+      // the player try — its own onError will surface a failure if needed.
+      return true;
+    }
+  };
+
+  const startPlayback = () => {
+    setStatus('loading');
+    setPlayKey((key) => key + 1);
+  };
 
   const openPlayer = async () => {
     if (!source) {
@@ -61,13 +91,14 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
       return;
     }
 
+    const connected = await checkConnected();
+    if (!connected) {
+      setStatus('offline');
+      return;
+    }
+
     try {
       const network = await Network.getNetworkStateAsync();
-      if (!network.isConnected || network.isInternetReachable === false) {
-        setStatus('offline');
-        return;
-      }
-
       if (network.type === Network.NetworkStateType.CELLULAR) {
         const alwaysAllow = await AsyncStorage.getItem(STORAGE_KEY_ALLOW_CELLULAR);
         if (alwaysAllow !== 'true') {
@@ -105,8 +136,75 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
   };
 
   const closePlayer = () => {
+    clearPoll();
     setVisible(false);
     setPlaybackUri(null);
+  };
+
+  // While the offline message is showing, poll connectivity in the
+  // background so playback resumes automatically once the connection
+  // returns, instead of forcing the user to close and reopen the player.
+  useEffect(() => {
+    if (!visible || status !== 'offline') {
+      clearPoll();
+      return;
+    }
+
+    pollRef.current = setInterval(async () => {
+      const connected = await checkConnected();
+      if (connected) {
+        clearPoll();
+        startPlayback();
+      }
+    }, RECONNECT_POLL_MS);
+
+    return clearPoll;
+  }, [visible, status]);
+
+  // Clean up any pending poll on unmount.
+  useEffect(() => clearPoll, []);
+
+  // Proactively react to connectivity dropping while the player is open,
+  // instead of relying solely on the <Video> element's onError callback.
+  // The player's network error and the platform's connectivity-state
+  // update can arrive in either order (or the error can be slow/absent —
+  // e.g. mid-buffer with no active request in flight when the connection
+  // drops), so without this a real disconnect could sit unnoticed as
+  // "loading"/"ready" until the next playback error, rather than
+  // immediately showing the actionable offline message.
+  useEffect(() => {
+    if (!visible || status === 'offline') return;
+
+    const subscription = Network.addNetworkStateListener((state) => {
+      const connected = Boolean(state.isConnected) && state.isInternetReachable !== false;
+      if (!connected) setStatus('offline');
+    });
+
+    return () => subscription.remove();
+  }, [visible, status]);
+
+  const handlePlaybackError = async () => {
+    // A mid-playback failure could be a real connection drop rather than a
+    // genuine playback error — check so we can show the more actionable
+    // "no internet" message (and auto-recover) instead of a dead end.
+    //
+    // A single connectivity check right when the error fires can race the
+    // platform's own connectivity-state update (the player's network
+    // request can abort and fire its error callback essentially
+    // simultaneously with the OS/browser flipping its "offline" flag, so
+    // the first check can still observe the stale "online" value). Retry
+    // briefly before concluding it's a genuine playback error, so a real
+    // disconnect reliably surfaces the offline message instead of the dead-
+    // end "couldn't be played" error.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const connected = await checkConnected();
+      if (!connected) {
+        setStatus('offline');
+        return;
+      }
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    setStatus('error');
   };
 
   return (
@@ -148,11 +246,23 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
                 <Text style={styles.errorText}>
                   No internet connection. Connect to Wi-Fi or mobile data to watch this video.
                 </Text>
+                <Text style={styles.errorHint}>We'll resume playback automatically once you're back online.</Text>
               </View>
             ) : status === 'error' || !playbackUri ? (
               <View style={styles.errorWrap}>
                 <Ionicons name="alert-circle-outline" size={36} color="#fff" />
                 <Text style={styles.errorText}>This video couldn't be played right now.</Text>
+                {source ? (
+                  <Pressable
+                    onPress={startPlayback}
+                    style={styles.retryButton}
+                    accessibilityLabel="Retry video"
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="refresh" size={16} color="#fff" />
+                    <Text style={styles.retryText}>Try again</Text>
+                  </Pressable>
+                ) : null}
               </View>
             ) : status === 'cellular-warning' ? (
               <View style={styles.errorWrap}>
@@ -190,6 +300,7 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
             ) : (
               <>
                 <Video
+                  key={playKey}
                   source={{ uri: playbackUri }}
                   style={styles.video}
                   useNativeControls
@@ -197,7 +308,7 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
                   shouldPlay
                   isLooping
                   onReadyForDisplay={() => setStatus('ready')}
-                  onError={() => setStatus('error')}
+                  onError={handlePlaybackError}
                 />
                 {status === 'loading' && (
                   <View style={styles.loadingOverlay} pointerEvents="none">
@@ -344,6 +455,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
+  },
+  errorHint: {
+    color: 'rgba(255,255,255,0.6)',
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  retryText: {
+    color: '#fff',
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
   },
   closeButton: {
     position: 'absolute',

@@ -17,19 +17,42 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
   try {
     const raw = req.params.filePath;
     const filePath = Array.isArray(raw) ? raw.join("/") : raw;
-    const file = await objectStorageService.searchPublicObject(filePath);
-    if (!file) {
+    const found = await objectStorageService.searchPublicObject(filePath);
+    if (!found) {
       res.status(404).json({ error: "File not found" });
       return;
     }
 
-    const response = await objectStorageService.downloadObject(file);
+    const response = await objectStorageService.downloadObject(
+      found.file,
+      found.metadata,
+      undefined,
+      req.headers.range
+    );
 
     res.status(response.status);
     response.headers.forEach((value, key) => res.setHeader(key, value));
 
     if (response.body) {
       const nodeStream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
+
+      // Video players routinely abort in-flight range requests mid-stream
+      // (e.g. seeking, switching to a new buffer-ahead chunk, or the user
+      // closing the player) — this is normal streaming behavior, not a
+      // server error. Without an explicit 'error' listener here, GCS's read
+      // stream emitting an error on client disconnect (premature close /
+      // ECONNRESET) would be an *unhandled* EventEmitter error, which
+      // crashes the whole Node process instead of just failing this one
+      // request. `pipe()` does not forward source errors to the
+      // destination automatically, so this must be handled explicitly.
+      nodeStream.on("error", (err) => {
+        req.log.warn({ err }, "Public object stream ended early (likely client abort)");
+        if (!res.writableEnded) res.destroy();
+      });
+      res.on("close", () => {
+        if (!nodeStream.destroyed) nodeStream.destroy();
+      });
+
       nodeStream.pipe(res);
     } else {
       res.end();

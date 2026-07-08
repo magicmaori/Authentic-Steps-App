@@ -16,3 +16,5 @@
 - [Planned swap to YouTube-hosted videos](youtube-video-swap-plan.md) — user wants to replace self-hosted ritual videos with YouTube links pending internal approval; needs a player change, not just a URL swap.
 - [Mocking expo-file-system in jest-expo tests](expo-file-system-jest-mocking.md) — jest-expo has its own built-in legacy mock; override with an explicit `jest.mock(..., () => require(...))` factory, and never name the mock file `__mocks__/expo-file-system.ts` (self-recursion).
 - [Linear connector as feedback backend](linear-feedback-connector.md) — file structured records as Linear issues via connectors.proxy GraphQL instead of a new DB table; orval may skip Zod parsers for response-only schemas.
+- [Video/object-storage streaming needs Range support](video-streaming-range-requests.md) — mobile players need 206/Content-Range for seek+recovery; plain curl/mocked tests won't catch a missing Range handler.
+- [HTTP Range response caching corruption](video-range-cache-corruption.md) — public-cacheable 206 responses without ETag/Last-Modified can get cache-confused across different Range requests to the same URL; use no-store or add validators.
