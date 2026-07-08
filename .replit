@@ -84,3 +84,8 @@ externalPort = 3000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+FEEDBACK_NOTIFY_EMAIL = "johaan@johaankaa.com,johaankaa.com@gmail.com"

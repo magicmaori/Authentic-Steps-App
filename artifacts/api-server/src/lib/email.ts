@@ -240,3 +240,96 @@ export async function sendInviteEmail(args: SendInviteEmailArgs): Promise<void> 
     );
   }
 }
+
+export interface FeedbackNotificationArgs {
+  issueIdentifier: string;
+  issueUrl: string;
+  userId: string;
+  messagePreview: string;
+  platform?: string;
+}
+
+/**
+ * Best-effort real-time nudge to the team inbox whenever a new beta feedback
+ * issue is filed in Linear, so reports don't sit unseen between manual Linear
+ * checks. Recipients come from FEEDBACK_NOTIFY_EMAIL (comma-separated). If
+ * that's unset, or delivery fails, this logs and returns without throwing —
+ * callers should never let a notification failure affect issue filing.
+ */
+export async function sendFeedbackNotificationEmail(
+  args: FeedbackNotificationArgs,
+): Promise<void> {
+  const recipients = (process.env.FEEDBACK_NOTIFY_EMAIL ?? "")
+    .split(",")
+    .map((addr) => addr.trim())
+    .filter(Boolean);
+
+  if (recipients.length === 0) {
+    logger.info(
+      "FEEDBACK_NOTIFY_EMAIL is not set; skipping feedback notification email",
+    );
+    return;
+  }
+
+  try {
+    const apiKey = await getResendApiKey();
+    const from = process.env.INVITE_EMAIL_FROM ?? DEFAULT_FROM;
+    const subject = `[Beta feedback] New report: ${args.issueIdentifier}`;
+    const html = `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;">
+        <h1 style="font-size:20px;color:#111827;margin:0 0 12px;">New beta feedback report</h1>
+        <p style="color:#374151;font-size:15px;line-height:1.5;">
+          <strong>${escapeHtml(args.issueIdentifier)}</strong> was just filed in Linear${
+            args.platform ? ` from ${escapeHtml(args.platform)}` : ""
+          }.
+        </p>
+        <p style="color:#374151;font-size:15px;line-height:1.5;white-space:pre-wrap;background:#f9fafb;border-radius:8px;padding:12px;">
+          ${escapeHtml(args.messagePreview)}
+        </p>
+        <p style="margin:24px 0;">
+          <a href="${args.issueUrl}" style="background:#4f46e5;color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:15px;font-weight:600;display:inline-block;">
+            View in Linear
+          </a>
+        </p>
+      </div>
+    `.trim();
+    const text = [
+      `New beta feedback report: ${args.issueIdentifier}`,
+      args.platform ? `Platform: ${args.platform}` : null,
+      "",
+      args.messagePreview,
+      "",
+      args.issueUrl,
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n");
+
+    const res = await fetch(RESEND_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from, to: recipients, subject, html, text }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      logger.warn(
+        { status: res.status, body, recipients },
+        "Resend rejected feedback notification email",
+      );
+      return;
+    }
+
+    logger.info(
+      { issueIdentifier: args.issueIdentifier, recipients },
+      "Sent feedback notification email",
+    );
+  } catch (err) {
+    logger.warn(
+      { err },
+      "Failed to send feedback notification email; issue was still filed in Linear",
+    );
+  }
+}

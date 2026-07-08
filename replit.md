@@ -39,6 +39,18 @@ see). If the API call fails for any reason (offline, server error, connector dow
 automatically falls back to the original `mailto:hello@authenticsteps.com.au` flow with the
 typed message carried over, so no report is silently lost.
 
+**Real-time notification on new feedback:** once a feedback issue is successfully filed in
+Linear, the API server also sends a best-effort notification email (via the same Resend setup
+used for invites) so the team doesn't have to remember to check Linear — see
+`sendFeedbackNotificationEmail` in `artifacts/api-server/src/lib/email.ts`, called from
+`routes/feedback.ts` after the Linear issue is created. Configure recipients with
+`FEEDBACK_NOTIFY_EMAIL` (comma-separated addresses; currently set). If it's unset, notification
+is silently skipped — issue filing itself is unaffected either way (this send never blocks or
+fails the `/feedback` response). Note the same Resend sandbox restriction as invite emails: with
+the default `onboarding@resend.dev` sender, delivery only reaches the Resend account's own
+verified email — sending to other addresses requires verifying a sending domain and setting
+`INVITE_EMAIL_FROM` to an address on it.
+
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9

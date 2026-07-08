@@ -18,3 +18,12 @@ can fall back to a non-structured path (e.g. mailto) instead of silently losing 
 OpenAPI schemas — it may only emit a TS `type`, not a `z.object(...)` you can `.parse()`
 against. Check the generated file before assuming `.parse()` is available; building the
 response object manually and typing it with the generated `type` is fine.
+
+**Real-time nudge on issue creation:** don't rely on someone remembering to check the Linear
+queue — after the issue-create call succeeds, fire an additional best-effort notification
+(e.g. email via an existing transactional-email connector) so a human is nudged within
+minutes. Never let the notification's own failure affect the already-successful issue
+creation or the caller's response — fire it after responding, and only log a warning on
+failure. Same Resend sandbox caveat as invite emails applies: the default
+`onboarding@resend.dev` sender only reaches the Resend account's own verified email, so
+verify a real recipient/domain before trusting delivery.
