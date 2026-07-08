@@ -15,3 +15,4 @@
 - [Updating static assets in Object Storage](object-storage-static-asset-updates.md) — direct-write pattern for replacing pre-uploaded public files (e.g. app videos) without the presigned-upload flow.
 - [Planned swap to YouTube-hosted videos](youtube-video-swap-plan.md) — user wants to replace self-hosted ritual videos with YouTube links pending internal approval; needs a player change, not just a URL swap.
 - [Mocking expo-file-system in jest-expo tests](expo-file-system-jest-mocking.md) — jest-expo has its own built-in legacy mock; override with an explicit `jest.mock(..., () => require(...))` factory, and never name the mock file `__mocks__/expo-file-system.ts` (self-recursion).
+- [Linear connector as feedback backend](linear-feedback-connector.md) — file structured records as Linear issues via connectors.proxy GraphQL instead of a new DB table; orval may skip Zod parsers for response-only schemas.

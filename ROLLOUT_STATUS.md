@@ -22,16 +22,17 @@ _Last updated: 2026-07-08_
 > Internal testing track. Move to a "Phase 2" note in this table (or a second table) once
 > promoted to external/closed testing.
 
-## Open feedback
+## Feedback triage
 
-| # | Reported | Reporter | Summary | Severity | Status |
-|---|---|---|---|---|---|
-| _(none yet)_ | | | | | |
+Feedback is no longer tracked manually in this file. The in-app "Report a problem" action
+(Profile → Support & Feedback) now submits structured reports directly to a **Linear** triage
+queue (team "Authentic Steps For Youth", key `AUT`) via `POST /feedback` on the API server —
+see `artifacts/api-server/src/lib/linear.ts` and `artifacts/api-server/src/routes/feedback.ts`.
+Triage, prioritization, and status now happen in Linear itself, not in a markdown table here.
 
-> Severity: `crash` / `blocking` / `minor` / `cosmetic`. Status: `open` / `in progress` /
-> `fixed — pending verification` / `closed` / `deferred (reason)`. Pull entries from the
-> `hello@authenticsteps.com.au` inbox (the destination of the in-app "Report a problem"
-> action) as well as any feedback given outside the app.
+If the structured submission fails (offline, server error, etc.), the app automatically falls
+back to the original `mailto:hello@authenticsteps.com.au` flow so no report is lost — any
+mail that lands in that inbox should be entered into Linear manually as a fallback-path issue.
 
 ## Blocking items before next phase
 
@@ -40,4 +41,4 @@ _Last updated: 2026-07-08_
 ## Blocking items before public launch
 
 - [ ] Complete `PRELAUNCH_CHECKLIST.md` in full.
-- [ ] Resolve all `blocking`/`crash` rows in "Open feedback" above.
+- [ ] Resolve all `blocking`/`crash`-labeled issues open in the Linear triage queue.

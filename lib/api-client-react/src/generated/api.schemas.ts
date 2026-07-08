@@ -160,6 +160,26 @@ export interface AccessRenewal {
   accessDurationDays?: number;
 }
 
+export interface FeedbackInput {
+  /**
+     * @minLength 1
+     * @maxLength 4000
+     */
+  message: string;
+  /** @maxLength 50 */
+  platform?: string;
+  /** @maxLength 50 */
+  appVersion?: string;
+  /** @maxLength 500 */
+  deviceInfo?: string;
+}
+
+export interface FeedbackResult {
+  ok: boolean;
+  issueIdentifier: string;
+  issueUrl: string;
+}
+
 /**
  * Invalid request
  */

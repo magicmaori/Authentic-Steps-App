@@ -16,6 +16,8 @@ tags:
     description: Invite creation and redemption
   - name: members
     description: Member access management
+  - name: feedback
+    description: Beta feedback / bug reports
 paths:
   /healthz:
     get:
@@ -317,6 +319,39 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /feedback:
+    post:
+      operationId: submitFeedback
+      tags: [feedback]
+      summary: Submit a beta feedback / bug report from the mobile app
+      description: >-
+        Files the report as an issue in the team's issue tracker so it lands
+        in a real triage queue instead of only an email inbox. The mobile
+        client falls back to its mailto: flow if this call fails.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+      responses:
+        "201":
+          description: Feedback filed as an issue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          description: The issue tracker rejected or failed the request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   responses:
     BadRequest:
@@ -570,3 +605,36 @@ components:
         accessDurationDays:
           type: integer
           minimum: 1
+
+    FeedbackInput:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        platform:
+          type: string
+          maxLength: 50
+        appVersion:
+          type: string
+          maxLength: 50
+        deviceInfo:
+          type: string
+          maxLength: 500
+
+    FeedbackResult:
+      type: object
+      required:
+        - ok
+        - issueIdentifier
+        - issueUrl
+      properties:
+        ok:
+          type: boolean
+        issueIdentifier:
+          type: string
+        issueUrl:
+          type: string

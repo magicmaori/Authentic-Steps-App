@@ -7,8 +7,10 @@ import * as Print from 'expo-print';
 import { router, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useSubmitFeedback } from '@workspace/api-client-react';
 
 import { ThemePreference, useApp, type GroundingSession, type RitualEntry, type UserData } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
@@ -178,6 +180,9 @@ export default function ProfileScreen() {
   const [codeCopied, setCodeCopied] = useState(false);
   const [codeRefreshed, setCodeRefreshed] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const submitFeedbackMutation = useSubmitFeedback();
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cachedPayloadRef = useRef<string>('');
   const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -350,12 +355,11 @@ export default function ProfileScreen() {
     );
   }
 
-  async function handleReportProblem() {
-    Haptics.selectionAsync();
+  async function openMailtoFallback(message?: string) {
     const deviceInfo = `App version: 1.0\nPlatform: ${Platform.OS} ${Platform.Version}\nAnonymous name: ${userData.anonymousName || 'n/a'}`;
     const subject = encodeURIComponent('Authentic Steps — Beta feedback / bug report');
     const body = encodeURIComponent(
-      `Describe what happened, and what you expected instead:\n\n\n\n---\nDon't edit below this line — it helps us reproduce the issue\n${deviceInfo}`
+      `${message ? `${message}\n\n` : 'Describe what happened, and what you expected instead:\n\n\n\n'}---\nDon't edit below this line — it helps us reproduce the issue\n${deviceInfo}`
     );
     const url = `mailto:hello@authenticsteps.com.au?subject=${subject}&body=${body}`;
     try {
@@ -372,6 +376,40 @@ export default function ProfileScreen() {
       Alert.alert(
         'Could not open email',
         'Please email hello@authenticsteps.com.au directly to report a problem or share feedback.'
+      );
+    }
+  }
+
+  function handleReportProblem() {
+    Haptics.selectionAsync();
+    setFeedbackMessage('');
+    setFeedbackModalOpen(true);
+  }
+
+  async function handleSubmitFeedback() {
+    const message = feedbackMessage.trim();
+    if (!message) return;
+    Haptics.selectionAsync();
+    try {
+      await submitFeedbackMutation.mutateAsync({
+        data: {
+          message,
+          platform: Platform.OS,
+          appVersion: '1.0',
+          deviceInfo: `${Platform.OS} ${Platform.Version} — ${userData.anonymousName || 'n/a'}`,
+        },
+      });
+      setFeedbackModalOpen(false);
+      setFeedbackMessage('');
+      Alert.alert('Thanks for the report', 'Your feedback has been sent to our team for review.');
+    } catch {
+      // Structured path failed (offline, server issue, etc.) — fall back to
+      // the mailto: flow so feedback isn't lost. See ROLLOUT_STATUS.md.
+      setFeedbackModalOpen(false);
+      Alert.alert(
+        "Couldn't submit in-app",
+        "We couldn't reach our server, so we've opened your email app instead — your message has been carried over.",
+        [{ text: 'OK', onPress: () => openMailtoFallback(message) }]
       );
     }
   }
@@ -764,6 +802,60 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
+        <Modal
+          transparent
+          animationType="fade"
+          visible={feedbackModalOpen}
+          onRequestClose={() => setFeedbackModalOpen(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.pickerOverlay}
+          >
+            <TouchableWithoutFeedback onPress={() => setFeedbackModalOpen(false)}>
+              <View style={styles.pickerOverlay}>
+                <TouchableWithoutFeedback>
+                  <View style={[styles.pickerSheet, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.pickerTitle, { color: colors.foreground }]}>Report a problem</Text>
+                    <Text style={[styles.settingSubLabel, { color: colors.mutedForeground, alignSelf: 'flex-start' }]}>
+                      Describe what happened and what you expected instead. This goes straight to our team's triage queue.
+                    </Text>
+                    <TextInput
+                      value={feedbackMessage}
+                      onChangeText={setFeedbackMessage}
+                      placeholder="What went wrong?"
+                      placeholderTextColor={colors.mutedForeground}
+                      multiline
+                      numberOfLines={5}
+                      style={[
+                        styles.feedbackInput,
+                        { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background },
+                      ]}
+                    />
+                    <Pressable
+                      onPress={handleSubmitFeedback}
+                      disabled={!feedbackMessage.trim() || submitFeedbackMutation.isPending}
+                      style={[
+                        styles.pickerDone,
+                        { backgroundColor: colors.primary },
+                        (!feedbackMessage.trim() || submitFeedbackMutation.isPending) && { opacity: 0.5 },
+                      ]}
+                    >
+                      {submitFeedbackMutation.isPending
+                        ? <ActivityIndicator size="small" color={colors.primaryForeground} />
+                        : <Text style={[styles.pickerDoneText, { color: colors.primaryForeground }]}>Send</Text>
+                      }
+                    </Pressable>
+                    <Pressable onPress={() => setFeedbackModalOpen(false)} style={{ paddingVertical: 4 }}>
+                      <Text style={[styles.settingSubLabel, { color: colors.mutedForeground }]}>Cancel</Text>
+                    </Pressable>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
+        </Modal>
+
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>About</Text>
           {[
@@ -982,6 +1074,16 @@ const styles = StyleSheet.create({
   pickerDoneText: {
     fontSize: 15,
     fontFamily: 'Inter_600SemiBold',
+  },
+  feedbackInput: {
+    alignSelf: 'stretch',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
+    minHeight: 110,
+    textAlignVertical: 'top',
   },
   settingLabel: { fontSize: 15, fontFamily: 'Inter_400Regular' },
   settingLabelGroup: { flex: 1, gap: 2 },

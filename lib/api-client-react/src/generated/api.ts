@@ -24,6 +24,9 @@ import type {
   BadRequestResponse,
   ConflictResponse,
   Entitlement,
+  Error,
+  FeedbackInput,
+  FeedbackResult,
   ForbiddenResponse,
   HealthStatus,
   Invite,
@@ -1021,5 +1024,77 @@ export const useRevokeMember = <TError = ErrorType<UnauthorizedResponse | Forbid
         TContext
       > => {
       return useMutation(getRevokeMemberMutationOptions(options));
+    }
+
+export const getSubmitFeedbackUrl = () => {
+
+
+
+
+  return `/api/feedback`
+}
+
+/**
+ * Files the report as an issue in the team's issue tracker so it lands in a real triage queue instead of only an email inbox. The mobile client falls back to its mailto: flow if this call fails.
+ * @summary Submit a beta feedback / bug report from the mobile app
+ */
+export const submitFeedback = async (feedbackInput: FeedbackInput, options?: RequestInit): Promise<FeedbackResult> => {
+
+  return customFetch<FeedbackResult>(getSubmitFeedbackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      feedbackInput,)
+  }
+);}
+
+
+
+
+export const getSubmitFeedbackMutationOptions = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitFeedback>>, TError,{data: BodyType<FeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitFeedback>>, TError,{data: BodyType<FeedbackInput>}, TContext> => {
+
+const mutationKey = ['submitFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitFeedback>>, {data: BodyType<FeedbackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitFeedback(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof submitFeedback>>>
+    export type SubmitFeedbackMutationBody = BodyType<FeedbackInput>
+    export type SubmitFeedbackMutationError = ErrorType<BadRequestResponse | UnauthorizedResponse | Error>
+
+    /**
+ * @summary Submit a beta feedback / bug report from the mobile app
+ */
+export const useSubmitFeedback = <TError = ErrorType<BadRequestResponse | UnauthorizedResponse | Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitFeedback>>, TError,{data: BodyType<FeedbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitFeedback>>,
+        TError,
+        {data: BodyType<FeedbackInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitFeedbackMutationOptions(options));
     }
 

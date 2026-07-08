@@ -26,6 +26,19 @@ Email delivery is best-effort on create: a send failure never blocks invite crea
 
 **Invite links are role-aware.** `member` invites (both the emailed link and the dashboard's "Copy Link" button) point at the mobile app's root URL (`https://<domain>/?code=<code>`) instead of the dashboard, since members' product surface is the Authentic Steps app, not the web dashboard. `agency_admin`/`sub_account_holder` invites still point at `/dashboard/redeem?code=<code>` — see `buildInviteUrl` in `artifacts/api-server/src/lib/email.ts` (backend) and `copyLink` in `artifacts/agency-dashboard/src/pages/invites.tsx` (frontend), which must stay in sync. The mobile app's landing page (served when Expo Go isn't installed) reads `?code=` from the URL and pre-fills it into an `exps://.../--/redeem?code=...` deep link; the app itself (`app/_layout.tsx` + `utils/pendingInvite.ts`) captures that code across the forced sign-in redirect and pre-fills it on the redeem screen. If a member ends up on the web dashboard anyway, the "Your Access" overview page shows a card pointing them to the mobile app instead of dashboard actions.
 
+## Feedback triage
+
+The mobile app's Profile → Support & Feedback → "Report a problem" action opens an in-app
+modal (not a `mailto:` link) and posts the message to `POST /feedback` on the API server,
+which files it as an issue in a **Linear** team via the Linear connector's GraphQL proxy — see
+`artifacts/api-server/src/lib/linear.ts` and `artifacts/api-server/src/routes/feedback.ts`.
+This replaces manually copying reports out of the support inbox into `ROLLOUT_STATUS.md`;
+triage now happens in Linear itself. Optional env: `LINEAR_FEEDBACK_TEAM_KEY` overrides which
+Linear team key issues are filed under (defaults to the first/only team the connection can
+see). If the API call fails for any reason (offline, server error, connector down), the app
+automatically falls back to the original `mailto:hello@authenticsteps.com.au` flow with the
+typed message carried over, so no report is silently lost.
+
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9

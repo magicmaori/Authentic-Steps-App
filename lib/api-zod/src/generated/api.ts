@@ -252,3 +252,25 @@ export const RevokeMemberResponse = zod.object({
 })
 
 
+/**
+ * Files the report as an issue in the team's issue tracker so it lands in a real triage queue instead of only an email inbox. The mobile client falls back to its mailto: flow if this call fails.
+ * @summary Submit a beta feedback / bug report from the mobile app
+ */
+export const submitFeedbackBodyMessageMax = 4000;
+
+export const submitFeedbackBodyPlatformMax = 50;
+
+export const submitFeedbackBodyAppVersionMax = 50;
+
+export const submitFeedbackBodyDeviceInfoMax = 500;
+
+
+
+export const SubmitFeedbackBody = zod.object({
+  "message": zod.string().min(1).max(submitFeedbackBodyMessageMax),
+  "platform": zod.string().max(submitFeedbackBodyPlatformMax).optional(),
+  "appVersion": zod.string().max(submitFeedbackBodyAppVersionMax).optional(),
+  "deviceInfo": zod.string().max(submitFeedbackBodyDeviceInfoMax).optional()
+})
+
+

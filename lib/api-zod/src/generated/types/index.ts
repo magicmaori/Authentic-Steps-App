@@ -12,6 +12,8 @@ export * from './conflictResponse';
 export * from './entitlement';
 export * from './entitlementReason';
 export * from './error';
+export * from './feedbackInput';
+export * from './feedbackResult';
 export * from './forbiddenResponse';
 export * from './healthStatus';
 export * from './invite';
