@@ -85,9 +85,31 @@ Once the project is linked, update the status line above (replace ⚠️ with �
 | Apple App Store Connect API key | Uploaded interactively via `eas credentials` or pre-stored at `~/.eas/credentials.json` | Requires an App Store Connect API key with App Manager role |
 | `eas.json` → `submit.production.ios.ascAppId` | `artifacts/authentic-steps/eas.json` | Replace `REPLACE_WITH_ASC_APP_ID` with the numeric App Store Connect app ID (find it at appstoreconnect.apple.com → Your App → General → App Information → Apple ID) |
 | `eas.json` → `submit.production.ios.appleTeamId` | `artifacts/authentic-steps/eas.json` | Replace `REPLACE_WITH_APPLE_TEAM_ID` with the 10-character Apple Team ID (find it at developer.apple.com → Account → Membership → Team ID) |
-| `google-play-service-account.json` | Place at `artifacts/authentic-steps/google-play-service-account.json` (gitignored) | Google Play service account JSON with "Release Manager" role on the app. Required only for `eas-submit-android`. |
+| `google-play-service-account.json` | Place at `artifacts/authentic-steps/google-play-service-account.json` (gitignored) | Google Play service account JSON with "Release Manager" role on the app. Required only for `eas-submit-android`. See setup steps below. |
 
-All build and submit scripts run `scripts/check-eas-setup.js` first. They fail immediately with a clear, actionable error if the project isn't linked or if iOS submit placeholders haven't been filled in — no silent hangs.
+All build and submit scripts run `scripts/check-eas-setup.js` first. They fail immediately with a clear, actionable error if the project isn't linked, iOS submit placeholders haven't been filled in, or the Android service account JSON is missing — no silent hangs.
+
+#### Setting up the Google Play service account (one-time, required for `eas-submit-android`)
+
+1. **Create (or open) a Google Cloud project linked to Play Console:**
+   - Go to [Google Play Console](https://play.google.com/console) → **Setup → API access**.
+   - Click **Link to a Google Cloud project** (or use the existing linked project).
+
+2. **Create a service account:**
+   - On the API access page, click **Create new service account**.
+   - This opens Google Cloud Console. Create the account, then download its **JSON key** (Actions → Manage keys → Add key → Create new key → JSON).
+
+3. **Grant the "Release Manager" role in Play Console:**
+   - Back in Play Console → **Setup → API access**, find the service account you just created.
+   - Click **Grant access** and set the role to **Release Manager** (under "Release").
+   - Save.
+
+4. **Place the key file:**
+   ```sh
+   # Copy the downloaded JSON to:
+   artifacts/authentic-steps/google-play-service-account.json
+   ```
+   The file is gitignored — never commit it. `eas-submit-android` validates its presence and structure before running.
 
 ### iOS build & release commands
 

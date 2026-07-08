@@ -4,10 +4,12 @@
  * Fails fast with a clear, actionable error if:
  *  - The project hasn't been linked via `eas init` yet (no projectId in app.json)
  *  - The iOS submit placeholders in eas.json haven't been filled in (--check-ios-submit)
+ *  - The Android service account JSON is missing (--check-android-submit)
  *
  * Usage:
- *   node scripts/check-eas-setup.js                   # build check only
- *   node scripts/check-eas-setup.js --check-ios-submit # also validate iOS submit config
+ *   node scripts/check-eas-setup.js                      # build check only
+ *   node scripts/check-eas-setup.js --check-ios-submit    # also validate iOS submit config
+ *   node scripts/check-eas-setup.js --check-android-submit # also validate Android submit config
  */
 
 const fs = require('fs');
@@ -15,6 +17,7 @@ const path = require('path');
 
 const projectRoot = path.resolve(__dirname, '..');
 const checkIosSubmit = process.argv.includes('--check-ios-submit');
+const checkAndroidSubmit = process.argv.includes('--check-android-submit');
 
 function fail(msg) {
   console.error('\n\x1b[31mEAS setup check failed:\x1b[0m', msg, '\n');
@@ -73,6 +76,61 @@ if (checkIosSubmit) {
       '    Open artifacts/authentic-steps/eas.json and replace\n' +
       '    "REPLACE_WITH_APPLE_TEAM_ID" with your 10-character Apple Team ID.\n' +
       '    (Find it at developer.apple.com → Account → Membership → Team ID)',
+    );
+  }
+}
+
+// --- 3. Optionally check Android service account JSON ---
+if (checkAndroidSubmit) {
+  const easJsonPath = path.join(projectRoot, 'eas.json');
+  let easJson;
+  try {
+    easJson = JSON.parse(fs.readFileSync(easJsonPath, 'utf-8'));
+  } catch {
+    fail(`Could not read ${easJsonPath}.`);
+  }
+
+  const android = easJson?.submit?.production?.android ?? {};
+  const keyPath = android.serviceAccountKeyPath;
+
+  if (!keyPath) {
+    fail(
+      'submit.production.android.serviceAccountKeyPath is not set in eas.json.\n\n' +
+      '  To fix:\n' +
+      '    Add "serviceAccountKeyPath": "./google-play-service-account.json" under\n' +
+      '    submit.production.android in artifacts/authentic-steps/eas.json.',
+    );
+  }
+
+  const resolvedKeyPath = path.resolve(projectRoot, keyPath);
+  if (!fs.existsSync(resolvedKeyPath)) {
+    fail(
+      `Android service account JSON not found at: ${resolvedKeyPath}\n\n` +
+      '  To fix:\n' +
+      '    1. Go to Google Play Console → Setup → API access\n' +
+      '    2. Link to a Google Cloud project (or create one)\n' +
+      '    3. Create a service account with the "Release Manager" role\n' +
+      '    4. Download its JSON key\n' +
+      '    5. Place the file at: artifacts/authentic-steps/google-play-service-account.json\n' +
+      '    (This file is gitignored — never commit it)',
+    );
+  }
+
+  // Basic sanity-check: must be valid JSON with a type field
+  try {
+    const keyJson = JSON.parse(fs.readFileSync(resolvedKeyPath, 'utf-8'));
+    if (keyJson.type !== 'service_account') {
+      fail(
+        `The file at ${resolvedKeyPath} does not look like a Google service account key.\n` +
+        '  Expected a JSON file with "type": "service_account".\n' +
+        '  Make sure you downloaded the correct JSON key from Google Cloud Console.',
+      );
+    }
+  } catch (e) {
+    if (e.message && e.message.includes('setup check failed')) throw e;
+    fail(
+      `Could not parse the service account JSON at ${resolvedKeyPath}.\n` +
+      '  Make sure the file is valid JSON downloaded from Google Cloud Console.',
     );
   }
 }

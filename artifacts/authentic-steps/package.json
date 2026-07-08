@@ -18,7 +18,7 @@
     "eas-build-android": "node scripts/check-eas-setup.js && eas build --platform android --profile production",
     "eas-build-android-preview": "node scripts/check-eas-setup.js && eas build --platform android --profile preview",
     "eas-build-android-apk": "node scripts/check-eas-setup.js && eas build --platform android --profile preview",
-    "eas-submit-android": "node scripts/check-eas-setup.js && eas submit --platform android --profile production --latest"
+    "eas-submit-android": "node scripts/check-eas-setup.js --check-android-submit && eas submit --platform android --profile production --latest"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
