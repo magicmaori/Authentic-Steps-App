@@ -3,6 +3,13 @@ name: Updating static assets already in Object Storage
 description: How to overwrite/add files under an existing public/ prefix in the app's Object Storage bucket without the presigned-upload web flow.
 ---
 
+**Ritual video soundtracks specifically:** don't hand-roll a throwaway script for these —
+`pnpm --filter @workspace/scripts run mix-video-audio` (see "Regenerating a video's
+soundtrack" in replit.md) is now a permanent, repeatable script that mixes
+generated music/voiceover into a silent video with ffmpeg and uploads straight to
+`public/videos/<name>.mp4` via `--upload`. The generic one-off flow below is still the
+right pattern for *other* static assets that don't have a dedicated script.
+
 Some assets (e.g. the Authentic Steps ritual/onboarding videos) are pre-uploaded static
 files served via `GET /api/storage/public-objects/<path>`, not user uploads. To replace
 or add such a file directly (no browser, no presigned-URL flow):

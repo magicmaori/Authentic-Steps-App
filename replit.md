@@ -54,6 +54,27 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 - **Mobile app videos** are not bundled into the Expo app. They're uploaded to Object Storage (`public/videos/*.mp4`) and streamed at runtime via `GET /api/storage/public-objects/videos/<file>.mp4` (`artifacts/api-server/src/routes/storage.ts`). The mobile side builds the URL in `artifacts/authentic-steps/lib/videoSource.ts` (`getVideoUrl(name)`) and passes it to `components/VideoPlaceholder.tsx`, which shows a dedicated offline message (via `expo-network`) if there's no connection, distinct from a generic playback-error message. To add a new video: upload the file to the bucket's `public/videos/` prefix, then call `getVideoUrl('<name>')` (no extension) at the call site.
 
+### Regenerating a video's soundtrack
+
+The 5 ritual/onboarding videos (`welcome-intro`, `message-for-you`, `intention-intro`, `iam-intro`, `gratitude-intro` — see `VIDEO_FILENAMES` in `videoSource.ts`) each have an AI-generated ambient soundtrack mixed in, and `message-for-you` additionally has a narrated voiceover. If the visuals for one of these is ever regenerated or replaced, redo the soundtrack with this repeatable recipe instead of re-deriving the ffmpeg approach from scratch:
+
+1. **Generate the audio** using the `media-generation` skill (`generateMusic` for the ambient bed, `textToSpeech` for narration):
+   - Ambient music bed: an instrumental, calm/ambient prompt matching the video's mood (e.g. "soft ambient pads, warm and slow, no percussion, suitable as a quiet background bed under narration"), `forceInstrumental: true`, duration doesn't need to match the video exactly — the mix script loops it.
+   - Voiceover (only `message-for-you` currently has one): pick a warm/calm voice via `searchVoices`, then `textToSpeech` the narration script.
+   - Save both to local files (e.g. `attached_assets/generated_audio/...`).
+2. **Mix and (optionally) upload** with the new script:
+   ```sh
+   pnpm --filter @workspace/scripts run mix-video-audio -- \
+     --name message-for-you \
+     --video /path/to/silent-visual.mp4 \
+     --music /path/to/ambient-music.mp3 \
+     --voiceover /path/to/voiceover.mp3 \
+     --upload
+   ```
+   Omit `--voiceover` for the other 4 videos. `--music-volume` (default `0.35`) and `--voiceover-volume` (default `1.0`) control the mix balance when both are present. Drop `--upload` to just produce the mixed file locally (written under a temp dir, or `--out <path>`) for a listen-through before publishing.
+   - The script (`scripts/src/mix-video-audio.ts`) loops/trims the music to the video's length, mixes in the voiceover if given, copies the video stream untouched (no re-encode), and — with `--upload` — pushes the result straight to `public/videos/<name>.mp4` in the same Object Storage bucket the API serves from (`PUBLIC_OBJECT_SEARCH_PATHS`), so it's live at the existing streaming URL immediately.
+   - Requires `ffmpeg`/`ffprobe` (already available in this environment) and `PUBLIC_OBJECT_SEARCH_PATHS` to be set for the upload step.
+
 ## Architecture decisions
 
 _Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
