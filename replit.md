@@ -139,6 +139,21 @@ pnpm --filter @workspace/authentic-steps run eas-build-ios-adhoc
 3. In [App Store Connect → TestFlight](https://appstoreconnect.apple.com), add testers by email (Internal Testers) or via a public link (External Testers — requires a brief Apple review, ~1 day).
 4. Testers receive an email invite and install via the TestFlight app on their iPhone/iPad.
 
+### One-time Play Console internal testing setup (required before testers can install)
+
+`eas-submit-android` uploads the AAB straight to the **internal testing track** (`submit.production.android.track` in `eas.json` is set to `"internal"`), but uploading alone does not make the app installable — testers must be added to that track in Play Console first, or they'll see "Item not found" when opening the Play Store link. This is a one-time setup per app (only needs to be redone if you want to add/remove testers):
+
+1. In [Play Console](https://play.google.com/console), open the app → **Testing → Internal testing**.
+2. If no release exists yet, run `eas-submit-android` once to create the first internal-track release (or upload an AAB manually to bootstrap the track).
+3. Go to the **Testers** tab on the Internal testing page and either:
+   - Create an **email list** and add tester email addresses (each tester needs a Google account matching one of these emails), or
+   - Link an existing **Google Group**.
+4. Save changes. Play Console generates an **opt-in URL** on the same Testers tab (e.g. `https://play.google.com/apps/internaltest/...`).
+5. Send that opt-in URL to each tester. They must open it and tap **"Become a tester"** before the regular Play Store listing link will work for their account — visiting the Play Store link *before* opting in still shows "Item not found."
+6. After opting in, testers can install via the Play Store app (search or the direct listing link) on the same Google account used to opt in.
+
+Re-running `eas-submit-android` after this setup just pushes new builds to the same track — testers already added don't need to re-opt-in.
+
 ### Android build & distribution commands
 
 Two viable distribution paths — pick based on what you need:
