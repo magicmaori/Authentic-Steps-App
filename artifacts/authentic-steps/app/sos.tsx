@@ -13,6 +13,8 @@ import colorsDef from '@/constants/colors';
 import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { useColors } from '@/hooks/useColors';
 
+type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
+
 interface Service {
   id: string;
   name: string;
@@ -22,6 +24,8 @@ interface Service {
   badge?: string;
   color: string;
   darkColor: string;
+  icon: IoniconsName;
+  iconAccessibilityLabel: string;
 }
 
 const SERVICES: Service[] = [
@@ -34,6 +38,8 @@ const SERVICES: Service[] = [
     badge: '24/7',
     color: '#03989e',
     darkColor: '#5dd8dd',
+    icon: 'happy',
+    iconAccessibilityLabel: 'Kids Helpline brand icon',
   },
   {
     id: 'lifeline',
@@ -42,8 +48,10 @@ const SERVICES: Service[] = [
     phone: '131114',
     url: 'https://www.lifeline.org.au/crisis-chat/',
     badge: '24/7',
-    color: '#3B82F6',
-    darkColor: '#93c5fd',
+    color: '#F97316',
+    darkColor: '#fdba74',
+    icon: 'heart',
+    iconAccessibilityLabel: 'Lifeline brand icon',
   },
   {
     id: 'beyondblue',
@@ -51,16 +59,20 @@ const SERVICES: Service[] = [
     description: 'Support for anxiety, depression and mental health.',
     phone: '1300224636',
     url: 'https://www.beyondblue.org.au/get-support/get-immediate-support',
-    color: '#1D4ED8',
+    color: '#1B56A5',
     darkColor: '#93c5fd',
+    icon: 'partly-sunny',
+    iconAccessibilityLabel: 'Beyond Blue brand icon',
   },
   {
     id: 'headspace',
     name: 'headspace',
     description: 'Youth mental health support. Find a centre near you.',
     url: 'https://headspace.org.au/headspace-centres/',
-    color: '#7C3AED',
-    darkColor: '#c4b5fd',
+    color: '#00A878',
+    darkColor: '#6ee7b7',
+    icon: 'leaf',
+    iconAccessibilityLabel: 'headspace brand icon',
   },
   {
     id: '13yarn',
@@ -68,8 +80,10 @@ const SERVICES: Service[] = [
     description: 'First Nations crisis support. Culturally safe, 24/7.',
     phone: '139276',
     badge: '24/7',
-    color: '#B45309',
-    darkColor: '#fbbf24',
+    color: '#C2410C',
+    darkColor: '#fb923c',
+    icon: 'bonfire',
+    iconAccessibilityLabel: '13YARN brand icon',
   },
   {
     id: 'emergency',
@@ -77,8 +91,10 @@ const SERVICES: Service[] = [
     description: 'If you or someone else is in immediate danger.',
     phone: '000',
     badge: 'Immediate',
-    color: '#EF4444',
+    color: '#DC2626',
     darkColor: '#fca5a5',
+    icon: 'warning',
+    iconAccessibilityLabel: 'Emergency Services icon',
   },
 ];
 
@@ -154,14 +170,20 @@ export default function SOSScreen() {
           return (
             <View
               key={service.id}
-              style={[styles.serviceCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[styles.serviceCard, { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: accentColor }]}
             >
               <View style={styles.serviceHeader}>
-                <View style={[styles.serviceDot, { backgroundColor: accentColor }]} />
+                <View
+                  style={[styles.serviceIconBadge, { backgroundColor: `${accentColor}20` }]}
+                  accessibilityLabel={service.iconAccessibilityLabel}
+                  accessible
+                >
+                  <Ionicons name={service.icon} size={22} color={accentColor} />
+                </View>
                 <View style={styles.serviceTitleRow}>
                   <Text style={[styles.serviceName, { color: colors.foreground }]}>{service.name}</Text>
                   {service.badge && (
-                    <View style={[styles.badge, { backgroundColor: colors.muted }]}>
+                    <View style={[styles.badge, { backgroundColor: `${accentColor}18` }]}>
                       <Text style={[styles.badgeText, { color: accentColor }]}>{service.badge}</Text>
                     </View>
                   )}
@@ -374,10 +396,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
+    borderLeftWidth: 4,
     gap: 8,
   },
-  serviceHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  serviceDot: { width: 10, height: 10, borderRadius: 5 },
+  serviceHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  serviceIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
   serviceTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   serviceName: { fontSize: 16, fontFamily: 'Inter_600SemiBold', flex: 1 },
   badge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2 },
