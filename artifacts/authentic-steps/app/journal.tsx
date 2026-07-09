@@ -426,7 +426,6 @@ export default function JournalScreen() {
   const insets = useSafeAreaInsets();
   const { entries, groundingSessions, deleteGroundingSession } = useApp();
   const [isDownloading, setIsDownloading] = useState(false);
-  const [groundingExpanded, setGroundingExpanded] = useState(true);
 
   const sortedDates = useMemo(() => {
     return Object.keys(entries ?? {})
@@ -436,6 +435,20 @@ export default function JournalScreen() {
       })
       .sort((a, b) => (a < b ? 1 : -1));
   }, [entries]);
+
+  const sessionsByDate = useMemo(() => {
+    const map: Record<string, GroundingSession[]> = {};
+    (groundingSessions ?? []).forEach((s) => {
+      if (!map[s.date]) map[s.date] = [];
+      map[s.date].push(s);
+    });
+    return map;
+  }, [groundingSessions]);
+
+  const allDates = useMemo(() => {
+    const union = new Set([...sortedDates, ...Object.keys(sessionsByDate)]);
+    return Array.from(union).sort((a, b) => (a < b ? 1 : -1));
+  }, [sortedDates, sessionsByDate]);
 
   const totalDays = sortedDates.length;
   const has90Days = totalDays >= 90;
@@ -588,8 +601,8 @@ export default function JournalScreen() {
           )}
         </Pressable>
 
-        {/* Daily ritual journal entries */}
-        {sortedDates.length === 0 ? (
+        {/* Journal entries + inline grounding sessions */}
+        {allDates.length === 0 ? (
           <View style={[styles.emptyState, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Ionicons name="journal-outline" size={40} color={colors.mutedForeground} />
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No entries yet</Text>
@@ -598,115 +611,113 @@ export default function JournalScreen() {
             </Text>
           </View>
         ) : (
-          sortedDates.map((date) => (
-            <JournalCard key={date} date={date} entry={entries[date]} colors={colors} isDark={isDark} />
-          ))
-        )}
-
-        {/* Grounding Sessions section */}
-        <Pressable
-          onPress={() => setGroundingExpanded((v) => !v)}
-          style={[styles.groundingSectionHeader, { borderColor: colors.border, backgroundColor: colors.card }]}
-        >
-          <View style={styles.groundingSectionLeft}>
-            <View style={[styles.groundingIconBadge, { backgroundColor: `${colors.primary}18` }]}>
-              <Ionicons name="leaf" size={16} color={colors.primary} />
-            </View>
-            <Text style={[styles.groundingSectionTitle, { color: colors.foreground }]}>
-              Grounding Sessions
-            </Text>
-            {(groundingSessions ?? []).length > 0 && (
-              <View style={[styles.countBadge, { backgroundColor: colors.primary }]}>
-                <Text style={styles.countBadgeText}>{(groundingSessions ?? []).length}</Text>
-              </View>
-            )}
-          </View>
-          <Ionicons
-            name={groundingExpanded ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={colors.mutedForeground}
-          />
-        </Pressable>
-
-        {groundingExpanded && (
-          (groundingSessions ?? []).length === 0 ? (
-            <View style={[styles.groundingEmpty, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Ionicons name="leaf-outline" size={32} color={colors.mutedForeground} />
-              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No sessions yet</Text>
-              <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
-                Complete the 5-4-3-2-1 grounding exercise in the Toolbox to save your reflections here.
-              </Text>
-            </View>
-          ) : (
-            (groundingSessions ?? []).map((session) => (
-              <GroundingSessionCard
-                key={session.id}
-                session={session}
+          allDates.map((date) => {
+            const entry = (entries ?? {})[date];
+            const sessions = sessionsByDate[date] ?? [];
+            if (entry) {
+              return (
+                <JournalCard
+                  key={date}
+                  date={date}
+                  entry={entry}
+                  colors={colors}
+                  isDark={isDark}
+                  sessions={sessions}
+                  onDeleteSession={handleDeleteSession}
+                />
+              );
+            }
+            return (
+              <GroundingOnlyCard
+                key={date}
+                date={date}
+                sessions={sessions}
                 colors={colors}
                 isDark={isDark}
-                onDelete={() => handleDeleteSession(session)}
+                onDeleteSession={handleDeleteSession}
               />
-            ))
-          )
+            );
+          })
         )}
       </ScrollView>
     </View>
   );
 }
 
-function GroundingSessionCard({
-  session,
+function InlineGroundingSection({
+  sessions,
   colors,
-  isDark,
-  onDelete,
+  onDeleteSession,
 }: {
-  session: GroundingSession;
+  sessions: GroundingSession[];
   colors: ReturnType<typeof useColors>;
-  isDark: boolean;
-  onDelete: () => void;
+  onDeleteSession: (s: GroundingSession) => void;
 }) {
+  const [open, setOpen] = useState(true);
   const ACCENT = colors.primary;
-  const totalAnswers = session.senses.reduce((n, s) => n + s.answers.length, 0);
 
   return (
-    <View style={[styles.gsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={[styles.gsCardHeader, { backgroundColor: `${ACCENT}0D`, borderBottomColor: `${ACCENT}20` }]}>
-        <View style={styles.gsCardHeaderLeft}>
-          <View style={[styles.gsLeafBadge, { backgroundColor: ACCENT }]}>
-            <Ionicons name="leaf" size={12} color="#fff" />
-          </View>
-          <View>
-            <Text style={[styles.gsDate, { color: colors.foreground }]}>{formatDateShort(session.date)}</Text>
-            <Text style={[styles.gsTime, { color: colors.mutedForeground }]}>{formatTime(session.timestamp)}</Text>
-          </View>
-          <View style={[styles.gsAnswerBadge, { backgroundColor: colors.secondary }]}>
-            <Text style={[styles.gsAnswerBadgeText, { color: ACCENT }]}>{totalAnswers} responses</Text>
+    <View>
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        style={styles.inlineGroundingToggle}
+      >
+        <View style={styles.inlineGroundingLeft}>
+          <Text style={styles.sectionEmoji}>🍃</Text>
+          <Text style={[styles.sectionLabel, { color: ACCENT }]}>Grounding</Text>
+          <View style={[styles.inlineCountBadge, { backgroundColor: `${ACCENT}18` }]}>
+            <Text style={[styles.inlineCountText, { color: ACCENT }]}>{sessions.length}</Text>
           </View>
         </View>
-        <Pressable
-          onPress={onDelete}
-          style={({ pressed }) => [styles.gsDeleteBtn, { opacity: pressed ? 0.5 : 1 }]}
-          hitSlop={8}
-        >
-          <Ionicons name="trash-outline" size={17} color={colors.destructive} />
-        </Pressable>
-      </View>
+        <Ionicons
+          name={open ? 'chevron-up' : 'chevron-down'}
+          size={14}
+          color={colors.mutedForeground}
+        />
+      </Pressable>
 
-      <View style={styles.gsBody}>
-        {session.senses.map((sense, si) => (
-          <View key={si} style={styles.gsSenseBlock}>
-            <View style={styles.gsSenseRow}>
-              <Ionicons name={sense.icon as any} size={13} color={ACCENT} />
-              <Text style={[styles.gsSenseLabel, { color: colors.foreground }]}>{sense.sense}</Text>
+      {open && sessions.map((session) => {
+        const totalAnswers = session.senses.reduce((n, s) => n + s.answers.length, 0);
+        return (
+          <View
+            key={session.id}
+            style={[styles.inlineSessionBlock, { borderColor: `${ACCENT}20`, backgroundColor: `${ACCENT}07` }]}
+          >
+            <View style={styles.inlineSessionHeader}>
+              <View style={styles.inlineSessionMeta}>
+                <View style={[styles.gsLeafBadge, { backgroundColor: ACCENT }]}>
+                  <Ionicons name="leaf" size={11} color="#fff" />
+                </View>
+                <Text style={[styles.gsTime, { color: colors.mutedForeground }]}>{formatTime(session.timestamp)}</Text>
+                <View style={[styles.gsAnswerBadge, { backgroundColor: colors.secondary }]}>
+                  <Text style={[styles.gsAnswerBadgeText, { color: ACCENT }]}>{totalAnswers} responses</Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => onDeleteSession(session)}
+                style={({ pressed }) => [styles.gsDeleteBtn, { opacity: pressed ? 0.5 : 1 }]}
+                hitSlop={8}
+              >
+                <Ionicons name="trash-outline" size={15} color={colors.destructive} />
+              </Pressable>
             </View>
-            {sense.answers.map((answer, ai) => (
-              <Text key={ai} style={[styles.gsAnswer, { color: colors.mutedForeground }]}>
-                • {answer}
-              </Text>
+            {session.senses.map((sense, si) => (
+              <View key={si} style={styles.inlineSenseBlock}>
+                <View style={styles.gsSenseRow}>
+                  <Ionicons name={sense.icon as any} size={12} color={ACCENT} />
+                  <Text style={[styles.gsSenseLabel, { color: colors.foreground }]}>{sense.sense}</Text>
+                </View>
+                {sense.answers.map((answer, ai) => (
+                  <Text key={ai} style={[styles.gsAnswer, { color: colors.mutedForeground }]}>
+                    • {answer}
+                  </Text>
+                ))}
+              </View>
             ))}
           </View>
-        ))}
-      </View>
+        );
+      })}
     </View>
   );
 }
@@ -716,11 +727,15 @@ function JournalCard({
   entry,
   colors,
   isDark,
+  sessions,
+  onDeleteSession,
 }: {
   date: string;
   entry: import('@/context/AppContext').RitualEntry;
   colors: ReturnType<typeof useColors>;
   isDark: boolean;
+  sessions: GroundingSession[];
+  onDeleteSession: (s: GroundingSession) => void;
 }) {
   const [year, month, day] = date.split('-').map(Number);
   const d = new Date(year, month - 1, day);
@@ -739,11 +754,19 @@ function JournalCard({
           <Text style={styles.cardWeekday}>{weekday}</Text>
           <Text style={styles.cardDate}>{shortDate}</Text>
         </View>
-        {entry.isComplete && (
-          <View style={styles.completeBadge}>
-            <Ionicons name="checkmark" size={13} color={colors.primary} />
-          </View>
-        )}
+        <View style={styles.cardHeaderBadges}>
+          {sessions.length > 0 && (
+            <View style={[styles.groundingChip, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
+              <Ionicons name="leaf" size={11} color="#fff" />
+              <Text style={styles.groundingChipText}>{sessions.length}</Text>
+            </View>
+          )}
+          {entry.isComplete && (
+            <View style={styles.completeBadge}>
+              <Ionicons name="checkmark" size={13} color={colors.primary} />
+            </View>
+          )}
+        </View>
       </LinearGradient>
 
       <View style={styles.cardBody}>
@@ -817,6 +840,60 @@ function JournalCard({
             <Text style={[styles.emptyNote, { color: colors.mutedForeground }]}>No entry</Text>
           )}
         </View>
+
+        {sessions.length > 0 && (
+          <InlineGroundingSection
+            sessions={sessions}
+            colors={colors}
+            onDeleteSession={onDeleteSession}
+          />
+        )}
+      </View>
+    </View>
+  );
+}
+
+function GroundingOnlyCard({
+  date,
+  sessions,
+  colors,
+  isDark,
+  onDeleteSession,
+}: {
+  date: string;
+  sessions: GroundingSession[];
+  colors: ReturnType<typeof useColors>;
+  isDark: boolean;
+  onDeleteSession: (s: GroundingSession) => void;
+}) {
+  const [year, month, day] = date.split('-').map(Number);
+  const d = new Date(year, month - 1, day);
+  const weekday = d.toLocaleDateString('en-AU', { weekday: 'long' });
+  const shortDate = d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <LinearGradient
+        colors={[colors.gradientStart, '#193b83']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.cardHeader}
+      >
+        <View style={styles.cardHeaderInner}>
+          <Text style={styles.cardWeekday}>{weekday}</Text>
+          <Text style={styles.cardDate}>{shortDate}</Text>
+        </View>
+        <View style={[styles.groundingChip, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
+          <Ionicons name="leaf" size={11} color="#fff" />
+          <Text style={styles.groundingChipText}>{sessions.length} grounding</Text>
+        </View>
+      </LinearGradient>
+      <View style={styles.cardBody}>
+        <InlineGroundingSection
+          sessions={sessions}
+          colors={colors}
+          onDeleteSession={onDeleteSession}
+        />
       </View>
     </View>
   );
@@ -909,45 +986,57 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
   emptyDesc: { fontSize: 13, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 19 },
 
-  // Grounding section header
-  groundingSectionHeader: {
+  // Inline grounding section (inside journal card)
+  inlineGroundingToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginTop: 8,
+    paddingVertical: 8,
   },
-  groundingSectionLeft: {
+  inlineGroundingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
   },
-  groundingIconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  inlineCountBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    minWidth: 20,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  groundingSectionTitle: { fontSize: 15, fontFamily: 'Inter_700Bold' },
-  countBadge: {
+  inlineCountText: { fontSize: 11, fontFamily: 'Inter_700Bold' },
+  inlineSessionBlock: {
     borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  countBadgeText: { fontSize: 12, fontFamily: 'Inter_700Bold', color: '#fff' },
-
-  groundingEmpty: {
-    borderRadius: 14,
-    padding: 28,
     borderWidth: 1,
+    marginTop: 6,
+    padding: 10,
+    gap: 6,
+  },
+  inlineSessionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inlineSessionMeta: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
   },
+  inlineSenseBlock: { gap: 2, marginTop: 2 },
+
+  // Card header badges row
+  cardHeaderBadges: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  groundingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  groundingChipText: { fontSize: 11, fontFamily: 'Inter_600SemiBold', color: '#fff' },
 
   // Grounding session cards
   gsCard: { borderRadius: 14, borderWidth: 1, overflow: 'hidden' },
