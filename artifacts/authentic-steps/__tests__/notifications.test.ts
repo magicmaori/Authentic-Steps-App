@@ -1,9 +1,13 @@
 /**
- * Unit tests for getScheduledReminderTimes in utils/notifications.ts
+ * Unit tests for utils/notifications.ts
  *
- * Verifies that the utility correctly maps scheduled OS notifications to
- * ritualHour/ritualMinute/eveningHour/eveningMinute, which the migration
- * block in AppContext.loadData relies on.
+ * Covers:
+ * - getScheduledReminderTimes: maps scheduled OS notifications to
+ *   ritualHour/ritualMinute/eveningHour/eveningMinute (used by the
+ *   migration block in AppContext.loadData).
+ * - setupAndroidChannel: must swallow any error from
+ *   setNotificationChannelAsync instead of crashing on startup, which
+ *   is the Android cold-start fix this test suite guards against regression.
  *
  * NOTE: jest.mock() is hoisted before variable declarations, so mock
  * factory functions must not reference outer const/let variables. We use
@@ -23,14 +27,19 @@ jest.mock('expo-notifications', () => ({
   AndroidImportance: { HIGH: 4 },
 }));
 
+// Platform.OS is set per-describe block via jest.resetModules() where needed;
+// the default here is 'ios' to match the existing getScheduledReminderTimes tests.
 jest.mock('react-native', () => ({
   Platform: { OS: 'ios' },
+  Alert: { alert: jest.fn() },
 }));
 
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { getScheduledReminderTimes } from '../utils/notifications';
+import { getScheduledReminderTimes, setupAndroidChannel } from '../utils/notifications';
 
 const mockGetAllScheduled = Notifications.getAllScheduledNotificationsAsync as jest.Mock;
+const mockSetNotificationChannelAsync = Notifications.setNotificationChannelAsync as jest.Mock;
 
 describe('getScheduledReminderTimes', () => {
   beforeEach(() => {
@@ -135,5 +144,59 @@ describe('getScheduledReminderTimes', () => {
     const times = await getScheduledReminderTimes();
 
     expect(times).toEqual({});
+  });
+});
+
+/**
+ * setupAndroidChannel — cold-start / fresh-install guard
+ *
+ * On Android, setNotificationChannelAsync can throw on first boot (e.g. bad
+ * argument on a specific Android version or during an OTA upgrade). The fix
+ * wraps the call in try/catch; these tests confirm it stays in place so a
+ * future refactor can't silently reintroduce the crash.
+ */
+describe('setupAndroidChannel', () => {
+  beforeEach(() => {
+    mockSetNotificationChannelAsync.mockReset();
+  });
+
+  it('swallows an error from setNotificationChannelAsync on Android (does not throw)', async () => {
+    // Simulate the Android environment
+    (Platform as any).OS = 'android';
+    mockSetNotificationChannelAsync.mockRejectedValue(
+      new Error('channel creation failed (simulated Android crash)'),
+    );
+
+    await expect(setupAndroidChannel()).resolves.toBeUndefined();
+  });
+
+  it('calls setNotificationChannelAsync with the correct channel config on Android', async () => {
+    (Platform as any).OS = 'android';
+    mockSetNotificationChannelAsync.mockResolvedValue(null);
+
+    await setupAndroidChannel();
+
+    expect(mockSetNotificationChannelAsync).toHaveBeenCalledTimes(1);
+    const [channelId, config] = mockSetNotificationChannelAsync.mock.calls[0];
+    expect(typeof channelId).toBe('string');
+    expect(channelId.length).toBeGreaterThan(0);
+    expect(config).toMatchObject({
+      name: expect.any(String),
+      importance: expect.any(Number),
+    });
+  });
+
+  it('is a no-op on iOS (does not call setNotificationChannelAsync)', async () => {
+    (Platform as any).OS = 'ios';
+    mockSetNotificationChannelAsync.mockResolvedValue(null);
+
+    await setupAndroidChannel();
+
+    expect(mockSetNotificationChannelAsync).not.toHaveBeenCalled();
+  });
+
+  afterEach(() => {
+    // Restore the default mock Platform.OS so other tests are unaffected.
+    (Platform as any).OS = 'ios';
   });
 });

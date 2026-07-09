@@ -16,7 +16,13 @@ jest.mock('expo-network', () => {
 
 import * as Network from 'expo-network';
 
-import { __mockClock, __mockFiles } from '../test-helpers/expoFileSystemMock';
+import {
+  __mockClock,
+  __mockFiles,
+  __setMockDirExists,
+  __setMockDirCreateFn,
+  __setMockThrowOnDirectoryConstruct,
+} from '../test-helpers/expoFileSystemMock';
 import { cacheVideoInBackground, getCachedVideoUri, precacheVideosOnWifi } from '../lib/videoCache';
 
 const mockedGetNetworkStateAsync = Network.getNetworkStateAsync as jest.Mock;
@@ -26,6 +32,10 @@ describe('videoCache', () => {
     __mockFiles.clear();
     __mockClock.now = 1_000;
     mockedGetNetworkStateAsync.mockReset();
+    // Reset cold-start mock flags to their safe defaults
+    __setMockDirExists(true);
+    __setMockDirCreateFn(() => {});
+    __setMockThrowOnDirectoryConstruct(false);
   });
 
   it('reports no cached URI before a video has been downloaded', async () => {
@@ -133,6 +143,55 @@ describe('videoCache', () => {
 
       expect(await getCachedVideoUri(urls[0])).toBe(cachedUriBefore);
       expect(await getCachedVideoUri(urls[1])).not.toBeNull();
+    });
+  });
+
+  describe('cold-start / fresh-install paths', () => {
+    it('creates the cache directory when it does not exist (fresh Android install)', async () => {
+      __setMockDirExists(false);
+      const createFn = jest.fn().mockResolvedValue(undefined);
+      __setMockDirCreateFn(createFn);
+
+      // A cache lookup on a fresh install should trigger directory creation
+      // and return null (nothing cached yet) rather than crashing.
+      const result = await getCachedVideoUri('https://example.com/videos/welcome-intro.mp4');
+
+      expect(createFn).toHaveBeenCalledWith({ intermediates: true, idempotent: true });
+      expect(result).toBeNull();
+    });
+
+    it('awaits directory creation before checking for cached files (no race)', async () => {
+      __setMockDirExists(false);
+      let dirCreated = false;
+      __setMockDirCreateFn(async () => {
+        // Simulate async work (real fs create takes a tick on device)
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        dirCreated = true;
+      });
+
+      // If create() were not awaited, the file lookup would race ahead of the
+      // directory being ready. The function must not throw even in that case.
+      const result = await getCachedVideoUri('https://example.com/videos/welcome-intro.mp4');
+
+      // By the time getCachedVideoUri resolves, creation must have finished.
+      expect(dirCreated).toBe(true);
+      expect(result).toBeNull();
+    });
+
+    it('getCachedVideoUri returns null instead of throwing when Directory constructor throws', async () => {
+      __setMockThrowOnDirectoryConstruct(true);
+
+      await expect(
+        getCachedVideoUri('https://example.com/videos/welcome-intro.mp4'),
+      ).resolves.toBeNull();
+    });
+
+    it('cacheVideoInBackground resolves without throwing when the file system throws', async () => {
+      __setMockThrowOnDirectoryConstruct(true);
+
+      await expect(
+        cacheVideoInBackground('https://example.com/videos/welcome-intro.mp4'),
+      ).resolves.toBeUndefined();
     });
   });
 });
