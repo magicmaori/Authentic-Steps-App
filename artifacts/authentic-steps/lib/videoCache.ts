@@ -24,10 +24,17 @@ const CACHE_SUBDIR = "ritual-videos";
  */
 const MAX_CACHE_BYTES = 150 * 1024 * 1024;
 
-function getCacheDirectory(): Directory {
+/**
+ * Returns the cache directory, creating it if needed.
+ * Made async so `dir.create()` is properly awaited — on Android a fresh
+ * install may not have the cache subdirectory yet, and the synchronous
+ * `dir.exists` check + unawaited `dir.create()` race could allow subsequent
+ * file operations to run before the directory actually exists.
+ */
+async function getCacheDirectory(): Promise<Directory> {
   const dir = new Directory(Paths.cache, CACHE_SUBDIR);
   if (!dir.exists) {
-    dir.create({ intermediates: true, idempotent: true });
+    await dir.create({ intermediates: true, idempotent: true });
   }
   return dir;
 }
@@ -41,38 +48,54 @@ function cacheFilename(remoteUrl: string): string {
  * Returns a local `file://` URI for `remoteUrl` if it's already cached on
  * disk, or null if it hasn't been cached yet (caller should fall back to
  * streaming `remoteUrl` directly).
+ *
+ * Made async because `getCacheDirectory()` is now async (it awaits
+ * directory creation), and the entire body is wrapped in try/catch so a
+ * Directory/File constructor throw on Android never propagates to the caller.
  */
-export function getCachedVideoUri(remoteUrl: string): string | null {
+export async function getCachedVideoUri(remoteUrl: string): Promise<string | null> {
   try {
-    const file = new File(getCacheDirectory(), cacheFilename(remoteUrl));
+    const dir = await getCacheDirectory();
+    const file = new File(dir, cacheFilename(remoteUrl));
     return file.exists ? file.uri : null;
   } catch {
     return null;
   }
 }
 
-function evictLeastRecentlyUsed(targetBytes: number): void {
-  const dir = getCacheDirectory();
-  const files = dir.list().filter((entry): entry is File => entry instanceof File);
+async function evictLeastRecentlyUsed(targetBytes: number): Promise<void> {
+  try {
+    const dir = await getCacheDirectory();
+    const entries = await dir.list();
+    const files = entries.filter((entry): entry is File => entry instanceof File);
 
-  const withInfo = files.map((file) => {
-    const info = file.info();
-    return { file, size: info.size ?? 0, modificationTime: info.modificationTime ?? 0 };
-  });
+    const withInfo = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const info = await file.info();
+          return { file, size: info.size ?? 0, modificationTime: info.modificationTime ?? 0 };
+        } catch {
+          return { file, size: 0, modificationTime: 0 };
+        }
+      })
+    );
 
-  let totalSize = withInfo.reduce((sum, entry) => sum + entry.size, 0);
-  if (totalSize <= targetBytes) return;
+    let totalSize = withInfo.reduce((sum, entry) => sum + entry.size, 0);
+    if (totalSize <= targetBytes) return;
 
-  withInfo.sort((a, b) => a.modificationTime - b.modificationTime);
+    withInfo.sort((a, b) => a.modificationTime - b.modificationTime);
 
-  for (const entry of withInfo) {
-    if (totalSize <= targetBytes) break;
-    try {
-      entry.file.delete();
-      totalSize -= entry.size;
-    } catch {
-      // Best-effort eviction — skip files we can't delete and keep going.
+    for (const entry of withInfo) {
+      if (totalSize <= targetBytes) break;
+      try {
+        await entry.file.delete();
+        totalSize -= entry.size;
+      } catch {
+        // Best-effort eviction — skip files we can't delete and keep going.
+      }
     }
+  } catch {
+    // If eviction itself fails for any reason, swallow — it's not critical.
   }
 }
 
@@ -83,11 +106,12 @@ function evictLeastRecentlyUsed(targetBytes: number): void {
  */
 export async function cacheVideoInBackground(remoteUrl: string): Promise<void> {
   try {
-    const destination = new File(getCacheDirectory(), cacheFilename(remoteUrl));
+    const dir = await getCacheDirectory();
+    const destination = new File(dir, cacheFilename(remoteUrl));
     if (destination.exists) return;
 
     await File.downloadFileAsync(remoteUrl, destination, { idempotent: true });
-    evictLeastRecentlyUsed(MAX_CACHE_BYTES);
+    await evictLeastRecentlyUsed(MAX_CACHE_BYTES);
   } catch {
     // Caching is a nice-to-have; playback already streams from `remoteUrl`
     // regardless of whether this succeeds.

@@ -28,14 +28,14 @@ describe('videoCache', () => {
     mockedGetNetworkStateAsync.mockReset();
   });
 
-  it('reports no cached URI before a video has been downloaded', () => {
-    expect(getCachedVideoUri('https://example.com/videos/welcome-intro.mp4')).toBeNull();
+  it('reports no cached URI before a video has been downloaded', async () => {
+    expect(await getCachedVideoUri('https://example.com/videos/welcome-intro.mp4')).toBeNull();
   });
 
   it('caches a video and then reports its local URI', async () => {
     const url = 'https://example.com/videos/welcome-intro.mp4';
     await cacheVideoInBackground(url);
-    const cachedUri = getCachedVideoUri(url);
+    const cachedUri = await getCachedVideoUri(url);
     expect(cachedUri).not.toBeNull();
     expect(cachedUri).toContain('welcome-intro.mp4');
   });
@@ -43,10 +43,10 @@ describe('videoCache', () => {
   it('is a no-op if the video is already cached', async () => {
     const url = 'https://example.com/videos/welcome-intro.mp4';
     await cacheVideoInBackground(url);
-    const uriAfterFirstCache = getCachedVideoUri(url);
+    const uriAfterFirstCache = await getCachedVideoUri(url);
     expect(uriAfterFirstCache).not.toBeNull();
     await cacheVideoInBackground(url);
-    expect(getCachedVideoUri(url)).toBe(uriAfterFirstCache);
+    expect(await getCachedVideoUri(url)).toBe(uriAfterFirstCache);
   });
 
   it('evicts the least-recently cached video once the size limit is exceeded', async () => {
@@ -61,8 +61,8 @@ describe('videoCache', () => {
 
     // Each fake download is 10MB; 16 of them (160MB) exceeds the 150MB cap,
     // so the oldest (first cached) entry should have been evicted.
-    expect(getCachedVideoUri(urls[0])).toBeNull();
-    expect(getCachedVideoUri(urls[urls.length - 1])).not.toBeNull();
+    expect(await getCachedVideoUri(urls[0])).toBeNull();
+    expect(await getCachedVideoUri(urls[urls.length - 1])).not.toBeNull();
   });
 
   describe('precacheVideosOnWifi', () => {
@@ -81,7 +81,7 @@ describe('videoCache', () => {
       await precacheVideosOnWifi(urls);
 
       for (const url of urls) {
-        expect(getCachedVideoUri(url)).not.toBeNull();
+        expect(await getCachedVideoUri(url)).not.toBeNull();
       }
     });
 
@@ -95,7 +95,7 @@ describe('videoCache', () => {
       await precacheVideosOnWifi(urls);
 
       for (const url of urls) {
-        expect(getCachedVideoUri(url)).toBeNull();
+        expect(await getCachedVideoUri(url)).toBeNull();
       }
     });
 
@@ -109,7 +109,7 @@ describe('videoCache', () => {
       await precacheVideosOnWifi(urls);
 
       for (const url of urls) {
-        expect(getCachedVideoUri(url)).toBeNull();
+        expect(await getCachedVideoUri(url)).toBeNull();
       }
     });
 
@@ -121,7 +121,7 @@ describe('videoCache', () => {
 
     it('skips videos that are already cached', async () => {
       await cacheVideoInBackground(urls[0]);
-      const cachedUriBefore = getCachedVideoUri(urls[0]);
+      const cachedUriBefore = await getCachedVideoUri(urls[0]);
 
       mockedGetNetworkStateAsync.mockResolvedValue({
         type: Network.NetworkStateType.WIFI,
@@ -131,8 +131,8 @@ describe('videoCache', () => {
 
       await precacheVideosOnWifi(urls);
 
-      expect(getCachedVideoUri(urls[0])).toBe(cachedUriBefore);
-      expect(getCachedVideoUri(urls[1])).not.toBeNull();
+      expect(await getCachedVideoUri(urls[0])).toBe(cachedUriBefore);
+      expect(await getCachedVideoUri(urls[1])).not.toBeNull();
     });
   });
 });

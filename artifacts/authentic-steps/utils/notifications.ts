@@ -9,12 +9,18 @@ const ID_EVENING = 'evening-checkin-reminder';
 
 export async function setupAndroidChannel(): Promise<void> {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: 'Authentic Steps reminders',
-    importance: Notifications.AndroidImportance.HIGH,
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#03989e',
-  });
+  try {
+    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+      name: 'Authentic Steps reminders',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#03989e',
+    });
+  } catch {
+    // Native channel setup failures (e.g. bad argument on a specific Android
+    // version) must not propagate — notifications are non-critical and the
+    // call site already uses .catch(() => {}) as a belt-and-suspenders guard.
+  }
 }
 
 export type PermissionState = 'granted' | 'denied' | 'undetermined';

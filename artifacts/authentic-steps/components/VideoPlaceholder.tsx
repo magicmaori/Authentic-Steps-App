@@ -82,7 +82,7 @@ export function VideoPlaceholder({ label, sublabel, source }: VideoPlaceholderPr
 
     // Previously-watched videos play instantly from the on-device cache
     // instead of re-streaming over the network.
-    const cachedUri = getCachedVideoUri(source);
+    const cachedUri = await getCachedVideoUri(source);
     setPlaybackUri(cachedUri ?? source);
 
     if (cachedUri) {
