@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BreathingTimer from '@/components/BreathingTimer';
 import GroundingWalkthrough from '@/components/GroundingWalkthrough';
 import MovementExercise from '@/components/MovementExercise';
+import colorsDef from '@/constants/colors';
 import { useApp } from '@/context/AppContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -87,6 +88,8 @@ function TipCard({ tip, fullWidth }: { tip: typeof TIPS[0]; fullWidth?: boolean 
 function GoToSection() {
   const { userData, isExerciseDoneToday, markExerciseDone } = useApp();
   const colors = useColors();
+  const isDark = colors.background === colorsDef.dark.background;
+  const coldWaterColor = isDark ? '#60A5FA' : '#1D4ED8';
   const favs = userData.favouriteTools ?? [];
   if (favs.length === 0) return null;
 
@@ -117,7 +120,7 @@ function GoToSection() {
               description="Used by athletes and first responders to reset fast."
               phases={BOX_BREATHING_PHASES}
               totalRounds={4}
-              accentColor="#03989e"
+              accentColor={colors.primary}
               onComplete={() => markExerciseDone('breathing-box')}
             />
           </ToolCard>
@@ -130,7 +133,7 @@ function GoToSection() {
               description="Great for anxiety, panic, or when you can't sleep."
               phases={CALM_DOWN_PHASES}
               totalRounds={4}
-              accentColor="#03989e"
+              accentColor={colors.primary}
               onComplete={() => markExerciseDone('breathing-478')}
             />
           </ToolCard>
@@ -141,7 +144,7 @@ function GoToSection() {
               icon="body"
               title="10 Star Jumps"
               desc="Gets blood moving and releases tension held in the body. Do them big — arms and legs fully extended."
-              color="#03989e"
+              color={colors.primary}
               mode="reps"
               totalReps={10}
               onComplete={() => markExerciseDone('movement-star-jumps')}
@@ -154,7 +157,7 @@ function GoToSection() {
               icon="walk"
               title="Walk & Count"
               desc="Go for a 5-minute walk and silently count your steps. Counting keeps your mind present."
-              color="#03989e"
+              color={colors.primary}
               mode="countdown"
               countdownSeconds={300}
               countdownLabel="remaining"
@@ -168,7 +171,7 @@ function GoToSection() {
               icon="hand-left"
               title="Progressive Muscle Release"
               desc="Clench every muscle tight for 5 seconds — fists, arms, shoulders, legs — then release all at once."
-              color="#03989e"
+              color={colors.primary}
               mode="hold-reps"
               holdSeconds={5}
               totalHoldRounds={3}
@@ -182,7 +185,7 @@ function GoToSection() {
               icon="water"
               title="Cold Water Reset"
               desc="Splash cold water on your face or hold ice cubes. Activates the dive reflex and slows your heart rate."
-              color="#1D4ED8"
+              color={coldWaterColor}
               mode="countdown"
               countdownSeconds={30}
               countdownLabel="hold or splash"
@@ -203,6 +206,8 @@ function GoToSection() {
 export default function ToolboxScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const isDark = colors.background === colorsDef.dark.background;
+  const coldWaterColor = isDark ? '#60A5FA' : '#1D4ED8';
   const { isExerciseDoneToday, markExerciseDone, isLoaded } = useApp();
 
   if (!isLoaded) {
@@ -275,7 +280,7 @@ export default function ToolboxScreen() {
               description="Used by athletes and first responders to reset fast."
               phases={BOX_BREATHING_PHASES}
               totalRounds={4}
-              accentColor="#03989e"
+              accentColor={colors.primary}
               onComplete={() => markExerciseDone('breathing-box')}
             />
           </ToolCard>
@@ -287,7 +292,7 @@ export default function ToolboxScreen() {
               description="Great for anxiety, panic, or when you can't sleep."
               phases={CALM_DOWN_PHASES}
               totalRounds={4}
-              accentColor="#03989e"
+              accentColor={colors.primary}
               onComplete={() => markExerciseDone('breathing-478')}
             />
           </ToolCard>
@@ -312,7 +317,7 @@ export default function ToolboxScreen() {
               icon="body"
               title="10 Star Jumps"
               desc="Gets blood moving and releases tension held in the body. Do them big — arms and legs fully extended."
-              color="#03989e"
+              color={colors.primary}
               mode="reps"
               totalReps={10}
               onComplete={() => markExerciseDone('movement-star-jumps')}
@@ -324,7 +329,7 @@ export default function ToolboxScreen() {
               icon="walk"
               title="Walk & Count"
               desc="Go for a 5-minute walk and silently count your steps. Counting keeps your mind present."
-              color="#03989e"
+              color={colors.primary}
               mode="countdown"
               countdownSeconds={300}
               countdownLabel="remaining"
@@ -337,7 +342,7 @@ export default function ToolboxScreen() {
               icon="hand-left"
               title="Progressive Muscle Release"
               desc="Clench every muscle tight for 5 seconds — fists, arms, shoulders, legs — then release all at once."
-              color="#03989e"
+              color={colors.primary}
               mode="hold-reps"
               holdSeconds={5}
               totalHoldRounds={3}
@@ -350,7 +355,7 @@ export default function ToolboxScreen() {
               icon="water"
               title="Cold Water Reset"
               desc="Splash cold water on your face or hold ice cubes. Activates the dive reflex and slows your heart rate."
-              color="#1D4ED8"
+              color={coldWaterColor}
               mode="countdown"
               countdownSeconds={30}
               countdownLabel="hold or splash"

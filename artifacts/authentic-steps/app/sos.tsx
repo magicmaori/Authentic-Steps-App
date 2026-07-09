@@ -4,11 +4,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React from 'react';
-import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VideoPlaceholder } from '@/components/VideoPlaceholder';
 import { getVideoUrl } from '@/lib/videoSource';
+import colorsDef from '@/constants/colors';
 import { SCREENSHOT_MODE } from '@/constants/screenshotSeed';
 import { useColors } from '@/hooks/useColors';
 
@@ -97,8 +98,7 @@ async function openChat(url: string) {
 export default function SOSScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
+  const isDark = colors.background === colorsDef.dark.background;
 
   async function handleClose() {
     await Haptics.selectionAsync();
@@ -213,8 +213,8 @@ export default function SOSScreen() {
         </Text>
 
         <View style={[styles.breathCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[styles.breathIconWrap, { backgroundColor: '#03989e18' }]}>
-            <Ionicons name="pulse" size={22} color="#03989e" />
+          <View style={[styles.breathIconWrap, { backgroundColor: `${colors.primary}18` }]}>
+            <Ionicons name="pulse" size={22} color={colors.primary} />
           </View>
           <Text style={[styles.breathTitle, { color: colors.foreground }]}>Box Breathing</Text>
           <Text style={[styles.breathDesc, { color: colors.mutedForeground }]}>
@@ -222,10 +222,10 @@ export default function SOSScreen() {
           </Text>
           <View style={styles.breathSteps}>
             {[
-              { label: 'Breathe IN', count: '4 counts', color: '#03989e' },
-              { label: 'HOLD', count: '4 counts', color: '#193b83' },
-              { label: 'Breathe OUT', count: '4 counts', color: '#03989e' },
-              { label: 'HOLD', count: '4 counts', color: '#193b83' },
+              { label: 'Breathe IN', count: '4 counts', color: colors.primary },
+              { label: 'HOLD', count: '4 counts', color: isDark ? colors.accent : '#193b83' },
+              { label: 'Breathe OUT', count: '4 counts', color: colors.primary },
+              { label: 'HOLD', count: '4 counts', color: isDark ? colors.accent : '#193b83' },
             ].map((s, i) => (
               <View key={i} style={styles.breathStepRow}>
                 <View style={[styles.breathStepDot, { backgroundColor: s.color }]} />
@@ -238,8 +238,8 @@ export default function SOSScreen() {
         </View>
 
         <View style={[styles.breathCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[styles.breathIconWrap, { backgroundColor: '#193b8318' }]}>
-            <Ionicons name="moon" size={22} color="#193b83" />
+          <View style={[styles.breathIconWrap, { backgroundColor: isDark ? `${colors.accent}18` : '#193b8318' }]}>
+            <Ionicons name="moon" size={22} color={isDark ? colors.accent : '#193b83'} />
           </View>
           <Text style={[styles.breathTitle, { color: colors.foreground }]}>4-7-8 Calm Down</Text>
           <Text style={[styles.breathDesc, { color: colors.mutedForeground }]}>
@@ -247,9 +247,9 @@ export default function SOSScreen() {
           </Text>
           <View style={styles.breathSteps}>
             {[
-              { label: 'Breathe IN through nose', count: '4 counts', color: '#03989e' },
-              { label: 'HOLD', count: '7 counts', color: '#193b83' },
-              { label: 'Breathe OUT through mouth', count: '8 counts', color: '#03989e' },
+              { label: 'Breathe IN through nose', count: '4 counts', color: colors.primary },
+              { label: 'HOLD', count: '7 counts', color: isDark ? colors.accent : '#193b83' },
+              { label: 'Breathe OUT through mouth', count: '8 counts', color: colors.primary },
             ].map((s, i) => (
               <View key={i} style={styles.breathStepRow}>
                 <View style={[styles.breathStepDot, { backgroundColor: s.color }]} />
@@ -271,25 +271,25 @@ export default function SOSScreen() {
             icon: 'body',
             title: '10 Star Jumps',
             desc: 'Gets blood moving and releases tension held in the body. Do them big — arms and legs fully extended.',
-            color: '#2D6A4F',
+            color: isDark ? '#4ade80' : '#2D6A4F',
           },
           {
             icon: 'walk',
             title: 'Walk & Count',
             desc: 'Go for a 5-minute walk and silently count your steps. Counting keeps your mind present.',
-            color: '#193b83',
+            color: isDark ? colors.accent : '#193b83',
           },
           {
             icon: 'hand-left',
             title: 'Progressive Muscle Release',
             desc: 'Clench every muscle tight for 5 seconds — fists, arms, shoulders, legs — then release all at once. Repeat 3 times.',
-            color: '#03989e',
+            color: colors.primary,
           },
           {
             icon: 'water',
             title: 'Cold Water Reset',
             desc: 'Splash cold water on your face or hold ice cubes. Activates the dive reflex and slows your heart rate.',
-            color: '#1D4ED8',
+            color: isDark ? '#60A5FA' : '#1D4ED8',
           },
         ].map(ex => (
           <View

@@ -157,7 +157,7 @@ export default function GroundingWalkthrough({ onComplete }: Props = {}) {
   };
 
   const step = STEPS[stepIndex];
-  const accentColor = '#03989e';
+  const accentColor = colors.primary;
 
   const summarySteps = STEPS.map((s, si) => ({
     ...s,
