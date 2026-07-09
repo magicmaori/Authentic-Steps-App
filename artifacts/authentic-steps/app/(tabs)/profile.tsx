@@ -194,8 +194,8 @@ export default function ProfileScreen() {
       if (state === 'undetermined') {
         const granted = await requestPermissionWithRationale();
         if (granted) {
-          await scheduleRitualReminder(userData.notifRitual, userData.ritualHour ?? 9, userData.ritualMinute ?? 0).catch(() => {});
-          await scheduleEveningReminder(userData.notifEvening, userData.eveningHour ?? 20, userData.eveningMinute ?? 0).catch(() => {});
+          await scheduleRitualReminder(userData.notifRitual, userData.ritualHour, userData.ritualMinute).catch(() => {});
+          await scheduleEveningReminder(userData.notifEvening, userData.eveningHour, userData.eveningMinute).catch(() => {});
         } else {
           await disableAllNotificationPrefs();
           setNotifBlocked(true);
@@ -599,8 +599,8 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Notifications</Text>
 
           {([
-            { label: 'Daily ritual reminder', key: 'notifRitual' as const, value: userData.notifRitual, timeKey: 'ritual' as const, hour: userData.ritualHour ?? 9, minute: userData.ritualMinute ?? 0 },
-            { label: 'Evening intention check-in', key: 'notifEvening' as const, value: userData.notifEvening, timeKey: 'evening' as const, hour: userData.eveningHour ?? 20, minute: userData.eveningMinute ?? 0 },
+            { label: 'Daily ritual reminder', key: 'notifRitual' as const, value: userData.notifRitual, timeKey: 'ritual' as const, hour: userData.ritualHour, minute: userData.ritualMinute },
+            { label: 'Evening intention check-in', key: 'notifEvening' as const, value: userData.notifEvening, timeKey: 'evening' as const, hour: userData.eveningHour, minute: userData.eveningMinute },
           ]).map((item, i) => {
             const h12 = item.hour % 12 === 0 ? 12 : item.hour % 12;
             const ampm = item.hour >= 12 ? 'PM' : 'AM';
@@ -702,8 +702,8 @@ export default function ProfileScreen() {
             mode="time"
             value={(() => {
               const d = new Date();
-              d.setHours(timePickerOpen === 'ritual' ? (userData.ritualHour ?? 9) : (userData.eveningHour ?? 20));
-              d.setMinutes(timePickerOpen === 'ritual' ? (userData.ritualMinute ?? 0) : (userData.eveningMinute ?? 0));
+              d.setHours(timePickerOpen === 'ritual' ? userData.ritualHour : userData.eveningHour);
+              d.setMinutes(timePickerOpen === 'ritual' ? userData.ritualMinute : userData.eveningMinute);
               d.setSeconds(0);
               return d;
             })()}
@@ -733,8 +733,8 @@ export default function ProfileScreen() {
                       display="spinner"
                       value={(() => {
                         const d = new Date();
-                        d.setHours(timePickerOpen === 'ritual' ? (userData.ritualHour ?? 9) : (userData.eveningHour ?? 20));
-                        d.setMinutes(timePickerOpen === 'ritual' ? (userData.ritualMinute ?? 0) : (userData.eveningMinute ?? 0));
+                        d.setHours(timePickerOpen === 'ritual' ? userData.ritualHour : userData.eveningHour);
+                        d.setMinutes(timePickerOpen === 'ritual' ? userData.ritualMinute : userData.eveningMinute);
                         d.setSeconds(0);
                         return d;
                       })()}
