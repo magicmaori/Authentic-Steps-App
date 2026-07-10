@@ -21,7 +21,7 @@ function clerkErrMsg(error: unknown): string {
 
 interface FinalizeArgs {
   session?: { currentTask?: unknown } | null;
-  decorateUrl: (url: string) => string;
+  decorateUrl?: (url: string) => string;
 }
 
 export default function SignInScreen() {
@@ -51,7 +51,7 @@ export default function SignInScreen() {
   const goHome = useCallback(
     ({ session, decorateUrl }: FinalizeArgs) => {
       if (session?.currentTask) return;
-      router.replace(decorateUrl('/') as Href);
+      router.replace((decorateUrl?.('/') ?? '/') as Href);
     },
     [router],
   );
