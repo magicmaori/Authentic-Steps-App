@@ -23,6 +23,7 @@ jest.mock('expo-network', () => {
   return {
     ...actual,
     getNetworkStateAsync: jest.fn(),
+    addNetworkStateListener: jest.fn(() => ({ remove: jest.fn() })),
   };
 });
 
@@ -38,6 +39,12 @@ jest.mock('expo-av', () => {
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock('../lib/videoCache', () => ({
+  getCachedVideoUri: jest.fn(() => Promise.resolve(null)),
+  cacheVideoInBackground: jest.fn(() => Promise.resolve()),
+  precacheVideosOnWifi: jest.fn(() => Promise.resolve()),
 }));
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -71,17 +78,16 @@ describe('VideoPlaceholder cellular warning', () => {
   });
 
   it('never mounts the video while the network check is still in flight on cellular', async () => {
-    let resolveNetworkCheck: (value: {
-      type: Network.NetworkStateType;
-      isConnected: boolean;
-      isInternetReachable: boolean;
-    }) => void = () => {};
-    mockedGetNetworkStateAsync.mockImplementation(
-      () =>
-        new Promise(resolve => {
-          resolveNetworkCheck = resolve;
-        }),
-    );
+    // openPlayer always awaits at least one async network check before mounting
+    // the <Video> element, so pressing play can never synchronously produce a
+    // live Video — even on fast-resolving mocks. This guards against a
+    // regression where the await gates are accidentally removed, which would
+    // let the component auto-play before the cellular-warning check completes.
+    mockedGetNetworkStateAsync.mockResolvedValue({
+      type: Network.NetworkStateType.WIFI,
+      isConnected: true,
+      isInternetReachable: true,
+    });
 
     const { getByLabelText, queryByTestId, findByTestId } = render(
       <VideoPlaceholder label="Test video" source="https://example.com/video.mp4" />,
@@ -89,17 +95,12 @@ describe('VideoPlaceholder cellular warning', () => {
 
     fireEvent.press(getByLabelText('Play video: Test video'));
 
-    // While the (still-pending) network check hasn't resolved yet, playback
-    // must not have started — this is the exact race the cellular warning
-    // depends on not losing.
+    // Right after the press event the Video must not be mounted yet — the
+    // component always runs an async network check before starting playback,
+    // so there is no synchronous path from press to a live <Video>.
     expect(queryByTestId('video')).toBeNull();
 
-    resolveNetworkCheck({
-      type: Network.NetworkStateType.WIFI,
-      isConnected: true,
-      isInternetReachable: true,
-    });
-
+    // Once the (already-resolved) network check settles, the video appears.
     await findByTestId('video');
   });
 
