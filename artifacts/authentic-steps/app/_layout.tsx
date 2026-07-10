@@ -1,4 +1,4 @@
-import { ClerkLoaded, ClerkLoading, ClerkProvider } from "@clerk/expo";
+import { useAuth, ClerkLoaded, ClerkLoading, ClerkProvider } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import {
   Inter_400Regular,
@@ -10,8 +10,7 @@ import {
 import { Feather, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setBaseUrl } from "@workspace/api-client-react";
-import * as Linking from "expo-linking";
+import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 import { router, Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useCallback, useEffect, useState } from "react";
@@ -23,14 +22,8 @@ import { AccessLoading } from "@/components/AccessLoading";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashAnimation } from "@/components/SplashAnimation";
 import { AppProvider, useApp } from "@/context/AppContext";
-import {
-  EntitlementProvider,
-  routeForAccessState,
-  useEntitlement,
-} from "@/context/EntitlementContext";
 import { precacheVideosOnWifi } from "@/lib/videoCache";
 import { getAllVideoUrls } from "@/lib/videoSource";
-import { capturePendingInviteFromUrl } from "@/utils/pendingInvite";
 
 const INTRO_SEEN_KEY = "hasSeenIntro";
 
@@ -44,36 +37,54 @@ if (domain) setBaseUrl(`https://${domain}`);
 const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const clerkProxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
+function AuthTokenSync() {
+  const { isSignedIn, getToken } = useAuth();
+  useEffect(() => {
+    if (isSignedIn) {
+      setAuthTokenGetter(() => getToken());
+    } else {
+      setAuthTokenGetter(null);
+    }
+    return () => setAuthTokenGetter(null);
+  }, [isSignedIn, getToken]);
+  return null;
+}
+
 function AccessGate({ children }: { children: React.ReactNode }) {
-  const { state } = useEntitlement();
+  const { isLoaded, isSignedIn } = useAuth();
   const segments = useSegments() as string[];
   const nav = useRouter();
 
   useEffect(() => {
-    const route = routeForAccessState(state, segments);
-    if (route.type !== "replace") return;
-    if (route.params) {
-      nav.replace({ pathname: route.pathname, params: route.params } as any);
+    if (!isLoaded) return;
+    const inAuth = segments[0] === "(auth)";
+    const sub = segments[1];
+    if (!isSignedIn) {
+      if (!(inAuth && (sub === "sign-in" || sub === "sign-up"))) {
+        nav.replace("/(auth)/sign-in" as any);
+      }
     } else {
-      nav.replace(route.pathname as any);
+      if (inAuth) {
+        nav.replace("/(tabs)" as any);
+      }
     }
-  }, [state, segments, nav]);
+  }, [isLoaded, isSignedIn, segments, nav]);
 
-  if (state === "loading") return <AccessLoading />;
+  if (!isLoaded) return <AccessLoading />;
   return <>{children}</>;
 }
 
 function OnboardingGate({ children }: { children: React.ReactNode }) {
   const { isLoaded: appLoaded, userData } = useApp();
-  const { state } = useEntitlement();
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
     if (!appLoaded) return;
-    if (state !== "active") return;
+    if (!isSignedIn) return;
     if (!userData.hasOnboarded) {
       router.replace("/onboarding" as any);
     }
-  }, [appLoaded, userData.hasOnboarded, state]);
+  }, [appLoaded, userData.hasOnboarded, isSignedIn]);
 
   if (!appLoaded) return null;
   return <>{children}</>;
@@ -115,22 +126,6 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    // Capture an invite code from a cold-start deep link (e.g. from the
-    // mobile landing page) as well as from links tapped while the app is
-    // already running. See utils/pendingInvite.ts for why this is stashed
-    // separately instead of relying on route params alone.
-    Linking.getInitialURL().then(capturePendingInviteFromUrl);
-    const subscription = Linking.addEventListener("url", ({ url }) => {
-      capturePendingInviteFromUrl(url);
-    });
-    return () => subscription.remove();
-  }, []);
-
-  useEffect(() => {
-    // Fire-and-forget: pre-cache ritual videos in the background so even
-    // the first watch is instant, not just replays. Only runs on Wi-Fi and
-    // never blocks startup or the UI — see lib/videoCache.ts for the
-    // network check and graceful offline/failure handling.
     void precacheVideosOnWifi(getAllVideoUrls());
   }, []);
 
@@ -163,16 +158,15 @@ export default function RootLayout() {
                   <AccessLoading />
                 </ClerkLoading>
                 <ClerkLoaded>
-                  <EntitlementProvider>
-                    <AppProvider>
-                      <AccessGate>
-                        <RootLayoutNav />
-                      </AccessGate>
-                      {showIntro && !splashDone && (
-                        <SplashAnimation onFinished={handleSplashFinished} />
-                      )}
-                    </AppProvider>
-                  </EntitlementProvider>
+                  <AuthTokenSync />
+                  <AppProvider>
+                    <AccessGate>
+                      <RootLayoutNav />
+                    </AccessGate>
+                    {showIntro && !splashDone && (
+                      <SplashAnimation onFinished={handleSplashFinished} />
+                    )}
+                  </AppProvider>
                 </ClerkLoaded>
               </KeyboardProvider>
             </GestureHandlerRootView>

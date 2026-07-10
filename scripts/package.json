@@ -6,8 +6,6 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "sync-export-record": "tsx ./src/sync-export-record.ts",
-    "bootstrap-agency": "tsx ./src/bootstrap-agency.ts",
-    "manage-admin": "tsx ./src/manage-admin.ts",
     "mix-video-audio": "tsx ./src/mix-video-audio.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -16,7 +14,6 @@
     "tsx": "catalog:"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.32",
     "@google-cloud/storage": "^7.21.0",
     "@workspace/db": "workspace:*",
     "drizzle-orm": "catalog:"

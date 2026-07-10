@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100">
-  <g transform="translate(20, 20)">
-    <rect x="0" y="0" width="60" height="60" rx="12" fill="#0C4A6E" />
-    <path d="M18 42 L30 20 L42 42" stroke="#38BDF8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-    <path d="M22 35 L38 35" stroke="#38BDF8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-  </g>
-  <text x="100" y="55" font-family="'Plus Jakarta Sans', sans-serif" font-weight="800" font-size="28" fill="#0C4A6E">Authentic Steps</text>
-  <text x="100" y="75" font-family="'Plus Jakarta Sans', sans-serif" font-weight="600" font-size="14" fill="#0284C7" letter-spacing="1">AGENCY DASHBOARD</text>
-</svg>

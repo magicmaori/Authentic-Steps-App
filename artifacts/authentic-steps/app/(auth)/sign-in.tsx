@@ -282,7 +282,7 @@ export default function SignInScreen() {
       <View style={s.card}>
         <Text style={s.title}>Welcome back</Text>
         <Text style={s.subtitle}>
-          Sign in to continue. Authentic Steps is available to invited members only.
+          Sign in to continue.
         </Text>
 
         <View style={s.fieldGroup}>
@@ -368,7 +368,7 @@ export default function SignInScreen() {
           <Text style={s.linkAction}>Create your account</Text>
         </Link>
       </View>
-      <Text style={s.helperNote}>Access requires an invite from your agency or coordinator.</Text>
+      <Text style={s.helperNote}>Create a free account to get started.</Text>
     </AuthScaffold>
   );
 }

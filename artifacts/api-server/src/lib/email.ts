@@ -1,10 +1,9 @@
 import { logger } from "./logger";
 
 /**
- * Transactional email delivery for invite links, backed by the Replit-managed
- * Resend connector. Credentials are fetched from the connector proxy at runtime
- * (never cached long-term, tokens rotate) and used against the Resend REST API
- * directly so we avoid pulling in the SDK.
+ * Email delivery backed by the Replit-managed Resend connector. Credentials
+ * are fetched from the connector proxy at runtime (never cached long-term,
+ * tokens rotate) and used against the Resend REST API directly.
  */
 
 const RESEND_API_URL = "https://api.resend.com/emails";
@@ -48,7 +47,7 @@ async function getResendApiKey(): Promise<string> {
   const token = replitToken();
   if (!hostname || !token) {
     throw new Error(
-      "Resend connector is not available (missing REPLIT_CONNECTORS_HOSTNAME or repl identity). Connect Resend to enable invite emails.",
+      "Resend connector is not available (missing REPLIT_CONNECTORS_HOSTNAME or repl identity). Connect Resend to enable emails.",
     );
   }
 
@@ -74,7 +73,7 @@ async function getResendApiKey(): Promise<string> {
   const apiKey = settings?.api_key ?? settings?.apiKey ?? settings?.access_token;
   if (!apiKey) {
     throw new Error(
-      "Resend connection has no API key. Reconnect Resend to enable invite emails.",
+      "Resend connection has no API key. Reconnect Resend to enable emails.",
     );
   }
 
@@ -88,57 +87,6 @@ export function isEmailConfigured(): boolean {
   return Boolean(process.env.REPLIT_CONNECTORS_HOSTNAME && replitToken());
 }
 
-/**
- * Build the public web redeem URL for an invite code. Prefers an explicit
- * DASHBOARD_URL, otherwise derives it from the Replit domain + dashboard base
- * path so links work in both dev and production.
- */
-export function buildRedeemUrl(code: string): string {
-  const explicit = process.env.DASHBOARD_URL?.replace(/\/$/, "");
-  const basePath = (process.env.DASHBOARD_BASE_PATH ?? "/dashboard").replace(
-    /\/$/,
-    "",
-  );
-  const base = explicit ?? `${originFromEnv()}${basePath}`;
-  return `${base}/redeem?code=${encodeURIComponent(code)}`;
-}
-
-/**
- * Build the mobile app entry-point URL for an invite code. The Authentic
- * Steps mobile app's landing/Expo server is mounted at the root of the same
- * domain (unlike the dashboard, which lives under /dashboard), so this only
- * needs the root origin plus the invite code as a query param. The landing
- * page (and, once opened, the app's redeem screen) reads that param.
- */
-export function buildMobileAppUrl(code: string): string {
-  const explicit = process.env.MOBILE_APP_URL?.replace(/\/$/, "");
-  const base = explicit ?? originFromEnv();
-  return `${base}/?code=${encodeURIComponent(code)}`;
-}
-
-/**
- * Role-aware invite link: members are routed straight into the mobile app
- * (where the product actually lives for them), while agency admins and
- * sub-account holders keep going to the web dashboard, which is their
- * management surface.
- */
-export function buildInviteUrl(role: string, code: string): string {
-  return role === "member" ? buildMobileAppUrl(code) : buildRedeemUrl(code);
-}
-
-function originFromEnv(): string {
-  const domains = process.env.REPLIT_DOMAINS?.split(",")
-    .map((d) => d.trim())
-    .filter(Boolean);
-  const domain = domains?.[0] ?? process.env.REPLIT_DEV_DOMAIN;
-  if (!domain) {
-    throw new Error(
-      "Cannot build redeem link: no DASHBOARD_URL, REPLIT_DOMAINS, or REPLIT_DEV_DOMAIN set.",
-    );
-  }
-  return `https://${domain}`;
-}
-
 function escapeHtml(input: string): string {
   return input
     .replace(/&/g, "&amp;")
@@ -146,99 +94,6 @@ function escapeHtml(input: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  agency_admin: "Agency Admin",
-  sub_account_holder: "Program Holder",
-  member: "Member",
-};
-
-export interface SendInviteEmailArgs {
-  to: string;
-  code: string;
-  role: string;
-  programName?: string | null;
-  inviteExpiresAt?: Date | null;
-}
-
-/**
- * Send the invite redeem link to an invitee. Throws on failure so callers can
- * surface send status; never silently swallows delivery errors.
- */
-export async function sendInviteEmail(args: SendInviteEmailArgs): Promise<void> {
-  const apiKey = await getResendApiKey();
-  const from = process.env.INVITE_EMAIL_FROM ?? DEFAULT_FROM;
-  const isMember = args.role === "member";
-  const redeemUrl = buildInviteUrl(args.role, args.code);
-  const roleLabel = ROLE_LABELS[args.role] ?? args.role.replace(/_/g, " ");
-  const program = args.programName ? ` for ${args.programName}` : "";
-  const expiryLine = args.inviteExpiresAt
-    ? `<p style="color:#6b7280;font-size:14px;">This invite expires on ${args.inviteExpiresAt.toLocaleDateString(
-        "en-US",
-        { year: "numeric", month: "long", day: "numeric" },
-      )}.</p>`
-    : "";
-  const ctaLabel = isMember ? "Open the app" : "Accept invite";
-  const introLine = isMember
-    ? "Tap the button below to open the Authentic Steps Youth app and accept your invite."
-    : "Tap the button below to accept your invite and get access.";
-
-  const subject = `You've been invited to Authentic Steps`;
-  const html = `
-    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:24px;">
-      <h1 style="font-size:22px;color:#111827;margin:0 0 12px;">You've been invited</h1>
-      <p style="color:#374151;font-size:16px;line-height:1.5;">
-        You've been invited to join <strong>Authentic Steps</strong> as a
-        <strong>${escapeHtml(roleLabel)}</strong>${escapeHtml(program)}.
-      </p>
-      <p style="color:#374151;font-size:16px;line-height:1.5;">
-        ${introLine}
-      </p>
-      <p style="margin:28px 0;">
-        <a href="${redeemUrl}" style="background:#4f46e5;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:16px;font-weight:600;display:inline-block;">
-          ${ctaLabel}
-        </a>
-      </p>
-      <p style="color:#6b7280;font-size:14px;line-height:1.5;">
-        Or paste this link into your browser:<br />
-        <a href="${redeemUrl}" style="color:#4f46e5;word-break:break-all;">${redeemUrl}</a>
-      </p>
-      ${expiryLine}
-    </div>
-  `.trim();
-
-  const text = [
-    `You've been invited to join Authentic Steps as a ${roleLabel}${program}.`,
-    "",
-    isMember
-      ? "Open the app and accept your invite using this link:"
-      : "Accept your invite using this link:",
-    redeemUrl,
-    args.inviteExpiresAt
-      ? `\nThis invite expires on ${args.inviteExpiresAt.toISOString().slice(0, 10)}.`
-      : "",
-  ].join("\n");
-
-  const res = await fetch(RESEND_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from, to: [args.to], subject, html, text }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    logger.warn(
-      { status: res.status, body },
-      "Resend rejected invite email send",
-    );
-    throw new Error(
-      `Email delivery failed (${res.status}). ${body.slice(0, 200)}`,
-    );
-  }
 }
 
 export interface FeedbackNotificationArgs {

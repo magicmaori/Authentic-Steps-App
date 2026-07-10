@@ -1,30 +1,15 @@
-# [Project name]
+# Authentic Steps For Youth
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A mental-health mobile app for young people — open sign-up, no invite required.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm --filter @workspace/api-server run smoke` — end-to-end smoke test of the agency-admin path (bootstrap → sign in → create sub-account → invite → redeem → renew → revoke) against **real Clerk test sessions**. Self-contained (boots the API in-process, no workflow needed), prints a numbered pass/fail per step, and deletes everything it creates. Requires a Clerk *test* instance (`sk_test`/`pk_test`) — it refuses to run against live keys. Complements `access-flows.test.ts`, which covers the same routes but mocks Clerk.
 - `pnpm run typecheck` — full typecheck across all packages. Registered as the **`typecheck` validation check** (a real CI-style gate): it runs `tsc --build` for the libs then `tsc --noEmit` for every artifact/script, including the mobile app. Type regressions (e.g. a stray `@types/react` mismatch) fail this gate instead of silently reappearing. Its reliability depends on the `@types/react`/`@types/react-dom` hoist in `.npmrc` — do not remove those `public-hoist-pattern` lines.
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/scripts run bootstrap-agency "<Agency Name>" <admin-email>` — provision the first agency + its agency admin (the admin must have signed into Clerk at least once). Idempotent by (agency name, admin): re-running the same command is a safe no-op.
-- `pnpm --filter @workspace/scripts run manage-admin <list|add|replace> "<Agency Name>|<agency-id>" [admin-email]` — manage admins on an **existing** agency (bootstrap-agency only creates new ones). `list` shows current active admins; `add` grants a co-admin (keeps existing ones); `replace` hands the agency off — makes `<admin-email>` the admin and revokes every other active admin. The target must have signed into Clerk at least once. Safe to re-run (idempotent upsert against the DB's uniqueness rules).
-- Required env: `DATABASE_URL` — Postgres connection string; `CLERK_SECRET_KEY` — for bootstrap/user lookup
-
-## Invite emails
-
-Invites can carry an optional invitee email. When set, the API emails the redeem link automatically on creation and exposes a re-send action (`POST /invites/:id/resend`). Delivery uses the **Resend** connector (credentials fetched from the Replit connector proxy at runtime — no manual API key). Relevant optional env:
-
-- `INVITE_EMAIL_FROM` — the From header (default `Authentic Steps <onboarding@resend.dev>`). To send to arbitrary recipients you must verify a sending domain in Resend and set this to an address on it; the default `onboarding@resend.dev` only reaches the Resend account owner.
-- `DASHBOARD_URL` — full base URL of the dashboard used to build redeem links (e.g. `https://your-app.example.com/dashboard`). If unset, it is derived from `REPLIT_DOMAINS`/`REPLIT_DEV_DOMAIN` + `DASHBOARD_BASE_PATH` (default `/dashboard`).
-- `MOBILE_APP_URL` — optional override for the mobile app's public entry URL used in member invite links (see below). If unset, it's derived the same way as `DASHBOARD_URL` but pointed at the root of the domain instead of `/dashboard`.
-
-Email delivery is best-effort on create: a send failure never blocks invite creation — the invite is still valid and `emailSentAt` stays null so the dashboard shows "Not sent" with a Send/Resend button.
-
-**Invite links are role-aware.** `member` invites (both the emailed link and the dashboard's "Copy Link" button) point at the mobile app's root URL (`https://<domain>/?code=<code>`) instead of the dashboard, since members' product surface is the Authentic Steps app, not the web dashboard. `agency_admin`/`sub_account_holder` invites still point at `/dashboard/redeem?code=<code>` — see `buildInviteUrl` in `artifacts/api-server/src/lib/email.ts` (backend) and `copyLink` in `artifacts/agency-dashboard/src/pages/invites.tsx` (frontend), which must stay in sync. The mobile app's landing page (served when Expo Go isn't installed) reads `?code=` from the URL and pre-fills it into an `exps://.../--/redeem?code=...` deep link; the app itself (`app/_layout.tsx` + `utils/pendingInvite.ts`) captures that code across the forced sign-in redirect and pre-fills it on the redeem screen. If a member ends up on the web dashboard anyway, the "Your Access" overview page shows a card pointing them to the mobile app instead of dashboard actions.
+- Required env: `DATABASE_URL` — Postgres connection string
 
 ## Feedback triage
 
@@ -32,30 +17,27 @@ The mobile app's Profile → Support & Feedback → "Report a problem" action op
 modal (not a `mailto:` link) and posts the message to `POST /feedback` on the API server,
 which files it as an issue in a **Linear** team via the Linear connector's GraphQL proxy — see
 `artifacts/api-server/src/lib/linear.ts` and `artifacts/api-server/src/routes/feedback.ts`.
-This replaces manually copying reports out of the support inbox into `ROLLOUT_STATUS.md`;
-triage now happens in Linear itself. Optional env: `LINEAR_FEEDBACK_TEAM_KEY` overrides which
+Triage happens in Linear itself. Optional env: `LINEAR_FEEDBACK_TEAM_KEY` overrides which
 Linear team key issues are filed under (defaults to the first/only team the connection can
 see). If the API call fails for any reason (offline, server error, connector down), the app
 automatically falls back to the original `mailto:hello@authenticsteps.com.au` flow with the
 typed message carried over, so no report is silently lost.
 
 **Real-time notification on new feedback:** once a feedback issue is successfully filed in
-Linear, the API server also sends a best-effort notification email (via the same Resend setup
-used for invites) so the team doesn't have to remember to check Linear — see
-`sendFeedbackNotificationEmail` in `artifacts/api-server/src/lib/email.ts`, called from
-`routes/feedback.ts` after the Linear issue is created. Configure recipients with
-`FEEDBACK_NOTIFY_EMAIL` (comma-separated addresses; currently set). If it's unset, notification
-is silently skipped — issue filing itself is unaffected either way (this send never blocks or
-fails the `/feedback` response). Note the same Resend sandbox restriction as invite emails: with
-the default `onboarding@resend.dev` sender, delivery only reaches the Resend account's own
-verified email — sending to other addresses requires verifying a sending domain and setting
-`INVITE_EMAIL_FROM` to an address on it.
+Linear, the API server also sends a best-effort notification email (via Resend) so the team
+doesn't have to remember to check Linear — see `sendFeedbackNotificationEmail` in
+`artifacts/api-server/src/lib/email.ts`, called from `routes/feedback.ts` after the Linear
+issue is created. Configure recipients with `FEEDBACK_NOTIFY_EMAIL` (comma-separated
+addresses). If it's unset, notification is silently skipped. With the default
+`onboarding@resend.dev` sender, delivery only reaches the Resend account's own verified email —
+sending to other addresses requires verifying a sending domain and setting `INVITE_EMAIL_FROM`
+to an address on it.
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5
-- DB: PostgreSQL + Drizzle ORM
+- DB: PostgreSQL + Drizzle ORM (single `user_data` table)
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
@@ -89,15 +71,17 @@ The 5 ritual/onboarding videos (`welcome-intro`, `message-for-you`, `intention-i
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **Open sign-up** — anyone can create a Clerk account and use the app immediately. No invite codes, no agency/membership model. Access is simply: signed in = full app access.
+- **Single DB table** — only `user_data` (keyed by Clerk `userId`) persists app state. The former agency/invite/membership tables have been dropped.
+- **API is thin** — the server handles `/sync` (user data), `/storage` (video streaming), `/feedback` (Linear issue filing), and `/healthz`. All content logic lives in the mobile app.
 
 ## Product
 
-The backend is a closed, invite-only, multi-tenant access system (agencies → sub-account holders → members) on Clerk auth. There is no self-serve "become an admin" path by design — the very first agency admin for each agency is provisioned by an operator via the `bootstrap-agency` script. Once bootstrapped, that admin can create sub-accounts, issue invites, and renew/revoke members.
+**Authentic Steps For Youth** is a mobile app (iOS & Android) for young people. It provides guided rituals, journaling, and grounding exercises to support mental health and wellbeing.
 
-Management happens through the **agency dashboard** web app (`artifacts/agency-dashboard`, served at `/dashboard/`) as well as directly via the API. The dashboard lets an agency admin create sub-accounts and issue/copy/revoke invites; sub-account holders manage their members (invite, renew, revoke); invitees redeem invite links to gain access. Brand-new agencies see friendly first-run empty states with clear calls-to-action on each list page.
+**Access:** open sign-up — anyone can create an account and use the app immediately. No invite code or agency required.
 
-**Going live:** the dashboard uses Replit-managed Clerk, so production (`pk_live`) keys are swapped in automatically on publish — no manual key setup. After publishing, provision the real first agency admin against the **production** database by running the `bootstrap-agency` script with production `DATABASE_URL` / `CLERK_SECRET_KEY` (the admin must have signed into the live app once first).
+**Going live:** uses Replit-managed Clerk, so production (`pk_live`) keys are swapped in automatically on publish — no manual key setup.
 
 ## Mobile builds (iOS & Android via EAS)
 
@@ -274,11 +258,6 @@ root:
   Update this whenever the phase changes or feedback comes in.
 - `PRELAUNCH_CHECKLIST.md` — the final gate before submitting for public release (crash-free
   pass, core flows, store assets, privacy/permissions copy).
-
-Feedback capture: the mobile app's Profile tab has a "Report a problem" action (Settings →
-Support & Feedback) that opens a pre-filled email to `hello@authenticsteps.com.au` with
-device/platform info attached — no backend ticketing system, by design, since a shared inbox
-is durable enough for a beta of this size.
 
 ## Pointers
 

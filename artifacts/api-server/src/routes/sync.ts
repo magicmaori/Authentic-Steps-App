@@ -7,16 +7,11 @@ import {
 import { eq } from "drizzle-orm";
 import { db, userDataTable } from "@workspace/db";
 import { z } from "zod/v4";
-import { requireAuth, loadActor, requireEntitlement } from "../middlewares/auth";
+import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
 
-// Scope the entitlement guard to /sync only. All feature routers share the
-// same /api mount, and a path-less router.use() runs for every request that
-// flows through this router on its way to a later one. Without the "/sync"
-// path prefix, requireEntitlement would leak onto invites/redeem and block
-// brand-new invitees (who have no membership yet) from ever redeeming.
-router.use("/sync", requireAuth, loadActor, requireEntitlement);
+router.use("/sync", requireAuth);
 
 const SyncPayloadSchema = z.object({
   userData: z.record(z.string(), z.unknown()),

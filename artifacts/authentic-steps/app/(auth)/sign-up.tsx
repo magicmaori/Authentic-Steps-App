@@ -176,7 +176,7 @@ export default function SignUpScreen() {
       <View style={s.card}>
         <Text style={s.title}>Create your account</Text>
         <Text style={s.subtitle}>
-          Sign up to get started. You&apos;ll enter your invite code right after.
+          Sign up to get started.
         </Text>
 
         <View style={s.fieldGroup}>
@@ -258,7 +258,7 @@ export default function SignUpScreen() {
           <Text style={s.linkAction}>Sign in</Text>
         </Link>
       </View>
-      <Text style={s.helperNote}>Access requires an invite from your agency or coordinator.</Text>
+      <Text style={s.helperNote}>It&apos;s free — no invite needed.</Text>
     </AuthScaffold>
   );
 }

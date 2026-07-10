@@ -1,75 +1,40 @@
 ---
-name: Auth architecture (closed access)
-description: How Authentic Steps does auth now — backend is Clerk-gated closed access; the mobile app's Expo Go constraint; the server-authoritative entitlement invariant.
+name: Auth architecture (open access)
+description: How Authentic Steps does auth now — open sign-up, Clerk-only, no invite/membership model.
 ---
 
-# Auth architecture — closed, invite-only access
+# Auth architecture — open sign-up
 
-## Current state (supersedes the old "Clerk removed / guest-only" note)
-The **backend** (`artifacts/api-server`) is now a fully-closed, invite-only,
-time-limited multi-tenant system using **`@clerk/express`** (NOT `@clerk/expo`).
-Hierarchy: agencies → sub-account holders → members. Access requires a valid
-Clerk login AND an active, unexpired membership (a redeemed invite). There is
-NO in-app payment; agencies are bootstrapped via `scripts/src/bootstrap-agency.ts`.
-There is intentionally NO self-serve "become an admin" endpoint — a self-serve
-admin path would break the closed-access guarantee, so the first admin is always
-operator-provisioned. The bootstrap script is idempotent by (agency name, admin):
-re-running the same command is a no-op; a second distinct agency for the same
-admin requires a different name (the `memberships_user_agency_admin_uq` index
-already forbids two admin rows for the same (user, agency)).
+## Current state (as of the open-access pivot)
+The app uses **Clerk** for auth (mobile: `@clerk/expo`, server: `@clerk/express`). Anyone can
+create a Clerk account and immediately use the full app. There is no membership/invite system,
+no agency hierarchy, and no entitlement check. **Signed in = full access.**
 
-## Invariant: closure is server-authoritative, not client-side
-Any route that serves or mutates **user data** must gate on an active
-entitlement, not merely on being logged in. Use the middleware chain
-`requireAuth, loadActor, requireEntitlement` (see
-`artifacts/api-server/src/middlewares/auth.ts`). `requireAuth` alone only proves
-a Clerk sign-up exists — a brand-new account with zero memberships would still
-get in. This exact gap was found on `/sync` in review and fixed.
+The former agency/invite/membership model (agencies → sub-accounts → members, invite redemption,
+entitlement guards) has been entirely removed from the codebase:
+- DB tables dropped: `agencies`, `sub_accounts`, `memberships`, `invites`
+- API routes removed: `/me`, `/me/entitlement`, `/sub-accounts`, `/invites`, `/members`
+- Middleware removed: `loadActor`, `requireEntitlement` (only `requireAuth` remains)
+- Mobile: `EntitlementContext`, `redeem.tsx`, `locked.tsx`, `pendingInvite.ts` all deleted
+- Agency dashboard artifact deleted entirely
 
-**Why:** the product guarantee is "fully closed." A login-only gate silently
-leaks app data to any self-service Clerk signup.
-**How to apply:** when adding a new user-data endpoint, wire all three
-middlewares. `requireEntitlement` returns 403 with `reason`
-(none/expired/revoked) so the client can message correctly.
+## Access gate (mobile `_layout.tsx`)
+- `AuthTokenSync` (component inside `<ClerkLoaded>`) attaches the Clerk bearer token to every
+  generated API request via `setAuthTokenGetter`.
+- `AccessGate` uses `useAuth()` — if `!isSignedIn`, redirects to `/(auth)/sign-in` unless
+  already on a sign-in/sign-up screen; if signed in and in `(auth)`, redirects to `/(tabs)`.
+- `OnboardingGate` checks `isSignedIn` (not entitlement state) before redirecting to onboarding.
 
-## Keep pure authz logic runtime-isolated so it stays unit-testable
-`artifacts/api-server/src/lib/access.ts` (computeEntitlement, extendExpiry, role
-helpers) imports `@workspace/db` and `../middlewares/auth` with **`import type`
-only**. Those are erased at runtime, so `access.ts` pulls in no DB/Clerk at
-import and needs no `DATABASE_URL`. That is what lets `access.test.ts` (vitest)
-run standalone. Preserve this: do not add value imports of `@workspace/db` or
-`db` into `access.ts`, or the unit tests will require a live database.
+## Server middleware (auth.ts)
+Only `requireAuth` remains. It reads the Clerk session via `getAuth(req)` and populates
+`req.userId`. No `actor`, no memberships, no DB query on every request.
 
-## Gotcha: router-level guards leak across the shared /api mount
-Every feature router (`sync`, `me`, `sub-accounts`, `invites`, `members`) is
-aggregated onto the same `/api` mount in `routes/index.ts` via `router.use(sub)`.
-A **path-less** `router.use(mw)` inside a sub-router runs for **every** request
-that passes through it on the way to a later router — not just that router's own
-routes. `requireAuth`/`loadActor` leaking is harmless (idempotent), but a hard
-guard like `requireEntitlement` is not: `sync` was mounted before `invites`, so
-its `router.use(requireAuth, loadActor, requireEntitlement)` returned 403 on
-`POST /invites/redeem` for brand-new invitees (who have no membership yet),
-making onboarding impossible.
-**Why:** a redeemer by definition has no entitlement until *after* they redeem;
-gating redeem on entitlement is a chicken-and-egg lockout.
-**How to apply:** scope any entitlement/authz guard to its own path
-(`router.use("/sync", ...)`) or attach it per-route — never a path-less
-`router.use(requireEntitlement)` in a router sharing a mount with public-ish
-routes like `/invites/redeem`. End-to-end coverage lives in
-`artifacts/api-server/src/routes/access-flows.test.ts` (real DB, Clerk mocked).
+**Why:** the product guarantee changed from "closed invite-only" to "open sign-up." All the
+entitlement machinery was net-negative complexity for the new model.
 
-## Renewal / entitlement rules worth remembering
-- `extendExpiry` extends from **max(now, current expiry)** — early renewals never
-  discard remaining time.
-- `computeEntitlement` reason priority is active > expired > revoked > none.
-- Invite redemption is atomic: a RETURNING-guarded
-  `UPDATE ... WHERE status='pending'` inside a transaction, so concurrent
-  redeemers serialize and the invite cannot be double-claimed.
+**How to apply:** any new user-data endpoint only needs `requireAuth` middleware.
 
-## Mobile app: Expo Go constraint still applies
-The **mobile** app (`artifacts/authentic-steps`) has NOT been wired to send
-Clerk tokens yet — it still runs in guest/AsyncStorage mode. When integrating
-auth on mobile, remember `@clerk/expo` needs a native module absent from Expo
-Go (it caused a permanent blank screen before: `<ClerkLoaded>` never fired).
-Use a development build, or a token flow compatible with Expo Go, rather than
-assuming `@clerk/expo` works under Expo Go.
+## Mobile Expo Go constraint
+`@clerk/expo` works in Expo Go when `<ClerkLoaded>` is used correctly. The `AuthTokenSync`
+component must be inside `<ClerkLoaded>` (not `<ClerkProvider>` directly) or `useAuth()` will
+throw before Clerk is initialized.
