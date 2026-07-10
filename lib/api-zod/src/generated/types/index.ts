@@ -13,5 +13,6 @@ export * from './feedbackInput';
 export * from './feedbackResult';
 export * from './forbiddenResponse';
 export * from './healthStatus';
+export * from './meResponse';
 export * from './notFoundResponse';
 export * from './unauthorizedResponse';

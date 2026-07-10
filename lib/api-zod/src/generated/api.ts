@@ -18,6 +18,15 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * Returns the authenticated user's Clerk userId.
+ * @summary Get current user identity
+ */
+export const GetMeResponse = zod.object({
+  "userId": zod.string()
+})
+
+
+/**
  * Files the report as an issue in the team's issue tracker so it lands in a real triage queue instead of only an email inbox. The mobile client falls back to its mailto: flow if this call fails.
  * @summary Submit a beta feedback / bug report from the mobile app
  */
