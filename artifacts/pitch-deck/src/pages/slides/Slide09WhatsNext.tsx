@@ -47,7 +47,7 @@ export default function Slide09WhatsNext() {
             margin: "0 0 32.4px 0",
           }}
         >
-          Foundation built. Now we build the future.
+          Foundation built. Access open. Now we grow.
         </h2>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -68,10 +68,10 @@ export default function Slide09WhatsNext() {
             <div style={{ height: "1px", width: "25.6px", background: "#03989e", flexShrink: 0 }} />
             <div>
               <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "40.96px", color: "#fff7f0" }}>
-                Structuring and connecting
+                Open for everyone
               </div>
               <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "33.28px", color: "rgba(255,247,240,0.6)", marginTop: "2.16px" }}>
-                Plugging all the pieces together, polishing the experience
+                Any young person can sign up and use the app — no invite, no gatekeeper
               </div>
             </div>
           </div>
@@ -93,10 +93,10 @@ export default function Slide09WhatsNext() {
             <div style={{ height: "1px", width: "25.6px", background: "#03989e", flexShrink: 0 }} />
             <div>
               <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "40.96px", color: "#fff7f0" }}>
-                Backend development
+                App Store launch &amp; distribution
               </div>
               <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "33.28px", color: "rgba(255,247,240,0.6)", marginTop: "2.16px" }}>
-                Server, accounts, and data — making the app ready to scale
+                iOS &amp; Android public release, school &amp; counsellor outreach, growing users
               </div>
             </div>
           </div>
@@ -118,10 +118,10 @@ export default function Slide09WhatsNext() {
             <div style={{ height: "1px", width: "25.6px", background: "#03989e", flexShrink: 0 }} />
             <div>
               <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "40.96px", color: "#fff7f0" }}>
-                Revenue and growth
+                Impact funding &amp; sustainability
               </div>
               <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "33.28px", color: "rgba(255,247,240,0.6)", marginTop: "2.16px" }}>
-                School licensing, App Store launch, and a sustainable income stream
+                Grants, community partnerships, and a mission-led income stream
               </div>
             </div>
           </div>

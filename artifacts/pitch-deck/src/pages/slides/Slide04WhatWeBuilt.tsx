@@ -137,25 +137,25 @@ export default function Slide04WhatWeBuilt() {
               Privacy & Safety
             </div>
             <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "24.32px", color: "#1a2535", margin: 0, lineHeight: 1.35 }}>
-              Helpline cards, safe design, and data that stays on the device
+              Helpline cards, safe design, and dark mode for every context
             </p>
           </div>
 
-          <div style={{ background: "rgba(3,152,158,0.08)", border: "1px solid rgba(3,152,158,0.25)", borderRadius: "10.24px", padding: "12.96px 20.48px" }}>
+          <div style={{ background: "rgba(3,152,158,0.08)", border: "2px solid #03989e", borderRadius: "10.24px", padding: "12.96px 20.48px" }}>
             <div
               style={{
                 fontFamily: "Inter, sans-serif",
                 fontWeight: 900,
                 fontSize: "28.16px",
-                color: "#193b83",
+                color: "#03989e",
                 lineHeight: 1,
                 marginBottom: "5.76px",
               }}
             >
-              Dark Mode & Access
+              Open Access
             </div>
             <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "24.32px", color: "#1a2535", margin: 0, lineHeight: 1.35 }}>
-              Full dark mode and accessible design so anyone can use it
+              Anyone can download, sign up, and start — no invite, no gatekeeper, no cost
             </p>
           </div>
         </div>

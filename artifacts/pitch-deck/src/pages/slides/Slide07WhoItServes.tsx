@@ -94,7 +94,7 @@ export default function Slide07WhoItServes() {
               Schools
             </div>
             <p style={{ fontFamily: "Inter, sans-serif", fontWeight: 400, fontSize: "35.84px", color: "rgba(255,247,240,0.8)", margin: 0, lineHeight: 1.4 }}>
-              A tool schools can confidently recommend — free, safe, and no account required
+              A tool schools can confidently point students to — free, safe, no budget approval or admin setup needed
             </p>
           </div>
 

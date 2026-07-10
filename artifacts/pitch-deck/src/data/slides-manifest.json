@@ -31,9 +31,9 @@
     "position": 4,
     "filepath": "src/pages/slides/Slide04WhatWeBuilt.tsx",
     "title": "What We Built",
-    "description": "Six feature pillars across the app",
+    "description": "Six feature pillars — including open access with no invite or gatekeeper",
     "bgColor": "#fff7f0",
-    "speakerNotes": "Walk across the six pillars — give each a sentence.\n\n- Resilience Toolbox: breathing and grounding techniques a young person can use in the moment.\n- Journaling: a private diary with mood tracking, stays on the phone.\n- Grounding: structured exercises to come back to the present.\n- Notifications: gentle daily nudges, fully customisable.\n- Privacy and Safety: built-in helpline cards, no data stored off-device.\n- Dark Mode and Accessibility: works the way the user needs it, day or night.\n- Each of these is finished and working. This isn't a mockup."
+    "speakerNotes": "Walk across the six pillars — give each a sentence.\n\n- Resilience Toolbox: breathing and grounding techniques a young person can use in the moment.\n- Journaling: a private diary with mood tracking, stays on the phone.\n- Grounding: structured exercises to come back to the present.\n- Notifications: gentle daily nudges, fully customisable.\n- Privacy and Safety: built-in helpline cards, no data stored off-device.\n- Open Access: this is the key one — anyone can download, sign up, and start. No invite, no gatekeeper, no cost. We removed every barrier between a young person and the help they need.\n- Each of these is finished and working. This isn't a mockup."
   },
   {
     "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
@@ -58,9 +58,9 @@
     "position": 7,
     "filepath": "src/pages/slides/Slide07WhoItServes.tsx",
     "title": "Who This Serves",
-    "description": "Young people, schools, and counsellors",
+    "description": "Young people, schools, and counsellors — no budget approval or admin setup needed",
     "bgColor": "linear-gradient(135deg, #193b83 0%, #0d2558 100%)",
-    "speakerNotes": "Paint a picture for each audience.\n\n- Young people ages 11 to 25: the student who had a hard day and doesn't want to talk. The app is there.\n- Schools: something a pastoral care team can say 'download this' without needing to sign off a budget.\n- Counsellors: a bridge between sessions. Something concrete to hand to a young person.\n- Each of these groups represents a real distribution channel for the app."
+    "speakerNotes": "Paint a picture for each audience.\n\n- Young people ages 11 to 25: the student who had a hard day and doesn't want to talk. The app is there — they just download it and sign up.\n- Schools: something a pastoral care team can say 'download this' without needing to sign off a budget or set up an admin account. Zero friction for the institution.\n- Counsellors: a bridge between sessions. Something concrete to hand to a young person, knowing they can access it immediately.\n- Each of these groups is a real distribution channel — and none of them need to pay or manage anything for it to work."
   },
   {
     "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
@@ -76,26 +76,26 @@
     "position": 9,
     "filepath": "src/pages/slides/Slide09WhatsNext.tsx",
     "title": "The Road Ahead",
-    "description": "Now: structure and connect. Next: backend. Then: revenue and growth.",
+    "description": "Now: open for everyone. Next: App Store launch. Then: impact funding and sustainability.",
     "bgColor": "linear-gradient(135deg, #193b83 0%, #0d2558 100%)",
-    "speakerNotes": "Be concrete — this is the business case.\n\n- Now: we're structuring and connecting everything. The foundation is solid, we're plugging it all in.\n- Next: backend development. Server, user accounts, data — the layer that lets the app scale and opens up monetisation.\n- Then: revenue. School licensing deals. App Store presence. A sustainable income stream that pays for itself.\n- This isn't speculative — each step follows the last, and we're already through the hardest part."
+    "speakerNotes": "Be concrete — this is the path forward.\n\n- Now: open sign-up is live. Any young person can create an account and access the full app today — no invite, no gatekeeper, no waiting. The barrier is gone.\n- Next: App Store launch. We get the app into the iOS App Store and Google Play, reach young people directly, and build the user base through schools and counsellors recommending it.\n- Then: sustainability. Grant funding from youth mental health organisations and government programs. Partnerships with school wellbeing teams and counselling services. A future optional premium tier for organisations and clinicians who want extra features.\n- Each step is concrete and follows naturally from the last."
   },
   {
     "id": "e1f2a3b4-c5d6-7890-efab-901234567890",
     "position": 10,
     "filepath": "src/pages/slides/Slide11InvestmentBreakdown.tsx",
-    "title": "Investment Breakdown",
-    "description": "$5,000/month per school — 12-month auto-renewing contract with three revenue scenarios and community giving-back model",
+    "title": "The Access Model",
+    "description": "Open sign-up — what changed, why it's better, and the path to sustainability",
     "bgColor": "linear-gradient(135deg, #193b83 0%, #0d2558 100%)",
-    "speakerNotes": "This is the money slide — walk John through each scenario clearly.\n\n- The model is simple: $5,000 per school per month on a 12-month contract that auto-renews. Predictable, recurring revenue.\n- Full scenario: 100 schools gives us $6 million in annual gross. That's the ceiling — and it's very achievable.\n- Conservative: even at a third of that — 33 schools — we're looking at $2 million a year.\n- Floor: at a quarter, 25 schools, we're still generating $1.5 million. Still very profitable.\n- The community model is key: larger schools can sponsor smaller ones. That's not charity — it's a smart distribution play that gets us into more schools faster and positions Authentic Steps as a mission-driven brand, not just a product.\n- Any one of these scenarios represents a strong, sustainable business."
+    "speakerNotes": "This is the pivot slide — walk John through it clearly and positively.\n\n- What changed: we removed the agency dashboard and invite system. It's now open sign-up — any young person downloads the app, creates a free account, and is in. No middleman, no waiting.\n- Why it's better: the old model put a gatekeeper between a young person and the help they need. That's not aligned with the mission. Open access is the honest, youth-first approach — and it removes a layer of complexity that wasn't serving the product.\n- The path to sustainability: this isn't a charity model. Grant funding from youth mental health programs and government initiatives is a well-established funding path for mission-driven apps like this. Community partnerships with schools and counsellors give us distribution without a sales team. And a future optional premium tier — features for clinicians and organisations — gives us a revenue stream that doesn't gate the core product.\n- The app is already live and working. This is a funded, sustainable model."
   },
   {
     "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
     "position": 11,
     "filepath": "src/pages/slides/Slide10ThankYou.tsx",
     "title": "The Next Step",
-    "description": "Closing — Johaan as development partner, next steps for John",
+    "description": "Closing — App Store launch, grants, and Johaan as development partner",
     "bgColor": "linear-gradient(135deg, #193b83 0%, #0a1e45 100%)",
-    "speakerNotes": "Close with clarity — one ask, one next step.\n\n- Thank John for his time and his trust in the project.\n- The ask is simple: let's keep going. We finish the structure, we build the backend together, we launch.\n- There's a real path to this generating profit — not someday, but as a direct result of the next phase.\n- I'm your development partner. Let's make it happen."
+    "speakerNotes": "Close with clarity — one ask, one next step.\n\n- Thank John for his time and his trust in the project.\n- The app is built. Open sign-up is live. The ask is simple: let's launch on the App Store, reach young people directly, and secure the grant funding that makes this sustainable.\n- This isn't speculative — the app is working, the access model is in place, and the mission is clear.\n- I'm your development partner. Let's make it happen."
   }
 ]

@@ -1,38 +1,5 @@
 const base = import.meta.env.BASE_URL;
 
-const scenarios = [
-  {
-    label: "100 Schools",
-    schools: 100,
-    math: "$5,000 × 12 × 100",
-    value: 6_000_000,
-    display: "$6M",
-    color: "#03989e",
-    highlight: true,
-  },
-  {
-    label: "33 Schools  (⅓ scale)",
-    schools: 33,
-    math: "$5,000 × 12 × 33",
-    value: 1_980_000,
-    display: "≈ $2M",
-    color: "#6dbdf2",
-    highlight: false,
-  },
-  {
-    label: "25 Schools  (¼ scale)",
-    schools: 25,
-    math: "$5,000 × 12 × 25",
-    value: 1_500_000,
-    display: "≈ $1.5M",
-    color: "#6dbdf2",
-    highlight: false,
-  },
-];
-
-const MAX_VALUE = 6_000_000;
-const MAX_BAR_PCT = 72;
-
 export default function Slide11InvestmentBreakdown() {
   return (
     <div
@@ -56,8 +23,8 @@ export default function Slide11InvestmentBreakdown() {
       />
 
       <div
-        className="relative h-full flex flex-col"
-        style={{ padding: "32.4px 70.4px 0 89.6px" }}
+        className="relative h-full flex flex-col justify-center"
+        style={{ padding: "43.2px 70.4px 43.2px 89.6px" }}
       >
         <div
           style={{
@@ -67,199 +34,160 @@ export default function Slide11InvestmentBreakdown() {
             color: "#03989e",
             letterSpacing: "0.15em",
             textTransform: "uppercase",
-            marginBottom: "7.2px",
+            marginBottom: "10.8px",
           }}
         >
-          Investment Breakdown
+          The Access Model
         </div>
         <h2
           style={{
             fontFamily: "Inter, sans-serif",
             fontWeight: 900,
-            fontSize: "53.76px",
+            fontSize: "57.6px",
             color: "#fff7f0",
             lineHeight: 1.05,
             letterSpacing: "-0.025em",
-            margin: "0 0 5.76px 0",
+            margin: "0 0 32.4px 0",
+            textWrap: "balance",
           }}
         >
-          $5,000 / month per school
+          Open sign-up. Lower barrier. More young people helped.
         </h2>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "32px",
-            alignItems: "center",
-            marginBottom: "25.2px",
-          }}
-        >
-          {[
-            { label: "Monthly subscription", value: "$5,000" },
-            { label: "Contract term", value: "12 months" },
-            { label: "Renewal", value: "Auto-renewing" },
-          ].map((pill) => (
+        <div style={{ display: "flex", gap: "28.8px", alignItems: "stretch", marginBottom: "28.8px" }}>
+          <div
+            style={{
+              flex: 1,
+              background: "rgba(255,247,240,0.05)",
+              border: "1px solid rgba(255,247,240,0.15)",
+              borderRadius: "10.24px",
+              padding: "20.48px 25.6px",
+            }}
+          >
             <div
-              key={pill.label}
               style={{
-                border: "1px solid rgba(3,152,158,0.5)",
-                borderRadius: "4px",
-                padding: "4.32px 15.36px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "1.08px",
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 700,
+                fontSize: "20.48px",
+                color: "rgba(255,247,240,0.5)",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                marginBottom: "8.64px",
               }}
             >
-              <div
-                style={{
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 700,
-                  fontSize: "33.28px",
-                  color: "#fff7f0",
-                  lineHeight: 1,
-                }}
-              >
-                {pill.value}
-              </div>
-              <div
-                style={{
-                  fontFamily: "Inter, sans-serif",
-                  fontWeight: 400,
-                  fontSize: "19.2px",
-                  color: "rgba(255,247,240,0.55)",
-                }}
-              >
-                {pill.label}
-              </div>
+              What changed
             </div>
-          ))}
-        </div>
+            <div
+              style={{
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 900,
+                fontSize: "33.28px",
+                color: "#6dbdf2",
+                marginBottom: "10.8px",
+              }}
+            >
+              Invite-only → Open sign-up
+            </div>
+            <p
+              style={{
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 400,
+                fontSize: "26.24px",
+                color: "rgba(255,247,240,0.75)",
+                margin: 0,
+                lineHeight: 1.45,
+              }}
+            >
+              We removed the agency dashboard and invite system. Any young person can now create an account and access the full app — no middleman, no waiting, no cost.
+            </p>
+          </div>
 
-        <div
-          style={{
-            fontFamily: "Inter, sans-serif",
-            fontWeight: 700,
-            fontSize: "20.48px",
-            color: "rgba(255,247,240,0.5)",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            marginBottom: "12.96px",
-          }}
-        >
-          Annual gross revenue — scenarios
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "15.84px", flex: 1 }}>
-          {scenarios.map((s) => {
-            const pct = (s.value / MAX_VALUE) * MAX_BAR_PCT;
-            return (
-              <div key={s.label} style={{ display: "flex", alignItems: "center", gap: "23.04px" }}>
-                <div
-                  style={{
-                    fontFamily: "Inter, sans-serif",
-                    fontWeight: 600,
-                    fontSize: "23.04px",
-                    color: "rgba(255,247,240,0.7)",
-                    width: "204.8px",
-                    flexShrink: 0,
-                    lineHeight: 1.25,
-                  }}
-                >
-                  {s.label}
-                </div>
-
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "2.88px" }}>
-                  <div
-                    style={{
-                      fontFamily: "Inter, sans-serif",
-                      fontWeight: 400,
-                      fontSize: "17.92px",
-                      color: "rgba(255,247,240,0.4)",
-                    }}
-                  >
-                    {s.math} =
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12.8px" }}>
-                    <div
-                      style={{
-                        height: "27.36px",
-                        width: `${pct}%`,
-                        background: s.highlight
-                          ? "linear-gradient(90deg, #03989e 0%, #05b5bc 100%)"
-                          : `linear-gradient(90deg, ${s.color}55 0%, ${s.color}88 100%)`,
-                        borderRadius: "2px",
-                        flexShrink: 0,
-                        transition: "width 0.3s ease",
-                      }}
-                    />
-                    <div
-                      style={{
-                        fontFamily: "Inter, sans-serif",
-                        fontWeight: 900,
-                        fontSize: s.highlight ? "40.96px" : "33.28px",
-                        color: s.highlight ? "#03989e" : s.color,
-                        letterSpacing: "-0.02em",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {s.display}
-                    </div>
-                    {s.highlight && (
-                      <div
-                        style={{
-                          fontFamily: "Inter, sans-serif",
-                          fontWeight: 700,
-                          fontSize: "19.2px",
-                          color: "#fff7f0",
-                          background: "#03989e",
-                          padding: "2.16px 10.24px",
-                          borderRadius: "3px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        Annual gross
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          <div
+            style={{
+              flex: 1,
+              background: "rgba(3,152,158,0.1)",
+              border: "1.5px solid rgba(3,152,158,0.4)",
+              borderRadius: "10.24px",
+              padding: "20.48px 25.6px",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 700,
+                fontSize: "20.48px",
+                color: "rgba(255,247,240,0.5)",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                marginBottom: "8.64px",
+              }}
+            >
+              Why it's better
+            </div>
+            <div
+              style={{
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 900,
+                fontSize: "33.28px",
+                color: "#03989e",
+                marginBottom: "10.8px",
+              }}
+            >
+              Mission alignment
+            </div>
+            <p
+              style={{
+                fontFamily: "Inter, sans-serif",
+                fontWeight: 400,
+                fontSize: "26.24px",
+                color: "rgba(255,247,240,0.75)",
+                margin: 0,
+                lineHeight: 1.45,
+              }}
+            >
+              Every young person deserves access — not just those whose school or counsellor happens to have an account. Open sign-up is the honest, youth-first approach.
+            </p>
+          </div>
         </div>
 
         <div
           style={{
             borderTop: "1px solid rgba(3,152,158,0.3)",
-            marginTop: "18px",
-            paddingTop: "14.4px",
-            paddingBottom: "20.16px",
+            paddingTop: "20.48px",
             display: "flex",
-            alignItems: "center",
-            gap: "19.2px",
+            gap: "51.2px",
+            alignItems: "flex-start",
           }}
         >
-          <div
-            style={{
-              width: "5.12px",
-              height: "36px",
-              background: "#03989e",
-              flexShrink: 0,
-              borderRadius: "2px",
-            }}
-          />
-          <div
-            style={{
-              fontFamily: "Inter, sans-serif",
-              fontWeight: 400,
-              fontSize: "24.32px",
-              color: "rgba(255,247,240,0.65)",
-              lineHeight: 1.45,
-              maxWidth: "896px",
-            }}
-          >
-            <span style={{ fontWeight: 700, color: "#fff7f0" }}>Community giving-back model: </span>
-            larger schools subsidise smaller schools that need support — keeping the app accessible for every young person, regardless of school size or budget.
-          </div>
+          {[
+            { icon: "🎓", label: "Grant funding", detail: "Youth mental health grants from govt. &amp; philanthropy" },
+            { icon: "🤝", label: "Partnerships", detail: "Counsellors, school wellbeing teams, youth orgs" },
+            { icon: "⭐", label: "Future premium", detail: "Optional paid features for organisations &amp; clinicians" },
+          ].map((item) => (
+            <div key={item.label} style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 900,
+                  fontSize: "35.84px",
+                  color: "#fff7f0",
+                  marginBottom: "5.76px",
+                }}
+              >
+                {item.label}
+              </div>
+              <div
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontWeight: 400,
+                  fontSize: "24.32px",
+                  color: "rgba(255,247,240,0.55)",
+                  lineHeight: 1.4,
+                }}
+                dangerouslySetInnerHTML={{ __html: item.detail }}
+              />
+            </div>
+          ))}
         </div>
       </div>
 

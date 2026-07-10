@@ -90,7 +90,7 @@ export default function Slide10ThankYou() {
               textWrap: "balance",
             }}
           >
-            Let's keep building — and make this profitable.
+            Let's get this into young people's hands.
           </h2>
           <div
             style={{
@@ -111,7 +111,7 @@ export default function Slide10ThankYou() {
               maxWidth: "742.4px",
             }}
           >
-            The foundation is there. We complete the structure, build the backend together, launch — and build something that pays for itself.
+            The app is built and open for sign-up. Now we launch on the App Store, reach young people directly, and build something that lasts — backed by grants, partnerships, and a mission that matters.
           </p>
           <div
             style={{
