@@ -6,11 +6,27 @@ testers are added/removed, or feedback comes in (from the mobile app's or Agency
 `ROLLOUT.md` for the process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for
 the final gate before public launch.
 
-_Last updated: 2026-07-08_
+_Last updated: 2026-07-10_
 
 ## Current phase
 
-**Phase 1 — Internal beta** (not yet started; no builds have been distributed to testers yet)
+**Phase 1 — Internal beta** (awaiting new builds — see below)
+
+> **Action required:** The open sign-up model was merged on 2026-07-10 (Task #400). The last
+> distributed builds (iOS TestFlight Jul 8, Android APK Jul 9) pre-date this change and still
+> show the old invite/locked-access screen. New EAS builds must be run before testers can use
+> the app. Run these commands (requires `EXPO_TOKEN` exported in your shell):
+>
+> ```sh
+> # iOS → TestFlight
+> pnpm --filter @workspace/authentic-steps run eas-build-ios-preview   # ~15–20 min
+> pnpm --filter @workspace/authentic-steps run eas-submit-ios-preview
+>
+> # Android → APK (download from expo.dev and share directly with testers)
+> pnpm --filter @workspace/authentic-steps run eas-build-android-apk
+> ```
+>
+> Once distributed, update this file: remove this notice, update "Last updated", add testers.
 
 ## Active testers
 
