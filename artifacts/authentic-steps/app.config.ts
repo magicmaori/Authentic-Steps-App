@@ -1,4 +1,6 @@
 import { ExpoConfig } from 'expo/config';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const withSpmFix = require('./plugins/withSpmFix');
 
 const replitDevDomain = process.env.REPLIT_DEV_DOMAIN ?? '';
 const apiBaseUrl = replitDevDomain ? `https://${replitDevDomain}` : '';
@@ -76,25 +78,9 @@ const config: ExpoConfig = {
             pickFirst: ['META-INF/versions/9/OSGI-INF/MANIFEST.MF'],
           },
         },
-        ios: {
-          extraPodfileContent: [
-            '# Fix: react-native 0.81.5 + @clerk/expo ClerkKit SPM crash',
-            '# Error: undefined method \'package_dependencies\' for nil:NilClass in spm.rb',
-            '# Wraps add_spm_to_target with a rescue so the build proceeds.',
-            'if respond_to?(:add_spm_to_target, true)',
-            '  _orig_add_spm = method(:add_spm_to_target)',
-            '  define_singleton_method(:add_spm_to_target) do |xcproj, target, url, requirement, products|',
-            '    begin',
-            '      _orig_add_spm.call(xcproj, target, url, requirement, products)',
-            '    rescue NoMethodError => e',
-            '      Pod::UI.warn "[SPMFix] Rescued NoMethodError in add_spm_to_target: #{e.message}"',
-            '    end',
-            '  end',
-            'end',
-          ].join("\n"),
-        },
       },
     ],
+    withSpmFix,
   ],
   experiments: {
     typedRoutes: true,
