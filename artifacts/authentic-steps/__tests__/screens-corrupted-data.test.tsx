@@ -183,6 +183,29 @@ jest.mock('@clerk/expo', () => ({
   }),
 }));
 
+// API client: mock generated React Query hooks so ProfileScreen's
+// useSubmitFeedback (a useMutation hook) works without a QueryClientProvider.
+jest.mock('@workspace/api-client-react', () => ({
+  useSubmitFeedback: () => ({
+    mutate: jest.fn(),
+    mutateAsync: jest.fn().mockResolvedValue({}),
+    isPending: false,
+    isError: false,
+    isSuccess: false,
+    reset: jest.fn(),
+  }),
+  useGetMe: () => ({
+    data: { userId: 'test-user-id' },
+    isLoading: false,
+    isError: false,
+  }),
+  useHealthCheck: () => ({
+    data: { status: 'ok' },
+    isLoading: false,
+    isError: false,
+  }),
+}));
+
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
 
 import React from 'react';

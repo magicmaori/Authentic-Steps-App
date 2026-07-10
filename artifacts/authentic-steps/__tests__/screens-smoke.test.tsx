@@ -169,8 +169,8 @@ jest.mock('@/components/MovementExercise', () => {
   };
 });
 
-// Clerk auth: the app is invite-only / Clerk-gated. ProfileScreen consumes
-// useAuth/useUser (for the Sign out action), so provide a signed-in stub here.
+// Clerk auth: ProfileScreen consumes useAuth/useUser (for the Sign out action),
+// so provide a signed-in stub here.
 jest.mock('@clerk/expo', () => ({
   useAuth: () => ({
     isLoaded: true,
@@ -182,6 +182,29 @@ jest.mock('@clerk/expo', () => ({
     isLoaded: true,
     isSignedIn: true,
     user: { primaryEmailAddress: { emailAddress: 'test@example.com' } },
+  }),
+}));
+
+// API client: mock generated React Query hooks so ProfileScreen's
+// useSubmitFeedback (a useMutation hook) works without a QueryClientProvider.
+jest.mock('@workspace/api-client-react', () => ({
+  useSubmitFeedback: () => ({
+    mutate: jest.fn(),
+    mutateAsync: jest.fn().mockResolvedValue({}),
+    isPending: false,
+    isError: false,
+    isSuccess: false,
+    reset: jest.fn(),
+  }),
+  useGetMe: () => ({
+    data: { userId: 'test-user-id' },
+    isLoading: false,
+    isError: false,
+  }),
+  useHealthCheck: () => ({
+    data: { status: 'ok' },
+    isLoading: false,
+    isError: false,
   }),
 }));
 
