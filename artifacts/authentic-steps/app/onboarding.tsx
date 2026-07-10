@@ -133,7 +133,7 @@ export default function OnboardingScreen() {
               <Text style={styles.restoreLinkText}>I have a recovery code</Text>
             </Pressable>
             <Text style={styles.footerNote}>
-              Invite-only · Your journal stays private
+              Free to join · Your journal stays private
             </Text>
           </View>
         </View>

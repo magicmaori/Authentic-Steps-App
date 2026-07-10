@@ -1,8 +1,8 @@
 # Rollout Status
 
 Single place to see where the rollout stands. Update this whenever the phase changes,
-testers are added/removed, or feedback comes in (from the mobile app's or Agency Dashboard's
-"Report a problem" email, or from any other channel — Slack, text, hallway conversation). See
+testers are added/removed, or feedback comes in (from the mobile app's
+"Report a problem" action, or from any other channel — Slack, text, hallway conversation). See
 `ROLLOUT.md` for the process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for
 the final gate before public launch.
 
@@ -10,41 +10,41 @@ _Last updated: 2026-07-10_
 
 ## Current phase
 
-**Phase 1 — Internal beta** (awaiting new builds — see below)
+**Phase 1 — Internal beta (active)**
 
-> **Action required:** The open sign-up model was merged on 2026-07-10 (Task #400). The last
-> distributed builds (iOS TestFlight Jul 8, Android APK Jul 9) pre-date this change and still
-> show the old invite/locked-access screen. New EAS builds must be run before testers can use
-> the app. Run these commands (requires `EXPO_TOKEN` exported in your shell):
->
-> ```sh
-> # iOS → TestFlight
-> pnpm --filter @workspace/authentic-steps run eas-build-ios-preview   # ~15–20 min
-> pnpm --filter @workspace/authentic-steps run eas-submit-ios-preview
->
-> # Android → APK (download from expo.dev and share directly with testers)
-> pnpm --filter @workspace/authentic-steps run eas-build-android-apk
-> ```
->
-> Once distributed, update this file: remove this notice, update "Last updated", add testers.
+The open sign-up model is live and the sign-up → onboarding → home flow has been smoke-tested
+(code-level, 2026-07-10). The app is ready for testers; see "Distribute to testers" below for
+the EAS build commands to get the app onto devices.
+
+## Distribute to testers
+
+Run these commands once `EXPO_TOKEN` is exported in your shell, then add testers below:
+
+```sh
+# iOS → TestFlight
+pnpm --filter @workspace/authentic-steps run eas-build-ios-preview   # ~15–20 min
+pnpm --filter @workspace/authentic-steps run eas-submit-ios-preview
+# Then in App Store Connect → TestFlight, add each tester's Apple ID under Internal Testers.
+
+# Android → APK (download from expo.dev and share directly with testers)
+pnpm --filter @workspace/authentic-steps run eas-build-android-apk
+```
 
 ## Active testers
 
 | Name | Platform | Phase added | Notes |
 |---|---|---|---|
-| _(none yet)_ | | | |
+| _(none yet — add a row per tester when granted TestFlight/APK access)_ | | | |
 
-> Add a row per tester when they're added to TestFlight Internal Testing or the Play Console
-> Internal testing track. Move to a "Phase 2" note in this table (or a second table) once
-> promoted to external/closed testing.
+> Move to a "Phase 2" note in this table (or a second table) once promoted to external/closed testing.
 
 ## Feedback triage
 
-Feedback is no longer tracked manually in this file. The in-app "Report a problem" action
-(Profile → Support & Feedback) now submits structured reports directly to a **Linear** triage
-queue (team "Authentic Steps For Youth", key `AUT`) via `POST /feedback` on the API server —
-see `artifacts/api-server/src/lib/linear.ts` and `artifacts/api-server/src/routes/feedback.ts`.
-Triage, prioritization, and status now happen in Linear itself, not in a markdown table here.
+Feedback is tracked in **Linear** (team "Authentic Steps For Youth", key `AUT`). The in-app
+"Report a problem" action (Profile → Support & Feedback) submits structured reports directly
+to Linear via `POST /feedback` on the API server — see `artifacts/api-server/src/lib/linear.ts`
+and `artifacts/api-server/src/routes/feedback.ts`. Triage, prioritization, and status happen
+in Linear itself.
 
 If the structured submission fails (offline, server error, etc.), the app automatically falls
 back to the original `mailto:hello@authenticsteps.com.au` flow so no report is lost — any
