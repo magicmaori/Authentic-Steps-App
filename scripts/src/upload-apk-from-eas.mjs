@@ -98,7 +98,8 @@ if (target.status !== "FINISHED" || !target.artifacts?.buildUrl) {
 
 const finished = target;
 
-const { buildUrl, appVersion, appBuildVersion } = finished;
+const { appVersion, appBuildVersion } = finished;
+const buildUrl = finished.artifacts?.buildUrl;
 const filename = `authentic-steps-${appVersion}-build${appBuildVersion}.apk`;
 console.log(`Found build: ${filename}`);
 console.log(`  Download URL: ${buildUrl}`);
