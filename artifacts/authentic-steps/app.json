@@ -48,7 +48,7 @@
     },
     "android": {
       "package": "org.authenticsteps.youth",
-      "versionCode": 2
+      "versionCode": 4
     },
     "web": {
       "favicon": "./assets/images/icon.png"

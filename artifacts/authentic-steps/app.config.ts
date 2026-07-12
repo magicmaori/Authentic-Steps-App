@@ -35,6 +35,11 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'org.authenticsteps.youth',
+    infoPlist: {
+      // The app uses only standard HTTPS/TLS — no custom or non-exempt encryption.
+      // Apple requires this export compliance declaration in the binary.
+      ITSAppUsesNonExemptEncryption: false,
+    },
     privacyManifests: {
       NSPrivacyAccessedAPITypes: [
         {
