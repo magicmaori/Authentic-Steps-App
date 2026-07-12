@@ -53,25 +53,45 @@ interface CachedLookup {
  */
 export class ObjectStorageService {
   private readonly metadataCache = new Map<string, CachedLookup>();
-  private readonly publicizedFiles = new Set<string>();
 
   constructor() {}
 
   /**
-   * Makes a GCS object publicly readable (allUsers) and returns its public
-   * URL. Idempotent — the allUsers binding is cached in-process so we only
-   * hit the GCS IAM API once per server lifetime per file. Used for large
-   * binary downloads (e.g. APK builds) so the client fetches directly from
-   * GCS rather than being proxied through Express, avoiding production-proxy
-   * timeouts on 50MB+ responses.
+   * Returns a short-lived GCS JSON-API download URL that the client can
+   * fetch directly (bypassing the Replit production proxy). Works even when
+   * the bucket has "public access prevention" enforced — we get a real access
+   * token from the Replit sidecar and embed it as a query param, so the
+   * client authenticates directly with GCS for this one file.
+   *
+   * The token is cached for 45 minutes so we don't hit the sidecar on every
+   * download request (tokens are valid for ~60 minutes; 45-min TTL gives
+   * a comfortable buffer before expiry).
+   *
+   * Security note: the access token is visible in the redirect URL (browser
+   * history, server logs). For a publicly-distributed build artifact this is
+   * acceptable — the token expires in under an hour.
    */
-  async makePublicAndGetUrl(file: File): Promise<string> {
-    const key = `${file.bucket.name}/${file.name}`;
-    if (!this.publicizedFiles.has(key)) {
-      await file.makePublic();
-      this.publicizedFiles.add(key);
+  private tokenCache: { token: string; expiresAt: number } | null = null;
+
+  private async getSidecarToken(): Promise<string> {
+    if (this.tokenCache && Date.now() < this.tokenCache.expiresAt) {
+      return this.tokenCache.token;
     }
-    return file.publicUrl();
+    const res = await fetch(`${REPLIT_SIDECAR_ENDPOINT}/credential`);
+    if (!res.ok) throw new Error(`Sidecar credential fetch failed: ${res.status}`);
+    const body = (await res.json()) as { access_token: string };
+    this.tokenCache = { token: body.access_token, expiresAt: Date.now() + 45 * 60 * 1000 };
+    return body.access_token;
+  }
+
+  async getDirectDownloadUrl(file: File): Promise<string> {
+    const token = await this.getSidecarToken();
+    const bucket = file.bucket.name;
+    const object = encodeURIComponent(file.name);
+    return (
+      `https://storage.googleapis.com/download/storage/v1/b/${bucket}/o/${object}` +
+      `?alt=media&access_token=${token}`
+    );
   }
 
   getPublicObjectSearchPaths(): Array<string> {

@@ -29,11 +29,11 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
     // publicly readable on GCS and redirect the client there directly.
     if (filePath.startsWith("builds/")) {
       try {
-        const publicUrl = await objectStorageService.makePublicAndGetUrl(found.file);
-        res.redirect(302, publicUrl);
+        const directUrl = await objectStorageService.getDirectDownloadUrl(found.file);
+        res.redirect(302, directUrl);
         return;
       } catch (err) {
-        req.log.warn({ err }, "makePublic failed for builds/ file, falling back to proxy stream");
+        req.log.warn({ err }, "getDirectDownloadUrl failed for builds/ file, falling back to proxy stream");
       }
     }
 
