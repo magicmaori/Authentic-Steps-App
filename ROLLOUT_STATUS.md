@@ -6,7 +6,7 @@ testers are added/removed, or feedback comes in (from the mobile app's
 `ROLLOUT.md` for the process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for
 the final gate before public launch.
 
-_Last updated: 2026-07-12 — Android APK link added to TESTER_BRIEF.md_
+_Last updated: 2026-07-12 — API server deployed to production; APK download link updated to permanent production URL_
 
 ## Current phase
 
@@ -28,15 +28,11 @@ with a generic Apple error — see "iOS TestFlight issue" below.
 The APK is live and publicly downloadable:
 
 ```
-https://2d1f7221-b40c-4736-8006-751e690f20a5-00-1t3nip2aakk7r-90ehfhha.kirk.replit.dev/api/storage/public-objects/builds/authentic-steps-1.0.0-build4.apk
+https://authentic-steps-youth.replit.app/api/storage/public-objects/builds/authentic-steps-1.0.0-build4.apk
 ```
 
-> This is the development preview URL. Once the app is **deployed to production**, the stable
-> URL will be:
-> `https://<production-domain>/api/storage/public-objects/builds/authentic-steps-1.0.0-build4.apk`
->
-> Deploy the API server first (Replit → Deploy), then share the production URL with testers.
-> The APK is already in Object Storage — no re-upload needed after deploy.
+> This is the permanent production URL (API server deployed to `authentic-steps-youth.replit.app`).
+> The APK is in Object Storage — share this link directly with Android testers.
 
 Share the URL alongside `TESTER_BRIEF.md` with Android testers. They follow the "Installing
 on Android" section in that file.
@@ -91,10 +87,7 @@ entered into Linear manually.
 
 ## Blocking items before testers can install
 
-- [x] **Android**: APK uploaded to Object Storage and download link live. `TESTER_BRIEF.md`
-  updated with the direct APK URL — share that file with Android testers to get started.
-  Once the API server is **deployed to production**, update the URL in `TESTER_BRIEF.md` to
-  the production domain for a permanent link (APK stays in Object Storage — no re-upload needed).
+- [x] **Android**: APK in Object Storage. API server deployed to production (`authentic-steps-youth.replit.app`). `TESTER_BRIEF.md` has the permanent production download URL — share it with Android testers.
 - [ ] **iOS**: Investigate the TestFlight submission error in App Store Connect (see above),
   re-run `eas-submit-ios-preview`, then add tester emails under Internal Testers
 

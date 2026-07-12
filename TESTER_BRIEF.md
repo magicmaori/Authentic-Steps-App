@@ -36,7 +36,7 @@ wellbeing. It provides:
 
 1. **Download the APK** — tap the link below to download the `.apk` file directly to your device:
 
-   **[Download Authentic Steps For Youth v1.0.0 (APK)](https://2d1f7221-b40c-4736-8006-751e690f20a5-00-1t3nip2aakk7r-hgb5rw0n.kirk.replit.dev/api/storage/public-objects/builds/authentic-steps-1.0.0-build4.apk)**
+   **[Download Authentic Steps For Youth v1.0.0 (APK)](https://authentic-steps-youth.replit.app/api/storage/public-objects/builds/authentic-steps-1.0.0-build4.apk)**
 
    If that link doesn't work, email **hello@authenticsteps.com.au** and we'll send you the file directly.
 2. **Allow installs from unknown sources** — Android blocks this by default for safety:
