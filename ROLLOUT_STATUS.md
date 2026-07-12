@@ -6,7 +6,7 @@ testers are added/removed, or feedback comes in (from the mobile app's
 `ROLLOUT.md` for the process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for
 the final gate before public launch.
 
-_Last updated: 2026-07-12 — APK build5 (versionCode 5) built and uploaded; fixes silent install failure caused by versionCode downgrade; Clerk proxy URL and pk_live key confirmed baked in_
+_Last updated: 2026-07-12 — APK build7 (versionCode 7) uploaded; fixes Clerk `isLoaded` hang caused by stale SecureStore token on existing installs; adds self-healing "Clear cache & retry" button in loading screen_
 
 ## Current phase
 
@@ -21,19 +21,25 @@ with a generic Apple error — see "iOS TestFlight issue" below.
 | Platform | Build ID | Build # | Status | Notes |
 |---|---|---|---|---|
 | iOS (preview) | `e0809ce2-1f6e-43e9-9611-961880389440` | 2 | ✅ Built | Submission to ASC failing — see below |
-| Android (APK) | `3b2a6151-7695-472c-9ab1-bf3ea0784c54` | versionCode **5** | ✅ Built + Hosted | **Use this link — replaces build4** |
+| Android (APK) | `882ee810-7916-4bb9-be27-5ea9a6a1c3cf` | versionCode **7** | ✅ Built + Hosted | **Use this — fixes loading hang** |
+| Android (APK) | `3b2a6151-7695-472c-9ab1-bf3ea0784c54` | versionCode **5** | superseded | Previous build — installs fine but loading may hang on re-install |
 
 ## Android — APK download link (ready to share)
 
 The APK is live and publicly downloadable:
 
 ```
-https://authentic-steps-youth.replit.app/api/storage/public-objects/builds/authentic-steps-1.0.0-build5.apk
+https://authentic-steps-youth.replit.app/api/storage/public-objects/builds/authentic-steps-1.0.0-build7.apk
 ```
 
-> **build5 replaces build4** — the previous APK had versionCode 3 (lower than the installed versionCode 4),
-> so Android silently refused to install it. build5 has versionCode 5 and installs correctly.
-> If a device already has build4, it can upgrade directly without uninstalling.
+> **build7 replaces build5** — fixes a bug where the app would show the loading spinner forever
+> if the user had previously installed an older version (stale Clerk session token in SecureStore
+> caused `isLoaded` to never resolve). build7 adds a 10-second timeout and a **"Clear cache &
+> retry"** button that wipes the stale token and re-initialises Clerk automatically.
+>
+> **If testers are stuck on build5:** they can unblock themselves immediately by going to
+> Settings → Apps → Authentic Steps → Storage → Clear Data, then reopening the app.
+> build7 makes this self-service from within the app.
 >
 > This is the permanent production URL (API server deployed to `authentic-steps-youth.replit.app`).
 > The APK is in Object Storage — share this link directly with Android testers.

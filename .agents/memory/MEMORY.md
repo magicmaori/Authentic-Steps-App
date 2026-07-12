@@ -1,5 +1,5 @@
 - [Auth architecture (open access)](auth-architecture.md) — open sign-up; signed-in = full access; requireAuth only (no loadActor, no requireEntitlement, no memberships table); AuthTokenSync in _layout.tsx wires Clerk bearer token to API client.
-- [Authentic Steps app quirks](authentic-steps.md) — app.config.ts shadows app.json; @types/react must be root-hoisted; jest full-suite non-zero exit = post-teardown act noise (icon font load + setImmediate-in-act overlapping act) + @clerk/expo MessagePort hang; fix at source.
+- [Authentic Steps app quirks](authentic-steps.md) — app.config.ts shadows app.json; @types/react must be root-hoisted; jest full-suite non-zero exit; Clerk isLoaded hang on Android = stale SecureStore token; ClerkLoadingGuard timeout+retry fix in _layout.tsx.
 - [React types version line](react-types-version-line.md) — @types/react pinned workspace-wide to ~19.1.x (matches Expo + react@19.1.0); don't bump to 19.2 or typecheck breaks.
 - [Post-merge pnpm rebuild](post-merge-pnpm.md) — post-merge.sh must export CI=true (pnpm hoist/.npmrc changes force a node_modules rebuild that aborts without a TTY); timeout raised to 180s.
 - [pnpm transitive security overrides](pnpm-security-overrides.md) — how to patch transitive-dep CVEs in this workspace without major bumps, and when it's fine to leave one unpatched.

@@ -34,6 +34,22 @@ agent environment. EAS CLI tries to write `.git/index.lock` even with
 that returns exit 0 for write ops (add/commit/stash/status) and delegates reads
 to real git — then prepend `/tmp/fakegit` to PATH and set `GIT_OPTIONAL_LOCKS=0`.
 This is only needed in the main agent; task agents can run EAS builds natively.
+Use `--profile preview --platform android` for the Android APK profile (no
+`preview-apk` profile exists after cleanup).
+
+## Clerk isLoaded hang on Android (stale SecureStore token)
+When an Android user upgrades the app (or reinstalls without clearing data),
+the old Clerk session token persists in SecureStore. `@clerk/expo` reads it
+before making any network call, and if the token validation hangs, `isLoaded`
+never becomes true — the loading spinner shows forever with NO requests hitting
+the production server.
+**Fix applied:** `ClerkLoadingGuard` in `_layout.tsx` — 10-second timeout that
+shows a "Clear cache & retry" button using `SecureStore.deleteItemAsync` on
+`__clerk_client_jwt`, `clerk-db-jwt`, `__clerk_db_jwt`, then remounts
+`ClerkProvider` via a `key` prop increment. This makes the app self-healing.
+**Why no proxy requests:** the hang is BEFORE the network call (in SecureStore
+read), not after — so zero requests appear in production logs even when the
+phone can reach the server.
 
 Related: the iOS privacy manifest key is `NSPrivacyAccessedAPITypeReasons`
 (matches Apple), NOT `NSPrivacyAccessedAPIReasons` — Expo's ExpoConfig types

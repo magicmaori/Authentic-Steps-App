@@ -12,8 +12,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 import { router, Stack, useRouter, useSegments } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useCallback, useEffect, useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -27,6 +29,13 @@ import { getAllVideoUrls } from "@/lib/videoSource";
 
 const INTRO_SEEN_KEY = "hasSeenIntro";
 
+// Keys that @clerk/expo stores in SecureStore — clear these to reset a stuck session
+const CLERK_SECURE_STORE_KEYS = [
+  "__clerk_client_jwt",
+  "clerk-db-jwt",
+  "__clerk_db_jwt",
+];
+
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
@@ -36,6 +45,43 @@ if (domain) setBaseUrl(`https://${domain}`);
 
 const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const clerkProxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
+
+/**
+ * Shows the normal loading screen for CLERK_TIMEOUT_MS, then surfaces a
+ * "Clear cache & retry" button so the app is never permanently stuck.
+ * Stale SecureStore tokens from a previous install are the most common cause
+ * of Clerk hanging before it makes any network request.
+ */
+const CLERK_TIMEOUT_MS = 10_000;
+
+function ClerkLoadingGuard({ onClearAndRetry }: { onClearAndRetry: () => void }) {
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), CLERK_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (!timedOut) return <AccessLoading />;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: "#193b83", alignItems: "center", justifyContent: "center", padding: 32 }}>
+      <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700", textAlign: "center" }}>
+        Taking longer than expected
+      </Text>
+      <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 10, fontSize: 14, textAlign: "center", lineHeight: 20 }}>
+        A cached session may be causing the delay.{"\n"}Tap below to clear it and try again.
+      </Text>
+      <TouchableOpacity
+        onPress={onClearAndRetry}
+        style={{ marginTop: 32, backgroundColor: "#fff", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32 }}
+        activeOpacity={0.85}
+      >
+        <Text style={{ color: "#193b83", fontWeight: "700", fontSize: 15 }}>Clear cache & retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 function AuthTokenSync() {
   const { isSignedIn, getToken } = useAuth();
@@ -118,6 +164,7 @@ export default function RootLayout() {
   });
   const [splashDone, setSplashDone] = useState(false);
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
+  const [clerkKey, setClerkKey] = useState(0);
 
   useEffect(() => {
     AsyncStorage.getItem(INTRO_SEEN_KEY).then((value) => {
@@ -140,11 +187,19 @@ export default function RootLayout() {
     setSplashDone(true);
   }, []);
 
+  const clearClerkCacheAndRetry = useCallback(async () => {
+    await Promise.allSettled(
+      CLERK_SECURE_STORE_KEYS.map((k) => SecureStore.deleteItemAsync(k))
+    );
+    setClerkKey((n) => n + 1);
+  }, []);
+
   if (!fontsLoaded && !fontError) return null;
   if (showIntro === null) return null;
 
   return (
     <ClerkProvider
+      key={clerkKey}
       publishableKey={clerkPublishableKey}
       tokenCache={tokenCache}
       proxyUrl={clerkProxyUrl}
@@ -155,7 +210,7 @@ export default function RootLayout() {
             <GestureHandlerRootView style={{ flex: 1 }}>
               <KeyboardProvider>
                 <ClerkLoading>
-                  <AccessLoading />
+                  <ClerkLoadingGuard onClearAndRetry={clearClerkCacheAndRetry} />
                 </ClerkLoading>
                 <ClerkLoaded>
                   <AuthTokenSync />
