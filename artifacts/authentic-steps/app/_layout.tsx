@@ -48,14 +48,29 @@ const clerkProxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
 /**
  * Shows the normal loading screen for CLERK_TIMEOUT_MS, then surfaces a
- * "Clear cache & retry" button so the app is never permanently stuck.
+ * recovery button so the app is never permanently stuck.
  * Stale SecureStore tokens from a previous install are the most common cause
  * of Clerk hanging before it makes any network request.
+ * On a fresh install there are no cached keys, so we show a neutral
+ * "check your connection" message instead of the misleading cache copy.
  */
-const CLERK_TIMEOUT_MS = 10_000;
+const CLERK_TIMEOUT_MS = 15_000;
 
 function ClerkLoadingGuard({ onClearAndRetry }: { onClearAndRetry: () => void }) {
   const [timedOut, setTimedOut] = useState(false);
+  const [hasCachedSession, setHasCachedSession] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(
+      CLERK_SECURE_STORE_KEYS.map((k) =>
+        SecureStore.getItemAsync(k).then((v) => v !== null && v !== undefined)
+      )
+    ).then((results) => {
+      if (!cancelled) setHasCachedSession(results.some(Boolean));
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setTimedOut(true), CLERK_TIMEOUT_MS);
@@ -64,20 +79,26 @@ function ClerkLoadingGuard({ onClearAndRetry }: { onClearAndRetry: () => void })
 
   if (!timedOut) return <AccessLoading />;
 
+  const hasCache = hasCachedSession === true;
+
   return (
     <View style={{ flex: 1, backgroundColor: "#193b83", alignItems: "center", justifyContent: "center", padding: 32 }}>
       <Text style={{ color: "#fff", fontSize: 18, fontWeight: "700", textAlign: "center" }}>
         Taking longer than expected
       </Text>
       <Text style={{ color: "rgba(255,255,255,0.75)", marginTop: 10, fontSize: 14, textAlign: "center", lineHeight: 20 }}>
-        A cached session may be causing the delay.{"\n"}Tap below to clear it and try again.
+        {hasCache
+          ? "A cached session may be causing the delay.\nTap below to clear it and try again."
+          : "Check your connection and tap Retry to try again."}
       </Text>
       <TouchableOpacity
         onPress={onClearAndRetry}
         style={{ marginTop: 32, backgroundColor: "#fff", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32 }}
         activeOpacity={0.85}
       >
-        <Text style={{ color: "#193b83", fontWeight: "700", fontSize: 15 }}>Clear cache & retry</Text>
+        <Text style={{ color: "#193b83", fontWeight: "700", fontSize: 15 }}>
+          {hasCache ? "Clear cache & retry" : "Retry"}
+        </Text>
       </TouchableOpacity>
     </View>
   );
