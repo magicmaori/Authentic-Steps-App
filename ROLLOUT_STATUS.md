@@ -6,7 +6,7 @@ testers are added/removed, or feedback comes in (from the mobile app's
 `ROLLOUT.md` for the process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for
 the final gate before public launch.
 
-_Last updated: 2026-07-12 — API server deployed to production; APK download link updated to permanent production URL_
+_Last updated: 2026-07-12 — API server deployed to production; APK download link updated to permanent production URL; iOS submission re-attempted; root cause confirmed as ASC-side rejection (see below)_
 
 ## Current phase
 
@@ -37,33 +37,56 @@ https://authentic-steps-youth.replit.app/api/storage/public-objects/builds/authe
 Share the URL alongside `TESTER_BRIEF.md` with Android testers. They follow the "Installing
 on Android" section in that file.
 
-## iOS TestFlight issue — requires App Store Connect investigation
+## iOS TestFlight issue — root cause confirmed, action required in App Store Connect
 
 Every EAS submission attempt fails with:
 > "Something went wrong when submitting your app to Apple App Store Connect."
 
-The IPA itself builds correctly (valid distribution cert, valid provisioning profile, valid
-App Store Connect API key). The error occurs on Apple's side during upload/processing. Multiple
-builds and submissions have been attempted, all with the same result.
+**Investigation results (2026-07-12):**
 
-**What to check in App Store Connect (appstoreconnect.apple.com):**
+✅ `EXPO_TOKEN` — valid, confirmed working  
+✅ API key `2952PYUPAQ` ([Expo] EAS Submit blnk69EKA9) — active, found by EAS CLI  
+✅ Build `e0809ce2` — correctly targeted (v1.0.0, build number 2, IPA built successfully)  
+✅ EAS submission scheduling — succeeds (gets a submission ID; EAS reaches Apple)  
+❌ Apple's side — rejects the IPA upload after receipt
 
-1. Open the app with Apple ID **6787810652** → confirm the bundle ID is `org.authenticsteps.youth`
-2. Go to the app's **TestFlight** tab — check if any builds show "Processing" or if there
-   are any warnings or rejections under Activity
-3. Go to **App Store → Compliance** or **General** — check if there's an export compliance
-   prompt requiring action before builds can be uploaded
-4. Check **Users and Access → Keys** — confirm the API key `2952PYUPAQ` still has App Manager
-   access (not expired or revoked)
-5. If builds are showing in TestFlight as "Processing", wait ~30 min and check again — Apple's
-   processing queue can return a transient error that clears itself
+**Root cause:** The rejection is happening on Apple's servers after the IPA is received, not in
+our config or credentials. The detailed Apple error is only visible in the EAS web dashboard:
 
-**Once the issue is identified and resolved**, re-run:
+👉 **[Check submission logs at expo.dev →](https://expo.dev/accounts/authentic-steps-for-youthapp/projects/authentic-steps-app/submissions)**
+
+The most common causes for this exact failure pattern:
+
+**1. Pending export compliance prompt in App Store Connect (most likely)**
+- Log in to [appstoreconnect.apple.com](https://appstoreconnect.apple.com)
+- Open the app (Apple ID **6787810652**)
+- Look for a banner or yellow warning asking about export compliance
+- If prompted: the app uses only standard HTTPS (no custom encryption) → answer "No" to all
+  encryption questions, or confirm `ITSAppUsesNonExemptEncryption = false`
+- Note: the binary already has `ITSAppUsesNonExemptEncryption: false` in its Info.plist, but
+  Apple sometimes requires a manual acknowledgement in ASC on the first upload
+
+**2. Unaccepted Apple Developer Program agreement**
+- In App Store Connect → **Agreements, Tax, and Banking**
+- Check for any pending agreements (a yellow "Action Required" banner usually appears)
+- Accept any outstanding agreements, then retry the submission
+
+**3. App record missing required metadata**
+- The app might need a Privacy Policy URL set before builds can be uploaded
+- Check App Store Connect → Your App → **App Information** → Privacy Policy URL
+- Add `https://authenticsteps.com.au/privacy` (or equivalent) if missing
+
+**4. Check the exact Apple error in the EAS logs**
+- Go to [expo.dev → Submissions](https://expo.dev/accounts/authentic-steps-for-youthapp/projects/authentic-steps-app/submissions)
+- Open the latest failed submission
+- The Apple Transporter error message in the logs will pinpoint the exact issue
+
+**Once the issue is resolved**, re-run:
 ```sh
-export EXPO_TOKEN=<your token>
+# EXPO_TOKEN is already set in this environment — just run:
 pnpm --filter @workspace/authentic-steps run eas-submit-ios-preview
-# This submits the already-built IPA (e0809ce2) — no rebuild needed
-# Then add testers in App Store Connect → TestFlight → Internal Testers
+# Submits the already-built IPA (e0809ce2) — no rebuild needed.
+# Then add testers: App Store Connect → TestFlight → Internal Testers → add emails
 ```
 
 ## Active testers
