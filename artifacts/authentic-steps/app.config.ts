@@ -15,8 +15,11 @@ const { version } = require('./package.json') as { version: string };
 // to the EAS CLI.  If it is missing, `scripts/check-eas-setup.js` will print
 // a clear error before any build or submit command runs.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const appJson = require('./app.json') as { expo?: { extra?: { eas?: { projectId?: string } } } };
+const appJson = require('./app.json') as {
+  expo?: { extra?: { eas?: { projectId?: string } }; ios?: { buildNumber?: string } };
+};
 const easProjectId = appJson?.expo?.extra?.eas?.projectId;
+const iosBuildNumber = appJson?.expo?.ios?.buildNumber;
 
 const config: ExpoConfig = {
   name: 'Authentic Steps For Youth',
@@ -35,6 +38,7 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'org.authenticsteps.youth',
+    buildNumber: iosBuildNumber,
     infoPlist: {
       // The app uses only standard HTTPS/TLS — no custom or non-exempt encryption.
       // Apple requires this export compliance declaration in the binary.
