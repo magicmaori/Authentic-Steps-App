@@ -34,7 +34,11 @@ wellbeing. It provides:
 
 ## Installing on Android (APK direct install)
 
-1. **Download the APK** — you'll be given a direct download link (an `.apk` file).
+1. **Download the APK** — tap the link below to download the `.apk` file directly to your device:
+
+   **[Download Authentic Steps For Youth v1.0.0 (APK)](https://2d1f7221-b40c-4736-8006-751e690f20a5-00-1t3nip2aakk7r-hgb5rw0n.kirk.replit.dev/api/storage/public-objects/builds/authentic-steps-1.0.0-build4.apk)**
+
+   If that link doesn't work, email **hello@authenticsteps.com.au** and we'll send you the file directly.
 2. **Allow installs from unknown sources** — Android blocks this by default for safety:
    - **Android 8+:** when prompted after opening the file, tap **Settings** → enable
      "Allow from this source" for your browser or file manager, then go back and tap Install.

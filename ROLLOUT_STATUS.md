@@ -6,7 +6,7 @@ testers are added/removed, or feedback comes in (from the mobile app's
 `ROLLOUT.md` for the process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for
 the final gate before public launch.
 
-_Last updated: 2026-07-12_
+_Last updated: 2026-07-12 — Android APK link added to TESTER_BRIEF.md_
 
 ## Current phase
 
@@ -91,8 +91,10 @@ entered into Linear manually.
 
 ## Blocking items before testers can install
 
-- [ ] **Android**: Deploy the API server to production → share the production APK URL from
-  Object Storage with Android testers alongside `TESTER_BRIEF.md`
+- [x] **Android**: APK uploaded to Object Storage and download link live. `TESTER_BRIEF.md`
+  updated with the direct APK URL — share that file with Android testers to get started.
+  Once the API server is **deployed to production**, update the URL in `TESTER_BRIEF.md` to
+  the production domain for a permanent link (APK stays in Object Storage — no re-upload needed).
 - [ ] **iOS**: Investigate the TestFlight submission error in App Store Connect (see above),
   re-run `eas-submit-ios-preview`, then add tester emails under Internal Testers
 
