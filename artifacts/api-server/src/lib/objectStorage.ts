@@ -53,8 +53,26 @@ interface CachedLookup {
  */
 export class ObjectStorageService {
   private readonly metadataCache = new Map<string, CachedLookup>();
+  private readonly publicizedFiles = new Set<string>();
 
   constructor() {}
+
+  /**
+   * Makes a GCS object publicly readable (allUsers) and returns its public
+   * URL. Idempotent — the allUsers binding is cached in-process so we only
+   * hit the GCS IAM API once per server lifetime per file. Used for large
+   * binary downloads (e.g. APK builds) so the client fetches directly from
+   * GCS rather than being proxied through Express, avoiding production-proxy
+   * timeouts on 50MB+ responses.
+   */
+  async makePublicAndGetUrl(file: File): Promise<string> {
+    const key = `${file.bucket.name}/${file.name}`;
+    if (!this.publicizedFiles.has(key)) {
+      await file.makePublic();
+      this.publicizedFiles.add(key);
+    }
+    return file.publicUrl();
+  }
 
   getPublicObjectSearchPaths(): Array<string> {
     const pathsStr = process.env.PUBLIC_OBJECT_SEARCH_PATHS || "";

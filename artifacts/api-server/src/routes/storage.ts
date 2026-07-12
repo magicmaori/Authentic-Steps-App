@@ -23,6 +23,20 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
       return;
     }
 
+    // Large binary downloads (APK builds etc.) are served via a GCS redirect
+    // rather than proxied through Express. The production proxy kills
+    // connections before a 96MB stream completes, so we make the file
+    // publicly readable on GCS and redirect the client there directly.
+    if (filePath.startsWith("builds/")) {
+      try {
+        const publicUrl = await objectStorageService.makePublicAndGetUrl(found.file);
+        res.redirect(302, publicUrl);
+        return;
+      } catch (err) {
+        req.log.warn({ err }, "makePublic failed for builds/ file, falling back to proxy stream");
+      }
+    }
+
     const response = await objectStorageService.downloadObject(
       found.file,
       found.metadata,
