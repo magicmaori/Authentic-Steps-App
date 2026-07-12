@@ -73,19 +73,24 @@ export class ObjectStorageService {
    */
   private tokenCache: { token: string; expiresAt: number } | null = null;
 
-  private async getSidecarToken(): Promise<string> {
+  /**
+   * Returns the real Google OAuth2 access token by going through the GCS
+   * library's own auth client, which handles the external-account credential
+   * exchange (Replit sidecar subject-token → Google access token) internally.
+   * Cached for 45 min; real tokens are valid ~60 min.
+   */
+  private async getGoogleAccessToken(): Promise<string> {
     if (this.tokenCache && Date.now() < this.tokenCache.expiresAt) {
       return this.tokenCache.token;
     }
-    const res = await fetch(`${REPLIT_SIDECAR_ENDPOINT}/credential`);
-    if (!res.ok) throw new Error(`Sidecar credential fetch failed: ${res.status}`);
-    const body = (await res.json()) as { access_token: string };
-    this.tokenCache = { token: body.access_token, expiresAt: Date.now() + 45 * 60 * 1000 };
-    return body.access_token;
+    const token = await objectStorageClient.authClient.getAccessToken();
+    if (!token) throw new Error("GCS authClient returned null access token");
+    this.tokenCache = { token, expiresAt: Date.now() + 45 * 60 * 1000 };
+    return token;
   }
 
   async getDirectDownloadUrl(file: File): Promise<string> {
-    const token = await this.getSidecarToken();
+    const token = await this.getGoogleAccessToken();
     const bucket = file.bucket.name;
     const object = encodeURIComponent(file.name);
     return (
