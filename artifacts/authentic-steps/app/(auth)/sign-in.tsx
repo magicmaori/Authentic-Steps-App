@@ -67,7 +67,7 @@ export default function SignInScreen() {
       await signIn.finalize({ navigate: goHome });
     } else {
       setFormError(
-        'Additional verification is required. Please contact your program coordinator for help.',
+        'Please check your email and verify your account before signing in.',
       );
     }
   };
