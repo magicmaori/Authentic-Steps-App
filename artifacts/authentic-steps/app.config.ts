@@ -16,10 +16,15 @@ const { version } = require('./package.json') as { version: string };
 // a clear error before any build or submit command runs.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const appJson = require('./app.json') as {
-  expo?: { extra?: { eas?: { projectId?: string } }; ios?: { buildNumber?: string } };
+  expo?: {
+    extra?: { eas?: { projectId?: string } };
+    ios?: { buildNumber?: string };
+    android?: { versionCode?: number };
+  };
 };
 const easProjectId = appJson?.expo?.extra?.eas?.projectId;
 const iosBuildNumber = appJson?.expo?.ios?.buildNumber;
+const androidVersionCode = appJson?.expo?.android?.versionCode;
 
 const config: ExpoConfig = {
   name: 'Authentic Steps For Youth',
@@ -65,7 +70,7 @@ const config: ExpoConfig = {
       ],
     },
   },
-  android: { package: 'org.authenticsteps.youth', versionCode: 5 },
+  android: { package: 'org.authenticsteps.youth', versionCode: androidVersionCode },
   web: { favicon: './assets/images/icon.png' },
   plugins: [
     ['expo-router', { origin: 'https://replit.com/' }],
