@@ -44,14 +44,11 @@ const prefix = firstPath.split("/").slice(2).join("/");
 
 // ── 1. Find latest finished Android APK build ─────────────────────────────
 
-// The build ID we're waiting for — the one with EXPO_PUBLIC_CLERK_PROXY_URL set
-const TARGET_BUILD_ID = "210bfc6f-e886-43c2-abe4-2290a665d154";
-
 const query = `
   query GetBuilds($appId: String!) {
     app {
       byId(appId: $appId) {
-        builds(platform: ANDROID, limit: 5, offset: 0) {
+        builds(platform: ANDROID, limit: 10, offset: 0) {
           id
           status
           artifacts {
@@ -77,31 +74,25 @@ const gqlRes = await fetch(EAS_API, {
 const gqlData = await gqlRes.json();
 const builds = gqlData?.data?.app?.byId?.builds ?? [];
 
-// Only use the targeted build (the one with the proxy URL fix)
-const target = builds.find((b) => b.id === TARGET_BUILD_ID);
+// Find the most recent finished APK build
+const finished = builds.find(
+  (b) => b.status === "FINISHED" && b.artifacts?.buildUrl
+);
 
-if (!target) {
-  console.error(`Target build ${TARGET_BUILD_ID} not found in recent builds.`);
+if (!finished) {
+  console.error("No finished Android APK build found in recent builds.");
+  console.error(
+    "Builds found:",
+    builds.map((b) => `${b.id} (${b.status})`).join(", ")
+  );
   process.exit(1);
 }
-
-if (target.status !== "FINISHED" || !target.artifacts?.buildUrl) {
-  console.log(
-    `Build ${TARGET_BUILD_ID} is not finished yet. Status: ${target.status}`
-  );
-  console.log("Wait for the EAS build to complete, then re-run this script.");
-  console.log(
-    `Track at: https://expo.dev/accounts/authentic-steps-for-youthapp/projects/authentic-steps-app/builds/${TARGET_BUILD_ID}`
-  );
-  process.exit(0);
-}
-
-const finished = target;
 
 const { appVersion, appBuildVersion } = finished;
 const buildUrl = finished.artifacts?.buildUrl;
 const filename = `authentic-steps-${appVersion}-build${appBuildVersion}.apk`;
-console.log(`Found build: ${filename}`);
+console.log(`Found build: ${filename} (id: ${finished.id})`);
+console.log(`  Completed: ${finished.completedAt}`);
 console.log(`  Download URL: ${buildUrl}`);
 
 // ── 2. Download APK to a temp file ────────────────────────────────────────
