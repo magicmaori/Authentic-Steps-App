@@ -61,7 +61,7 @@ const config: ExpoConfig = {
       ],
     },
   },
-  android: { package: 'org.authenticsteps.youth', versionCode: 3 },
+  android: { package: 'org.authenticsteps.youth', versionCode: 5 },
   web: { favicon: './assets/images/icon.png' },
   plugins: [
     ['expo-router', { origin: 'https://replit.com/' }],

@@ -17,7 +17,7 @@
       }
     },
     "preview": {
-      "autoIncrement": false,
+      "autoIncrement": true,
       "ios": {
         "distribution": "store"
       },

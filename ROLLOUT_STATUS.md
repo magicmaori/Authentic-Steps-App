@@ -6,7 +6,7 @@ testers are added/removed, or feedback comes in (from the mobile app's
 `ROLLOUT.md` for the process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for
 the final gate before public launch.
 
-_Last updated: 2026-07-12 — API server deployed to production; APK download link updated to permanent production URL; iOS submission re-attempted; root cause confirmed as ASC-side rejection (see below)_
+_Last updated: 2026-07-12 — APK build5 (versionCode 5) built and uploaded; fixes silent install failure caused by versionCode downgrade; Clerk proxy URL and pk_live key confirmed baked in_
 
 ## Current phase
 
@@ -21,16 +21,20 @@ with a generic Apple error — see "iOS TestFlight issue" below.
 | Platform | Build ID | Build # | Status | Notes |
 |---|---|---|---|---|
 | iOS (preview) | `e0809ce2-1f6e-43e9-9611-961880389440` | 2 | ✅ Built | Submission to ASC failing — see below |
-| Android (APK) | `370ba045-c0e0-476a-8020-64eefd3bf950` | versionCode 4 | ✅ Built + Hosted | Ready to share |
+| Android (APK) | `3b2a6151-7695-472c-9ab1-bf3ea0784c54` | versionCode **5** | ✅ Built + Hosted | **Use this link — replaces build4** |
 
 ## Android — APK download link (ready to share)
 
 The APK is live and publicly downloadable:
 
 ```
-https://authentic-steps-youth.replit.app/api/storage/public-objects/builds/authentic-steps-1.0.0-build4.apk
+https://authentic-steps-youth.replit.app/api/storage/public-objects/builds/authentic-steps-1.0.0-build5.apk
 ```
 
+> **build5 replaces build4** — the previous APK had versionCode 3 (lower than the installed versionCode 4),
+> so Android silently refused to install it. build5 has versionCode 5 and installs correctly.
+> If a device already has build4, it can upgrade directly without uninstalling.
+>
 > This is the permanent production URL (API server deployed to `authentic-steps-youth.replit.app`).
 > The APK is in Object Storage — share this link directly with Android testers.
 
