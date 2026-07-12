@@ -7,9 +7,10 @@
  *  - The Android service account JSON is missing (--check-android-submit)
  *
  * Usage:
- *   node scripts/check-eas-setup.js                      # build check only
- *   node scripts/check-eas-setup.js --check-ios-submit    # also validate iOS submit config
- *   node scripts/check-eas-setup.js --check-android-submit # also validate Android submit config
+ *   node scripts/check-eas-setup.js                                              # build check only
+ *   node scripts/check-eas-setup.js --check-ios-submit --ios-submit-profile preview     # validate preview iOS submit config
+ *   node scripts/check-eas-setup.js --check-ios-submit --ios-submit-profile production  # validate production iOS submit config
+ *   node scripts/check-eas-setup.js --check-android-submit                       # also validate Android submit config
  */
 
 const fs = require('fs');
@@ -18,6 +19,13 @@ const path = require('path');
 const projectRoot = path.resolve(__dirname, '..');
 const checkIosSubmit = process.argv.includes('--check-ios-submit');
 const checkAndroidSubmit = process.argv.includes('--check-android-submit');
+
+// Parse --ios-submit-profile <name> (defaults to 'production' for backward compatibility)
+const iosSubmitProfileIdx = process.argv.indexOf('--ios-submit-profile');
+const iosSubmitProfile =
+  iosSubmitProfileIdx !== -1 && process.argv[iosSubmitProfileIdx + 1]
+    ? process.argv[iosSubmitProfileIdx + 1]
+    : 'production';
 
 function fail(msg) {
   console.error('\n\x1b[31mEAS setup check failed:\x1b[0m', msg, '\n');
@@ -57,11 +65,21 @@ if (checkIosSubmit) {
     fail(`Could not read ${easJsonPath}.`);
   }
 
-  const ios = easJson?.submit?.production?.ios ?? {};
+  const profileConfig = easJson?.submit?.[iosSubmitProfile];
+  if (!profileConfig) {
+    fail(
+      `submit.${iosSubmitProfile} is not defined in eas.json.\n\n` +
+      '  To fix:\n' +
+      `    Add a "submit": { "${iosSubmitProfile}": { "ios": { ... } } } section to\n` +
+      '    artifacts/authentic-steps/eas.json with ascAppId and appleTeamId.',
+    );
+  }
+
+  const ios = profileConfig.ios ?? {};
 
   if (!ios.ascAppId || ios.ascAppId === 'REPLACE_WITH_ASC_APP_ID') {
     fail(
-      'submit.production.ios.ascAppId is not set in eas.json.\n\n' +
+      `submit.${iosSubmitProfile}.ios.ascAppId is not set in eas.json.\n\n` +
       '  To fix:\n' +
       '    Open artifacts/authentic-steps/eas.json and replace\n' +
       '    "REPLACE_WITH_ASC_APP_ID" with your numeric App Store Connect app ID.\n' +
@@ -71,7 +89,7 @@ if (checkIosSubmit) {
 
   if (!ios.appleTeamId || ios.appleTeamId === 'REPLACE_WITH_APPLE_TEAM_ID') {
     fail(
-      'submit.production.ios.appleTeamId is not set in eas.json.\n\n' +
+      `submit.${iosSubmitProfile}.ios.appleTeamId is not set in eas.json.\n\n` +
       '  To fix:\n' +
       '    Open artifacts/authentic-steps/eas.json and replace\n' +
       '    "REPLACE_WITH_APPLE_TEAM_ID" with your 10-character Apple Team ID.\n' +
