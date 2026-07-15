@@ -3,6 +3,14 @@
 Ready-to-paste text for App Store Connect (iOS) and Google Play Console (Android).
 All character counts verified against field limits.
 
+> **Keeping en-AU in sync:** `store-assets/app-store-metadata-en-AU.md` is the Australian
+> English localisation of this file. **Whenever you update any section here** (description,
+> promotional text, keywords, changelog, or any other field), open the en-AU file and apply
+> the equivalent change, preserving AU spelling (`journalling`, `practise`/`practises`) and
+> the AU-specific tone adjustments noted in its "Localisation notes" section. Run
+> `pnpm --filter @workspace/scripts run check-metadata-sync` to get a quick word-count
+> comparison that flags large divergence between the two files.
+
 ---
 
 ## App Store Connect (iOS)

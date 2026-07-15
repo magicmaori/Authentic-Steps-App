@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "sync-export-record": "tsx ./src/sync-export-record.ts",
     "mix-video-audio": "tsx ./src/mix-video-audio.ts",
+    "check-metadata-sync": "tsx ./src/check-metadata-sync.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

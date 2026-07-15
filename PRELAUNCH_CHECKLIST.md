@@ -44,6 +44,9 @@ cycle.
 - [ ] Screenshots captured for required device sizes (iPhone + iPad if `supportsTablet` is
       ever enabled; Android phone + tablet as required by Play Console).
 - [ ] App Store / Play Store description, keywords, and category finalized.
+- [ ] `store-assets/app-store-metadata-en-AU.md` reflects any description or keyword changes
+      made since the last release — run `pnpm --filter @workspace/scripts run check-metadata-sync`
+      to get a word-count comparison and flag large divergence between the base and AU files.
 - [ ] Support URL and marketing URL (if any) are live and correct.
 - [ ] App Store Connect "Age Rating" / Play Console "Content rating" questionnaire completed,
       appropriate for a youth mental-health support app.
