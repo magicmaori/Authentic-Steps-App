@@ -24,6 +24,7 @@ import { AccessLoading } from "@/components/AccessLoading";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SplashAnimation } from "@/components/SplashAnimation";
 import { AppProvider, useApp } from "@/context/AppContext";
+import { SCREENSHOT_MODE } from "@/constants/screenshotSeed";
 import { precacheVideosOnWifi } from "@/lib/videoCache";
 import { getAllVideoUrls } from "@/lib/videoSource";
 
@@ -157,20 +158,58 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const SCREEN_OPTIONS = { headerBackTitle: "Back" };
+
+function AppScreens() {
+  return (
+    <Stack screenOptions={SCREEN_OPTIONS}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+      <Stack.Screen name="ritual" options={{ headerShown: false }} />
+      <Stack.Screen name="sos" options={{ presentation: "modal", headerShown: false }} />
+      <Stack.Screen name="journal" options={{ headerShown: false }} />
+      <Stack.Screen name="grounding-history" options={{ headerShown: false }} />
+      <Stack.Screen name="legal" options={{ headerShown: false }} />
+    </Stack>
+  );
+}
+
 function RootLayoutNav() {
   return (
     <OnboardingGate>
-      <Stack screenOptions={{ headerBackTitle: "Back" }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="ritual" options={{ headerShown: false }} />
-        <Stack.Screen name="sos" options={{ presentation: "modal", headerShown: false }} />
-        <Stack.Screen name="journal" options={{ headerShown: false }} />
-        <Stack.Screen name="grounding-history" options={{ headerShown: false }} />
-        <Stack.Screen name="legal" options={{ headerShown: false }} />
-      </Stack>
+      <AppScreens />
     </OnboardingGate>
+  );
+}
+
+/**
+ * Screenshot-mode gate: renders immediately without any Clerk dependency.
+ * hasOnboarded=true in seed data, so OnboardingGate won't redirect.
+ */
+function ScreenshotModeOnboardingGate({ children }: { children: React.ReactNode }) {
+  const { isLoaded: appLoaded } = useApp();
+  if (!appLoaded) return <AccessLoading />;
+  return <>{children}</>;
+}
+
+function ScreenshotModeLayout() {
+  return (
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <KeyboardProvider>
+              <AppProvider>
+                <ScreenshotModeOnboardingGate>
+                  <AppScreens />
+                </ScreenshotModeOnboardingGate>
+              </AppProvider>
+            </KeyboardProvider>
+          </GestureHandlerRootView>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 
@@ -216,6 +255,10 @@ export default function RootLayout() {
   }, []);
 
   if (!fontsLoaded && !fontError) return null;
+
+  // In screenshot mode, bypass Clerk entirely and render directly with seeded data.
+  if (SCREENSHOT_MODE) return <ScreenshotModeLayout />;
+
   if (showIntro === null) return null;
 
   return (

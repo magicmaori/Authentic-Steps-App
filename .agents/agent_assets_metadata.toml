@@ -155,3 +155,63 @@ id = "-ujm_6K0XQ-r9qAY-Sa_6"
 uri = "file://attached_assets/generated_audio/message_for_you_voiceover.mp3"
 type = "audio"
 title = "message_for_you_voiceover"
+
+[[outputs]]
+id = "sA9HNZ5zwp9OtHVG1P-Wz"
+uri = "file://store-assets/screenshots/ios_6.7/01-home.jpg"
+type = "image"
+title = "01 — Daily Ritual (Home)"
+
+[[outputs]]
+id = "56qPyQFP-qC5ovXrh5yGa"
+uri = "file://store-assets/screenshots/ios_6.7/02-gratitude.jpg"
+type = "image"
+title = "02 — Gratitude"
+
+[[outputs]]
+id = "Rr20j1BGe_6HQ9CQR_vvy"
+uri = "file://store-assets/screenshots/ios_6.7/03-intention.jpg"
+type = "image"
+title = "03 — Intention"
+
+[[outputs]]
+id = "4dHMyWMtyrU4-H5FcuQLI"
+uri = "file://store-assets/screenshots/ios_6.7/04-iamstatement.jpg"
+type = "image"
+title = "04 — I Am Statement"
+
+[[outputs]]
+id = "-7u8RsOAHJBc7S21IZlIc"
+uri = "file://store-assets/screenshots/ios_6.7/05-complete.jpg"
+type = "image"
+title = "05 — Ritual Complete"
+
+[[outputs]]
+id = "r32rdzPtjLAzfvpfkjjcG"
+uri = "file://store-assets/screenshots/ios_6.7/06-streaks.jpg"
+type = "image"
+title = "06 — Streaks"
+
+[[outputs]]
+id = "2C74L39855xwYclhSnWYE"
+uri = "file://store-assets/screenshots/ios_6.7/07-toolbox.jpg"
+type = "image"
+title = "07 — Resilience Toolbox"
+
+[[outputs]]
+id = "CeTfPLv3Ro79L3HhDsVqZ"
+uri = "file://store-assets/screenshots/ios_6.7/08-community.jpg"
+type = "image"
+title = "08 — Community"
+
+[[outputs]]
+id = "Yjn-ql3J6csukUHqkdx81"
+uri = "file://store-assets/screenshots/ios_6.7/09-support.jpg"
+type = "image"
+title = "09 — Support"
+
+[[outputs]]
+id = "dd-CjA0Bz6SIpCCZBUGX9"
+uri = "file://store-assets/screenshots/ios_6.7/10-onboarding.jpg"
+type = "image"
+title = "10 — Onboarding"
