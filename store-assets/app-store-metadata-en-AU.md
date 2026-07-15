@@ -290,8 +290,47 @@ _246 characters — well within both stores' limits._
 
 ---
 
+## Screenshots (en-AU)
+
+A matching set of en-AU screenshots lives in `store-assets/screenshots-professional/en-AU/` with three subdirectories for each submission size:
+
+| Directory | Dimensions | Target |
+|---|---|---|
+| `en-AU/ios_6.7/` | 1290 × 2796 px | iPhone 15 Pro Max / 6.7-inch — App Store Connect |
+| `en-AU/ios_6.5/` | 1284 × 2778 px | iPhone 11–13 Pro Max / 6.5-inch — App Store Connect |
+| `en-AU/play_store/` | 1080 × 1920 px | Google Play Store portrait |
+
+Each directory contains 10 numbered PNG files (`01-onboarding.png` through `10-support.png`), matching the base en locale set in structure.
+
+### AU caption changes from base en locale
+
+| Screenshot | Base en caption | en-AU caption | Reason |
+|---|---|---|---|
+| `01-onboarding.png` sub | Made for young people | **Made for young Australians** | Grounds the listing in the local market; mirrors the description copy |
+| `02-home.png` sub | A 5-minute morning ritual | **A five-minute morning practise** | "practise" (noun) is the AU/UK spelling; number spelled out per AU style |
+| All others | (unchanged) | (unchanged) | Captions use locale-neutral vocabulary |
+
+### Regenerating the en-AU screenshot set
+
+If the base app screenshots change (new raw shots in `store-assets/screenshots/ios_6.7/`), regenerate the en-AU set with:
+
+```sh
+node store-assets/generate-screenshots-en-AU.js
+```
+
+The generator requires ImageMagick 7 (`magick` command) on PATH — the same requirement as `generate-screenshots.js`.
+
+To regenerate the base en locale set at the same time:
+
+```sh
+node store-assets/generate-screenshots.js && node store-assets/generate-screenshots-en-AU.js
+```
+
+---
+
 ## Notes for Submission
 
 - Enter this locale in App Store Connect by going to **App Information → Localizations → Add Localisation → English (Australia)**.
 - In Google Play Console, go to **Store listing → Manage translations → Add language → English (Australia)** and paste the fields from the Google Play section above.
+- Upload the en-AU screenshots from `store-assets/screenshots-professional/en-AU/` to the corresponding locale in each store (App Store Connect: under the en-AU localisation tab; Google Play: under the en-AU language tab in the store listing).
 - All other submission fields (age rating, privacy policy, content rating) are unchanged from the base locale and do not need a separate en-AU entry unless App Store Connect prompts you to complete them per locale.
