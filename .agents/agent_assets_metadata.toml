@@ -160,7 +160,7 @@ title = "message_for_you_voiceover"
 id = "sA9HNZ5zwp9OtHVG1P-Wz"
 uri = "file://store-assets/screenshots/ios_6.7/01-home.jpg"
 type = "image"
-title = "01 — Daily Ritual (Home)"
+title = "ios_6.7 — 01 Home (framed)"
 
 [[outputs]]
 id = "56qPyQFP-qC5ovXrh5yGa"
@@ -190,7 +190,7 @@ title = "05 — Ritual Complete"
 id = "r32rdzPtjLAzfvpfkjjcG"
 uri = "file://store-assets/screenshots/ios_6.7/06-streaks.jpg"
 type = "image"
-title = "06 — Streaks"
+title = "ios_6.7 — 06 Streaks (framed)"
 
 [[outputs]]
 id = "2C74L39855xwYclhSnWYE"
@@ -215,3 +215,15 @@ id = "dd-CjA0Bz6SIpCCZBUGX9"
 uri = "file://store-assets/screenshots/ios_6.7/10-onboarding.jpg"
 type = "image"
 title = "10 — Onboarding"
+
+[[outputs]]
+id = "aWnSE1RKFmtuuN3t2UjAG"
+uri = "file://store-assets/screenshots/play_store/01-home.jpg"
+type = "image"
+title = "Play Store — 01 Home (framed)"
+
+[[outputs]]
+id = "UCx59Q47yv5FxBDExSrYV"
+uri = "file://store-assets/screenshots/play_store/05-complete.jpg"
+type = "image"
+title = "Play Store — 05 Complete (framed)"
