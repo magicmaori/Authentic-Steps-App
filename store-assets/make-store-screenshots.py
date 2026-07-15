@@ -62,12 +62,12 @@ SCREENS = [
     ("02-gratitude",    "Find three things",            "to be grateful for"),
     ("03-intention",    "Set an intention",             "that shapes your day"),
     ("04-iamstatement", "Affirm who you are",           "and who you\u2019re becoming"),
-    ("05-complete",     "Celebrate every step",         "on your journey"),
+    ("05-complete",     "Ritual complete!",             "you showed up for yourself"),
     ("06-streaks",      "Build habits that stick",      "with your daily streak"),
-    ("07-toolbox",      "Every tool you need",          "whenever you need it"),
-    ("08-community",    "You\u2019re not alone",        "in this journey"),
-    ("09-support",      "Help is always",               "within reach"),
-    ("10-onboarding",   "Better days start",            "right here"),
+    ("07-toolbox",      "Your resilience toolbox",      "breathing, movement & grounding"),
+    ("08-community",    "Let\u2019s change the world",  "one day at a time"),
+    ("09-support",      "You don\u2019t have to",       "figure this out alone"),
+    ("10-onboarding",   "Build the habit of",           "showing up for yourself"),
 ]
 
 # ---------------------------------------------------------------------------
