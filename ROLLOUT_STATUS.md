@@ -118,9 +118,47 @@ If the structured submission fails (offline, server error, etc.), the app automa
 back to `mailto:hello@authenticsteps.com.au` — any mail that lands in that inbox should be
 entered into Linear manually.
 
+## Google Play content rating — action required before AAB submission
+
+Google Play **blocks** any submission — including to the internal testing track — until a
+completed IARC content rating questionnaire generates a certificate. The answers have been
+pre-verified against the app's actual content (see `store-assets/app-store-metadata.md` →
+"Content Rating — Google Play Questionnaire"). Here is what needs to happen in Play Console:
+
+**Steps (takes ~5 minutes):**
+
+1. Open [Play Console](https://play.google.com/console) → your app → **Policy → App content → Content rating**.
+2. Click **Start questionnaire** (or **Continue** if one was started earlier).
+3. Enter the contact email address and select the **"Utility, Productivity, Communication, or Other"** category — this is the closest match for a wellbeing/journaling app and yields the most appropriate rating.
+4. Answer the questions as follows (pre-verified against actual app content):
+
+   | Question | Answer |
+   |---|---|
+   | Does the app contain violence? | **No** |
+   | Does the app contain sexual content? | **No** |
+   | Does the app contain profanity? | **No** |
+   | Does the app reference controlled substances? | **No** |
+   | Does the app contain gambling content? | **No** |
+   | Does the app contain user-generated content shared with others? | **No** _(journal entries are stored privately on the user's account and never shared)_ |
+   | Is this app designed for children under 13? | **No** _(designed for youth broadly, not exclusively under-13)_ |
+
+   If a health/wellness sub-question appears, answer that the app provides **general wellness guidance**, not medical or clinical treatment.
+
+5. Click **Save**, then **Apply rating**. Play Console will generate the IARC certificate immediately and show the resulting rating (expected: **Everyone** or **Everyone 10+**).
+6. Update this file — check off the item below and add the certificate date.
+
+**Expected rating:** Everyone / Everyone 10+
+
+**Status:** ⬜ Not yet submitted — certificate pending Play Console action
+
+_Once the certificate is generated, the content rating item in `PRELAUNCH_CHECKLIST.md` can be checked off._
+
+---
+
 ## Blocking items before testers can install
 
 - [x] **Android**: APK in Object Storage. API server deployed to production (`authentic-steps-youth.replit.app`). `TESTER_BRIEF.md` has the permanent production download URL — share it with Android testers.
+- [ ] **Android (AAB / Play Store internal track)**: Complete the Google Play content rating questionnaire (see section above) before submitting an AAB via `eas-submit-android` — Play Console will block the upload without it.
 - [ ] **iOS**: Investigate the TestFlight submission error in App Store Connect (see above),
   re-run `eas-submit-ios-preview`, then add tester emails under Internal Testers
 
