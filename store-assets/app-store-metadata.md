@@ -242,6 +242,91 @@ _Play Store rates wellbeing/mental health apps conservatively. "Everyone" is the
 
 ---
 
+### Data Safety — Google Play
+
+Complete the **Data Safety** form in Play Console under **Policy → App content → Data safety**.
+This is separate from the Content Rating questionnaire and must be submitted before any track
+(including internal testing) can be made available.
+
+#### Overview questions
+
+| Question | Answer |
+|---|---|
+| Does your app collect or share any of the required user data types? | **Yes** |
+| Is all of the user data collected encrypted in transit? | **Yes** (HTTPS/TLS throughout) |
+| Do you provide a way for users to request data deletion? | **Yes** — Profile → Settings → Delete all data |
+
+#### Data types collected
+
+Select exactly these data types — no others apply to this app:
+
+**Personal info**
+
+| Type | Collected | Shared | Required | Purpose |
+|---|---|---|---|---|
+| Email address | ✅ Yes | ❌ No | ✅ Yes | App functionality — account authentication via Clerk |
+| User IDs | ✅ Yes | ❌ No | ✅ Yes | App functionality — keys all synced data to the user's account |
+| Name | ❌ No | — | — | Not collected |
+
+**App activity**
+
+| Type | Collected | Shared | Required | Purpose |
+|---|---|---|---|---|
+| App interactions | ✅ Yes | ❌ No | ✅ Yes | App functionality — ritual completions, grounding sessions, streak/milestone state |
+| Other user-generated content | ✅ Yes | ❌ No | ❌ No (sync is optional) | App functionality — journal entries (gratitude, intention, affirmations) synced for cross-device access |
+| In-app search history | ❌ No | — | — | Not collected |
+
+**All other categories — not collected:**
+Location, photos/videos, audio, files, contacts, messages, web browsing history, health &
+fitness data (beyond voluntarily journaled content), financial info, device identifiers,
+crash logs / diagnostics. No analytics or advertising SDK is included.
+
+#### Data sharing
+
+**Is any data shared with third parties?**
+→ **No.** No user data is sold, rented, or shared with any third party.
+
+Email address and User ID are held by **Clerk** (the authentication provider) under Clerk's
+own privacy terms — Clerk is the first-party auth service, not a third-party data recipient.
+All app activity and journal content resides in the app's own PostgreSQL database and is
+never transmitted outside that server.
+
+#### Third-party SDKs in the app
+
+| SDK | Purpose | Data it accesses | Transmitted externally? |
+|---|---|---|---|
+| Clerk (Expo SDK) | Authentication | Email, Clerk user ID | No — Clerk is the auth provider (first party) |
+| Expo / React Native core | UI framework | None beyond the above | No |
+| expo-av | Audio/video playback | None | No |
+| expo-notifications | Local push notifications | Device push token (stored locally, never uploaded) | No |
+| expo-secure-store | Secure local auth session | Auth session token (device-only) | No |
+| expo-file-system | PDF export (local) | None — file stays on device | No |
+
+No advertising SDKs. No analytics SDKs. No crash-reporting SDKs.
+
+#### Step-by-step: filling in the form
+
+1. Open [Play Console](https://play.google.com/console) → your app → **Policy → App content → Data safety**.
+2. Click **Start** (or **Edit** if a draft was saved earlier).
+3. **Overview screen:**
+   - "Does your app collect or share any of the required user data types?" → **Yes**
+   - "Is all of the user data encrypted in transit?" → **Yes**
+   - "Do you provide a way for users to request data deletion?" → **Yes**
+4. **Data types screen** — tick:
+   - Personal info → **Email address**
+   - Personal info → **User IDs**
+   - App activity → **App interactions**
+   - App activity → **Other user-generated content**
+5. For each selected type, fill in the usage details from the table above.
+6. **Data sharing screen:** confirm no data is shared with third parties → **No**.
+7. Review the generated privacy label summary and click **Submit**.
+
+**Expected privacy label:** Collects email, user IDs, and app activity — all for app
+functionality only, none shared with third parties, all encrypted in transit, deletion
+available.
+
+---
+
 ## Changelog / What's New (first submission)
 
 > Used for App Store "Version Information" and Play Store "What's new in this version".

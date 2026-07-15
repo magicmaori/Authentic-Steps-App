@@ -6,7 +6,7 @@ testers are added/removed, or feedback comes in (from the mobile app's
 `ROLLOUT.md` for the process this status is tracking against, and `PRELAUNCH_CHECKLIST.md` for
 the final gate before public launch.
 
-_Last updated: 2026-07-12 — APK build7 (versionCode 7) uploaded; fixes Clerk `isLoaded` hang caused by stale SecureStore token on existing installs; adds self-healing "Clear cache & retry" button in loading screen_
+_Last updated: 2026-07-15 — Data Safety form answers documented in `store-assets/app-store-metadata.md`; Play Console action required to submit the form (see "Google Play Data Safety form" section below)_
 
 ## Current phase
 
@@ -118,6 +118,35 @@ If the structured submission fails (offline, server error, etc.), the app automa
 back to `mailto:hello@authenticsteps.com.au` — any mail that lands in that inbox should be
 entered into Linear manually.
 
+## Google Play Data Safety form — action required before AAB submission
+
+The Data Safety form (Play Console → Policy → App content → Data safety) must be completed
+and submitted before any track — including internal testing — will accept a new build. It is
+separate from the Content Rating questionnaire.
+
+**All answers have been pre-verified and documented in `store-assets/app-store-metadata.md`
+under "Data Safety — Google Play".** Follow the step-by-step instructions there; it takes
+about 5 minutes.
+
+Summary of what to declare:
+
+| Data type | Collected | Shared | Purpose |
+|---|---|---|---|
+| Email address | ✅ | ❌ | App functionality (Clerk auth) |
+| User IDs | ✅ | ❌ | App functionality (data sync key) |
+| App interactions | ✅ | ❌ | App functionality (ritual/grounding state) |
+| Other user-generated content | ✅ | ❌ | App functionality (journal sync) |
+| Everything else | ❌ | — | Not collected |
+
+Data safety overview answers: collected = Yes; encrypted in transit = Yes; deletion available = Yes;
+shared with third parties = No.
+
+**Status:** ⬜ Not yet submitted — Play Console action required
+
+_Once submitted, update this status to ✅ and check off the item in `PRELAUNCH_CHECKLIST.md`._
+
+---
+
 ## Google Play content rating — action required before AAB submission
 
 Google Play **blocks** any submission — including to the internal testing track — until a
@@ -158,7 +187,7 @@ _Once the certificate is generated, the content rating item in `PRELAUNCH_CHECKL
 ## Blocking items before testers can install
 
 - [x] **Android**: APK in Object Storage. API server deployed to production (`authentic-steps-youth.replit.app`). `TESTER_BRIEF.md` has the permanent production download URL — share it with Android testers.
-- [ ] **Android (AAB / Play Store internal track)**: Complete the Google Play content rating questionnaire (see section above) before submitting an AAB via `eas-submit-android` — Play Console will block the upload without it.
+- [ ] **Android (AAB / Play Store internal track)**: Complete the Google Play **Data Safety form** (see "Google Play Data Safety form" section above — answers pre-documented in `store-assets/app-store-metadata.md`) and the **Content Rating questionnaire** (see section below) before submitting an AAB via `eas-submit-android` — Play Console will block the upload without both.
 - [ ] **iOS**: Investigate the TestFlight submission error in App Store Connect (see above),
   re-run `eas-submit-ios-preview`, then add tester emails under Internal Testers
 
