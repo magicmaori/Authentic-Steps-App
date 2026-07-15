@@ -227,3 +227,81 @@ id = "UCx59Q47yv5FxBDExSrYV"
 uri = "file://store-assets/screenshots/play_store/05-complete.jpg"
 type = "image"
 title = "Play Store — 05 Complete (framed)"
+
+[[outputs]]
+id = "jRsdehSx-Bw5YC6s7ta_y"
+uri = "file://store-assets/screenshots-professional/ios_6.7/01-onboarding.png"
+type = "image"
+title = "01 — Your wellbeing journey starts here"
+
+[[outputs]]
+id = "3TWq4r_H2EZm-Gkpoq_VQ"
+uri = "file://store-assets/screenshots-professional/ios_6.7/02-home.png"
+type = "image"
+title = "02 — Start your day with intention"
+
+[[outputs]]
+id = "tV5oxDVNsWnLyJCXHUuxI"
+uri = "file://store-assets/screenshots-professional/ios_6.7/03-streaks.png"
+type = "image"
+title = "03 — Watch your progress grow"
+
+[[outputs]]
+id = "mWizcUdH2vO87hoKMMT54"
+uri = "file://store-assets/screenshots-professional/ios_6.7/04-gratitude.png"
+type = "image"
+title = "04 — Capture what you are grateful for"
+
+[[outputs]]
+id = "UybS1ZkpTGPUhrbWrmVtP"
+uri = "file://store-assets/screenshots-professional/ios_6.7/05-intention.png"
+type = "image"
+title = "05 — Set intentions that inspire you"
+
+[[outputs]]
+id = "rA62B_kqm9Bm-jU_oqQ82"
+uri = "file://store-assets/screenshots-professional/ios_6.7/06-affirmation.png"
+type = "image"
+title = "06 — Affirm who you are becoming"
+
+[[outputs]]
+id = "nEXIdkQeA16IDcXPaX2Jx"
+uri = "file://store-assets/screenshots-professional/ios_6.7/07-complete.png"
+type = "image"
+title = "07 — Celebrate every step forward"
+
+[[outputs]]
+id = "ed9vpUG1NkaimwyDGdnwr"
+uri = "file://store-assets/screenshots-professional/ios_6.7/08-toolbox.png"
+type = "image"
+title = "08 — Calming tools at your fingertips"
+
+[[outputs]]
+id = "dmR9RsoNN7iZjZHAfXKNq"
+uri = "file://store-assets/screenshots-professional/ios_6.7/09-community.png"
+type = "image"
+title = "09 — Connect with those who care"
+
+[[outputs]]
+id = "ez-LXktwIvUevw3i7J8wv"
+uri = "file://store-assets/screenshots-professional/ios_6.7/10-support.png"
+type = "image"
+title = "10 — Support whenever you need it"
+
+[[outputs]]
+id = "RBRyXYDqA_dxoH_CWhEfN"
+uri = "file://store-assets/screenshots-professional/play_store/01-onboarding.png"
+type = "image"
+title = "Play Store 01 — Your wellbeing journey starts here"
+
+[[outputs]]
+id = "d5f9E2VtYHgi9eoQ3eNuQ"
+uri = "file://store-assets/screenshots-professional/play_store/02-home.png"
+type = "image"
+title = "Play Store 02 — Start your day with intention"
+
+[[outputs]]
+id = "BGJwSGpVfXH0QHTwS5_eE"
+uri = "file://store-assets/screenshots-professional/play_store/03-streaks.png"
+type = "image"
+title = "Play Store 03 — Watch your progress grow"
