@@ -21,6 +21,14 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 FONT_BOLD    = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
+# Logo asset — checked at start-up; falls back to text wordmark if absent
+LOGO_CANDIDATES = [
+    "store-assets/logo.png",
+    "store-assets/logo-white.png",
+    "artifacts/authentic-steps/assets/images/logo.png",
+    "artifacts/authentic-steps/assets/images/logo-original.png",
+]
+
 RAW_DIR  = "store-assets/screenshots/raw"
 OUT_DIRS = {
     "ios_6.7":    "store-assets/screenshots/ios_6.7",
@@ -73,6 +81,45 @@ SCREENS = [
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def load_logo_white(max_w: int, max_h: int) -> "Image.Image | None":
+    """
+    Find the brand logo, strip its white background, tint all remaining
+    pixels to white (so it reads clearly on the dark gradient), then scale
+    it to fit within max_w × max_h while preserving aspect ratio.
+    Returns None if no candidate file exists.
+    """
+    logo_path = next((p for p in LOGO_CANDIDATES if os.path.exists(p)), None)
+    if logo_path is None:
+        return None
+
+    img = Image.open(logo_path).convert("RGBA")
+    new_pixels = []
+    for r, g, b, a in img.getdata():
+        # Treat near-white pixels as fully transparent (background removal)
+        if r > 220 and g > 220 and b > 220:
+            new_pixels.append((255, 255, 255, 0))
+        else:
+            # Map colour darkness → opacity so mid-tones become semi-transparent
+            # and rich dark pixels become fully opaque white.
+            darkness = 1.0 - (r + g + b) / (3.0 * 255.0)
+            alpha = min(255, round(darkness * 2.2 * 255))
+            new_pixels.append((255, 255, 255, alpha))
+    img.putdata(new_pixels)
+
+    # Crop to the non-transparent bounding box so the visible mark fills the
+    # scaled dimensions (removes empty padding rows/columns left by the
+    # original white background removal).
+    alpha_bbox = img.getbbox()   # returns None only for a fully-transparent image
+    if alpha_bbox:
+        img = img.crop(alpha_bbox)
+
+    # Scale to fit within bounding box
+    ow, oh = img.size
+    scale = min(max_w / ow, max_h / oh)
+    nw, nh = max(1, round(ow * scale)), max(1, round(oh * scale))
+    return img.resize((nw, nh), Image.LANCZOS)
+
 
 def make_gradient_bg(w: int, h: int) -> Image.Image:
     """Vertical linear gradient from BG_TOP to BG_BOTTOM."""
@@ -200,56 +247,112 @@ def draw_phone(canvas: Image.Image,
 def draw_headline(canvas: Image.Image,
                   line1: str, line2: str,
                   headline_h: int,
-                  canvas_w: int) -> None:
-    """Render a two-line headline centred in the headline band."""
+                  canvas_w: int,
+                  logo: "Image.Image | None" = None) -> int:
+    """
+    Render the app branding mark + two-line headline centred in the headline band.
+
+    Layout (top → bottom, all centred horizontally):
+        [logo or wordmark text]
+        [logo_gap]
+        [line 1 — bold]
+        [text_gap]
+        [line 2 — regular]
+    The whole block is vertically centred inside headline_h.
+
+    Returns the bottom Y pixel of the rendered content block so callers can
+    place subsequent elements (e.g. the decorative rule) below it.
+    """
     draw = ImageDraw.Draw(canvas)
 
-    # Scale font size to canvas width
+    # --- fonts ---
     size1 = max(28, round(canvas_w * 0.052))
     size2 = max(24, round(canvas_w * 0.042))
+    size_wm = max(20, round(canvas_w * 0.038))   # fallback wordmark size
 
     try:
-        font1 = ImageFont.truetype(FONT_BOLD,    size1)
-        font2 = ImageFont.truetype(FONT_REGULAR, size2)
+        font1  = ImageFont.truetype(FONT_BOLD,    size1)
+        font2  = ImageFont.truetype(FONT_REGULAR, size2)
+        font_wm = ImageFont.truetype(FONT_BOLD,   size_wm)
     except OSError:
-        font1 = font2 = ImageFont.load_default()
+        font1 = font2 = font_wm = ImageFont.load_default()
 
+    # --- measure headline text ---
     bb1 = draw.textbbox((0, 0), line1, font=font1)
     bb2 = draw.textbbox((0, 0), line2, font=font2)
-
     w1 = bb1[2] - bb1[0];  h1 = bb1[3] - bb1[1]
     w2 = bb2[2] - bb2[0];  h2 = bb2[3] - bb2[1]
-    gap = round(size1 * 0.30)
-    block_h = h1 + gap + h2
+    text_gap  = round(size1 * 0.30)
+    text_h    = h1 + text_gap + h2
 
-    # Vertically centred in the headline band
-    start_y = (headline_h - block_h) // 2
+    # --- measure / prepare brand mark ---
+    WORDMARK = "Authentic Steps"
+    logo_gap = round(canvas_w * 0.030)   # gap between mark and headline
 
-    shadow = 3  # pixel offset for text shadow
+    if logo is not None:
+        mark_w, mark_h = logo.size
+        mark_is_image  = True
+    else:
+        bb_wm   = draw.textbbox((0, 0), WORDMARK, font=font_wm)
+        mark_w  = bb_wm[2] - bb_wm[0]
+        mark_h  = bb_wm[3] - bb_wm[1]
+        mark_is_image = False
 
-    # Line 1
+    total_h = mark_h + logo_gap + text_h
+
+    # --- vertical centre the whole block inside the headline band ---
+    start_y = (headline_h - total_h) // 2
+    mark_y  = start_y
+    text_y  = start_y + mark_h + logo_gap
+
+    shadow = 3   # pixel offset for drop-shadow on text
+
+    # --- draw brand mark ---
+    if mark_is_image:
+        mark_x = (canvas_w - mark_w) // 2
+        # canvas is RGB; paste RGBA logo using its alpha channel as mask
+        canvas.paste(logo, (mark_x, mark_y), mask=logo.split()[3])
+    else:
+        # Fallback: render wordmark text in soft white
+        wm_x = (canvas_w - mark_w) // 2
+        draw.text((wm_x + shadow, mark_y + shadow), WORDMARK,
+                  fill=(0, 0, 0, 80), font=font_wm)
+        draw.text((wm_x, mark_y), WORDMARK, fill=WHITE_SOFT, font=font_wm)
+
+    # --- draw headline lines ---
     x1 = (canvas_w - w1) // 2
-    draw.text((x1 + shadow, start_y + shadow), line1, fill=(0, 0, 0, 80),  font=font1)
-    draw.text((x1,          start_y),           line1, fill=WHITE,          font=font1)
+    draw.text((x1 + shadow, text_y + shadow), line1, fill=(0, 0, 0, 80),  font=font1)
+    draw.text((x1,          text_y),           line1, fill=WHITE,          font=font1)
 
-    # Line 2
     x2 = (canvas_w - w2) // 2
-    y2 = start_y + h1 + gap
+    y2 = text_y + h1 + text_gap
     draw.text((x2 + shadow, y2 + shadow), line2, fill=(0, 0, 0, 80),   font=font2)
     draw.text((x2,          y2),           line2, fill=WHITE_SOFT,       font=font2)
 
+    # Return the bottom pixel of the content block so callers can position
+    # subsequent elements (e.g. the decorative rule) safely below it.
+    return y2 + h2
+
 
 def add_decorative_rule(canvas: Image.Image,
+                        content_bottom_y: int,
                         headline_h: int,
                         canvas_w: int) -> None:
-    """A subtle horizontal rule that sits below the headline text block."""
+    """
+    Draw the subtle teal rule below the headline content block.
+
+    The rule is placed a fixed gap below content_bottom_y (not at a fixed
+    percentage of the header) so it cannot overlap the text regardless of
+    how tall the branding block is.
+    """
     draw  = ImageDraw.Draw(canvas)
     rule_w = round(canvas_w * 0.12)
     rule_h = max(3, round(canvas_w * 0.003))
     rx = (canvas_w - rule_w) // 2
-    # Place it at roughly 82 % of the headline band
-    ry = round(headline_h * 0.82)
-    # Colour: teal-ish, semi-transparent-looking (blended with bg)
+    gap_below_text = max(8, round(canvas_w * 0.012))
+    ry = content_bottom_y + gap_below_text
+    # Clamp so the rule stays within the headline band
+    ry = min(ry, headline_h - rule_h - 4)
     draw.rounded_rectangle(
         [rx, ry, rx + rule_w, ry + rule_h],
         radius=rule_h // 2,
@@ -261,7 +364,8 @@ def add_decorative_rule(canvas: Image.Image,
 # ---------------------------------------------------------------------------
 
 def generate(name: str, line1: str, line2: str,
-             size_key: str) -> None:
+             size_key: str,
+             logo: "Image.Image | None" = None) -> None:
     canvas_w, canvas_h = SIZES[size_key]
     out_path = os.path.join(OUT_DIRS[size_key], f"{name}.jpg")
     raw_path = os.path.join(RAW_DIR, f"{name}.jpg")
@@ -311,11 +415,11 @@ def generate(name: str, line1: str, line2: str,
                screen_x, screen_y, screen_w, screen_h,
                screenshot, corner_r)
 
-    # Headline text
-    draw_headline(canvas, line1, line2, headline_area_h, canvas_w)
+    # Headline text (with logo/wordmark above); returns bottom Y of content block
+    content_bottom = draw_headline(canvas, line1, line2, headline_area_h, canvas_w, logo=logo)
 
-    # Subtle decorative rule below text
-    add_decorative_rule(canvas, headline_area_h, canvas_w)
+    # Subtle decorative rule anchored below the content block (not at a fixed %)
+    add_decorative_rule(canvas, content_bottom, headline_area_h, canvas_w)
 
     # Save
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -327,8 +431,19 @@ def main() -> None:
     for size_key in ("ios_6.7", "ios_6.5", "play_store"):
         canvas_w, canvas_h = SIZES[size_key]
         print(f"\n── {size_key}  {canvas_w}×{canvas_h} ──")
+
+        # Logo target dimensions: up to 38 % of canvas width, max 20 % of canvas height.
+        # Scaled once per output size so proportions stay consistent.
+        logo_max_w = round(canvas_w * 0.38)
+        logo_max_h = round(canvas_h * 0.20)
+        logo = load_logo_white(logo_max_w, logo_max_h)
+        if logo:
+            print(f"  logo {logo.size[0]}×{logo.size[1]} from asset")
+        else:
+            print("  logo: no asset found — using text wordmark")
+
         for name, line1, line2 in SCREENS:
-            generate(name, line1, line2, size_key)
+            generate(name, line1, line2, size_key, logo=logo)
 
     total = len(SCREENS) * len(SIZES)
     print(f"\nDone — {total} store-ready screenshots generated.")
