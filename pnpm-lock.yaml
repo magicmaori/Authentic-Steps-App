@@ -192,6 +192,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/legal-content':
+        specifier: workspace:*
+        version: link:../../lib/legal-content
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -256,6 +259,9 @@ importers:
       '@react-native-community/datetimepicker':
         specifier: ^9.1.0
         version: 9.1.0(expo@54.0.35)(react-native@0.81.5(@babel/core@7.29.6)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      '@workspace/legal-content':
+        specifier: workspace:*
+        version: link:../../lib/legal-content
       expo-av:
         specifier: ~16.0.8
         version: 16.0.8(expo@54.0.35)(react-native-web@0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.6)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -727,6 +733,8 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+
+  lib/legal-content: {}
 
   scripts:
     dependencies:
