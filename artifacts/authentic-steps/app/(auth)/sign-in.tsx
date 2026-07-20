@@ -137,7 +137,7 @@ export default function SignInScreen() {
     try {
       const { createdSessionId, setActive } = await startSSOFlow({
         strategy: 'oauth_google',
-        redirectUrl: AuthSession.makeRedirectUri(),
+        redirectUrl: AuthSession.makeRedirectUri({ scheme: 'authentic-steps' }),
       });
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId, navigate: goHome });
