@@ -47,7 +47,7 @@
           }
         ]
       },
-      "buildNumber": "2"
+      "buildNumber": "4"
     },
     "android": {
       "package": "org.authenticsteps.youth",
