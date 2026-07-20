@@ -48,17 +48,27 @@ const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const clerkProxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
 /**
- * Shows the normal loading screen for CLERK_TIMEOUT_MS, then surfaces a
- * recovery button so the app is never permanently stuck.
- * Stale SecureStore tokens from a previous install are the most common cause
- * of Clerk hanging before it makes any network request.
- * On a fresh install there are no cached keys, so we show a neutral
- * "check your connection" message instead of the misleading cache copy.
+ * Shows the normal loading screen for CLERK_TIMEOUT_MS, then either
+ * silently auto-retries (no cached session = server cold-start) or surfaces
+ * a recovery button (cached session = stale token).
+ *
+ * Auto-retry strategy:
+ *   - No cached session: retry up to MAX_AUTO_RETRIES times transparently,
+ *     then show a manual "Retry" button. Handles Replit cold-start delays.
+ *   - Cached session: show "Clear cache & retry" immediately (stale JWT).
  */
-const CLERK_TIMEOUT_MS = 15_000;
+const CLERK_TIMEOUT_MS = 30_000;
+const MAX_AUTO_RETRIES = 3;
 
-function ClerkLoadingGuard({ onClearAndRetry }: { onClearAndRetry: () => void }) {
+function ClerkLoadingGuard({
+  onRetry,
+  onClearAndRetry,
+}: {
+  onRetry: () => void;
+  onClearAndRetry: () => void;
+}) {
   const [timedOut, setTimedOut] = useState(false);
+  const [autoRetryCount, setAutoRetryCount] = useState(0);
   const [hasCachedSession, setHasCachedSession] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -76,7 +86,16 @@ function ClerkLoadingGuard({ onClearAndRetry }: { onClearAndRetry: () => void })
   useEffect(() => {
     const t = setTimeout(() => setTimedOut(true), CLERK_TIMEOUT_MS);
     return () => clearTimeout(t);
-  }, []);
+  }, [autoRetryCount]);
+
+  useEffect(() => {
+    if (!timedOut) return;
+    if (hasCachedSession === false && autoRetryCount < MAX_AUTO_RETRIES) {
+      setTimedOut(false);
+      setAutoRetryCount((n) => n + 1);
+      onRetry();
+    }
+  }, [timedOut, hasCachedSession, autoRetryCount, onRetry]);
 
   if (!timedOut) return <AccessLoading />;
 
@@ -93,7 +112,7 @@ function ClerkLoadingGuard({ onClearAndRetry }: { onClearAndRetry: () => void })
           : "Check your connection and tap Retry to try again."}
       </Text>
       <TouchableOpacity
-        onPress={onClearAndRetry}
+        onPress={hasCache ? onClearAndRetry : onRetry}
         style={{ marginTop: 32, backgroundColor: "#fff", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32 }}
         activeOpacity={0.85}
       >
@@ -247,6 +266,10 @@ export default function RootLayout() {
     setSplashDone(true);
   }, []);
 
+  const retryClerk = useCallback(() => {
+    setClerkKey((n) => n + 1);
+  }, []);
+
   const clearClerkCacheAndRetry = useCallback(async () => {
     await Promise.allSettled(
       CLERK_SECURE_STORE_KEYS.map((k) => SecureStore.deleteItemAsync(k))
@@ -274,7 +297,7 @@ export default function RootLayout() {
             <GestureHandlerRootView style={{ flex: 1 }}>
               <KeyboardProvider>
                 <ClerkLoading>
-                  <ClerkLoadingGuard onClearAndRetry={clearClerkCacheAndRetry} />
+                  <ClerkLoadingGuard onRetry={retryClerk} onClearAndRetry={clearClerkCacheAndRetry} />
                 </ClerkLoading>
                 <ClerkLoaded>
                   <AuthTokenSync />
