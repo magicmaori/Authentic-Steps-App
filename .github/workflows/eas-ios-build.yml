@@ -1,0 +1,45 @@
+name: EAS iOS Build & TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit_to_testflight:
+        description: 'Submit to TestFlight after build?'
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    name: Build & Submit iOS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build iOS (TestFlight)
+        working-directory: artifacts/authentic-steps
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@16 build --platform ios --profile preview --non-interactive
+
+      - name: Submit to TestFlight
+        if: ${{ inputs.submit_to_testflight }}
+        working-directory: artifacts/authentic-steps
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx eas-cli@16 submit --platform ios --profile preview --non-interactive --latest
