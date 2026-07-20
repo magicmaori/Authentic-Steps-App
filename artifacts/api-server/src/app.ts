@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
 import router from "./routes";
+import legalRouter from "./routes/legal";
 import { logger } from "./lib/logger";
 import {
   CLERK_PROXY_PATH,
@@ -53,5 +54,9 @@ app.use(
 );
 
 app.use("/api", router);
+
+// Public legal pages — served without the /api prefix so the URLs can be
+// pasted directly into App Store Connect and Google Play Console.
+app.use(legalRouter);
 
 export default app;
