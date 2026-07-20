@@ -1,12 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColors } from '@/hooks/useColors';
 
 type DocType = 'privacy' | 'terms' | 'safe-messaging';
+
+/** Mirrors the apiDomain() helper in lib/videoSource.ts — same source of truth. */
+function legalBaseUrl(): string | null {
+  const domain = process.env.EXPO_PUBLIC_DOMAIN;
+  if (!domain) return null;
+  const clean = domain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  return `https://${clean}`;
+}
+
+const LEGAL_URL_PATHS: Partial<Record<DocType, string>> = {
+  privacy: '/privacy',
+  terms: '/terms',
+};
 
 interface Section {
   heading?: string;
@@ -143,7 +156,11 @@ export default function LegalScreen() {
   const insets = useSafeAreaInsets();
   const { type } = useLocalSearchParams<{ type: string }>();
 
-  const doc = DOCS[(type as DocType)] ?? PRIVACY;
+  const docType = (type as DocType);
+  const doc = DOCS[docType] ?? PRIVACY;
+  const urlPath = LEGAL_URL_PATHS[docType];
+  const base = legalBaseUrl();
+  const onlineUrl = base && urlPath ? `${base}${urlPath}` : null;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -167,6 +184,17 @@ export default function LegalScreen() {
         <Text style={[styles.title, { color: colors.foreground }]}>{doc.title}</Text>
         {doc.subtitle ? (
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{doc.subtitle}</Text>
+        ) : null}
+        {onlineUrl ? (
+          <Pressable
+            onPress={() => Linking.openURL(onlineUrl)}
+            style={({ pressed }) => [styles.viewOnlineBtn, { opacity: pressed ? 0.6 : 1 }]}
+            accessibilityRole="link"
+            accessibilityLabel={`View ${doc.title} online`}
+          >
+            <Ionicons name="open-outline" size={14} color={colors.primary} />
+            <Text style={[styles.viewOnlineText, { color: colors.primary }]}>View online</Text>
+          </Pressable>
         ) : null}
 
         {doc.sections.map((section, i) => (
@@ -228,5 +256,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter_400Regular',
     lineHeight: 22,
+  },
+  viewOnlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    marginTop: -8,
+  },
+  viewOnlineText: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
   },
 });
